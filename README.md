@@ -138,19 +138,6 @@ For collaboration, feedback, or technical discussions, please contact the team.
 ---
 
 **⚠️ Note**: This system is designed for educational and research purposes. Always validate AI-generated recommendations before implementing in production environments.
-```
+## 🏷️ Topics
 
-## GitHub Topics/Tags to Add:
-```
-cybersecurity
-threat-intelligence
-incident-response
-ai-security
-machine-learning
-nextjs
-typescript
-soar
-security-automation
-vulnerability-management
-threat-detection
-mitre-attack
+`cybersecurity`, `threat-intelligence`, `incident-response`, `ai-security`, `machine-learning`, `nextjs`, `typescript`, `soar`, `security-automation`, `vulnerability-management`, `threat-detection`, `mitre-attack`
