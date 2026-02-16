@@ -165,7 +165,6 @@ Comprehensive documentation is available in the `/docs` directory:
 | 🔌 **API Documentation** | Complete REST API reference with examples | [View](./docs/api.md) |
 | 📖 **User Guide** | End-user documentation and tutorials | [View](./docs/user-guide.md) |
 | 🛠️ **Development Setup** | Local development environment setup | [View](./docs/setup.md) |
-| 📁 **Project Structure** | Complete directory structure reference | [View](./PROJECT_STRUCTURE.md) |
 
 ---
 
@@ -353,7 +352,5 @@ CyberGuard processes potentially sensitive security data. Ensure:
 **Built with ❤️ by the CyberGuard Team**
 
 🎓 Lahore University for Women University
-
-[⬆ Back to Top](#-cyberguard-platform)
 
 </div>
