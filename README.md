@@ -555,9 +555,10 @@ mongosh mongodb://localhost:27017
 | Document | Description |
 |---|---|
 | [Architecture Overview](./docs/architecture.md) | System design, components, and data flows |
-| [API Documentation](./docs/api.md) | Complete REST API reference |
-| [Development Setup](./docs/setup.md) | Local environment configuration |
-| [User Guide](./docs/user-guide.md) | End-user tutorials and workflows |
+| [API Documentation](./docs/fastapi_setup.md) | Complete REST API reference |
+| [Quick Start](./docs/quick_start.md) | Local environment configuration |
+| [Implementation Details](./docs/implementation_summary.md) | End-user tutorials and workflows |
+| [Backend Setup](./docs/backend_setup.md) | Backend setup and configuration |
 | [Interactive Swagger UI](http://localhost:8000/docs) | Live API testing interface |
 
 ---
