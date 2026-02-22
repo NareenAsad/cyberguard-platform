@@ -445,25 +445,21 @@ npm run test:e2e
 |---|---|
 | Project Type | Final Year Project (FYP) |
 | Degree | Bachelor of Science (Software Engineering) |
-| Institution | Lahore University for Women University (LWUL) |
-| Session | 2022 – 2026 |
 | Current Phase | Development & Implementation (Semester 2) |
 
 ### 👥 Team Members
 
-| Student ID | Name | Role |
-|---|---|---|
-| 2225165090 | **Anber Aziz** | AI/ML & Backend |
-| 2225165126 | **Minahil Irfan** | Frontend & UI/UX |
-| 2225165131 | **Nareen Asad** | Backend & APIs |
-| 2225165139 | **Sunbal Aziz** | Frontend & Testing |
+| Name | Role |
+|---|---|
+| **Anber Aziz** | AI/ML & Backend |
+| **Minahil Irfan** | Frontend & UI/UX |
+| **Nareen Asad** | Backend & APIs |
+| **Sunbal Aziz** | Frontend & Testing |
 
 ### 🧑‍🏫 Supervision
 
 - **Supervisor**: Dr. Muhammad Mohsin Nazir
 - **Title**: Head of Department, Software Engineering
-- **Institution**: Lahore University for Women University
-
 ---
 
 ## 🗺️ Project Roadmap
@@ -577,17 +573,9 @@ mongosh mongodb://localhost:27017
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
-
----
-
 <div align="center">
 
 **Built with ❤️ by the CyberGuard Team**
-
-🎓 Lahore University for Women University, Lahore — Software Engineering Department
 
 **Version:** 1.0.0 &nbsp;|&nbsp; **Status:** In Active Development &nbsp;|&nbsp; **Last Updated:** February 2026
 
