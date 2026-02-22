@@ -1,513 +1,615 @@
-# System Architecture
+# CyberGuard Full-Stack Architecture Guide
 
-## Overview
+## System Overview
 
-CyberGuard employs a microservices-based architecture organized into five primary layers, designed for scalability, maintainability, and independent component evolution.
+CyberGuard is a production-grade AI-driven cybersecurity platform built with a modern microservices architecture. It aggregates CVE data, analyzes organizational assets, calculates contextual risk scores, and generates AI-based incident response playbooks.
 
-## High-Level Architecture
+## Technology Stack
+
+### Frontend
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **State Management:** SWR for client-side data fetching
+- **UI Components:** Shadcn/ui
+- **Charts:** Recharts
+- **Authentication:** JWT tokens with secure storage
+
+### Backend Services
+- **API Server:** Express.js (Node.js)
+- **Language:** TypeScript
+- **AI Microservice:** FastAPI (Python)
+- **Message Queue:** Celery (optional, for async tasks)
+- **Caching:** Redis
+
+### Databases
+- **Structured Data:** PostgreSQL 13+
+  - Users, organizations, assets
+  - CVEs, risk scores, incidents
+  - Alerts, playbooks
+- **Unstructured Logs:** MongoDB 4.4+
+  - Incident logs and audit trails
+  - Threat intelligence logs
+  - System logs
+
+### External Integrations
+- **CVE Data:** NVD API, OTX API
+- **LLM:** OpenAI (for playbook generation)
+- **AI Models:** scikit-learn, PyTorch
+
+## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                        │
-│                     (Next.js Web Dashboard)                      │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                      BUSINESS LOGIC LAYER                        │
-│                  (Node.js REST API + Services)                   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                        AI AGENT LAYER                            │
-│              (Python + CrewAI + LangChain-Groq)                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────┐ │
-│  │  Threat  │ │Vulnerabi-│ │   Risk   │ │ Incident │ │Report-│ │
-│  │  Intel   │ │   lity   │ │ Analysis │ │ Response │ │  ing  │ │
-│  │  Agent   │ │Assessment│ │  Agent   │ │  Agent   │ │ Agent │ │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └───────┘ │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                    DATA COLLECTION LAYER                         │
-│              (API Connectors + Data Normalization)              │
-│  ┌─────┐  ┌─────┐  ┌──────────┐  ┌────────┐  ┌────────────┐   │
-│  │ NVD │  │ OTX │  │ThreatFox │  │URLhaus │  │ AbuseIPDB  │   │
-│  └─────┘  └─────┘  └──────────┘  └────────┘  └────────────┘   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                      DATA STORAGE LAYER                          │
-│         ┌─────────┐    ┌─────────┐    ┌─────────┐              │
-│         │ MongoDB │    │Supabase │    │  Redis  │              │
-│         │(Threats)│    │ (Users) │    │(Cache)  │              │
-│         └─────────┘    └─────────┘    └─────────┘              │
-└─────────────────────────────────────────────────────────────────┘
-```
+┌─────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER                          │
+├─────────────────────────────────────────────────────────────┤
+│  Next.js Frontend (Dashboard, Auth, Asset Management)        │
+│  - Real-time charts and alerts                              │
+│  - Authentication with JWT                                  │
+│  - Role-based access control                                │
+└─────────────────┬───────────────────────────────────────────┘
+                  │ HTTP/REST API
+                  │ (JWT Bearer Token)
+┌─────────────────┴───────────────────────────────────────────┐
+│                    API GATEWAY LAYER                         │
+├─────────────────────────────────────────────────────────────┤
+│  Express.js Backend (Port 3001)                             │
+│  - Authentication & Authorization                          │
+│  - Request validation & error handling                      │
+│  - Rate limiting & logging                                  │
+└────┬──────────────┬─────────────────────────┬───────────────┘
+     │              │                         │
+     │              │                         │
+┌────┴────┐    ┌────┴────┐            ┌─────┴──────┐
+│  CVE    │    │ Asset   │            │ Incident   │
+│ Manager │    │ Manager │            │  Manager   │
+└────┬────┘    └────┬────┘            └─────┬──────┘
+     │              │                       │
+     └──────────┬───┴───────────────────────┘
+                │
+        ┌───────┴──────────┐
+        │  FastAPI Service │  (Port 8000)
+        │  AI Microservice │
+        ├──────────────────┤
+        │ • Risk Scoring   │
+        │ • CVE Enrichment │
+        │ • Threat ML      │
+        │ • Playbooks      │
+        └────┬─────────────┘
+             │
+    ┌────────┴───────────┐
+    │  External APIs     │
+    ├────────────────────┤
+    │ • NVD API          │
+    │ • OTX API          │
+    │ • OpenAI (LLM)     │
+    └────────────────────┘
 
-## Layer Details
-
-### 1. Presentation Layer
-
-**Technology**: Next.js 16 + React 18 + TypeScript + Tailwind CSS
-
-**Components**:
-- **Dashboard**: Real-time threat visualization, alert feed, risk metrics
-- **Alert Management**: Incident investigation, response tracking
-- **Asset Management**: Inventory viewing and editing
-- **Reports**: Executive summaries, technical reports, compliance docs
-- **Settings**: Configuration, user management, integrations
-
-**Features**:
-- Server-side rendering for performance
-- Real-time updates via WebSocket (Socket.io)
-- Responsive design for desktop and mobile
-- Role-based UI access control
-
-### 2. Business Logic Layer
-
-**Technology**: Node.js + Express.js + TypeScript
-
-**Services**:
-
-```typescript
-// Authentication Service
-- User registration and login
-- JWT token generation and validation
-- Role-based access control (RBAC)
-- Session management
-
-// Asset Management Service
-- CRUD operations for assets
-- CSV import/export
-- Asset categorization and tagging
-- Version history tracking
-
-// Alert Management Service
-- Alert retrieval and filtering
-- Priority queue management
-- Incident assignment and tracking
-- Status updates and resolution
-
-// Configuration Service
-- System settings management
-- API credential storage (encrypted)
-- Notification preferences
-- Risk threshold configuration
-
-// Integration Service
-- Webhook endpoints for external systems
-- SIEM connectors (bidirectional)
-- RESTful API for programmatic access
-- Event streaming
-```
-
-**API Structure**:
-```
-/api/v1/
-├── auth/
-│   ├── POST /register
-│   ├── POST /login
-│   ├── POST /logout
-│   └── POST /refresh
-├── assets/
-│   ├── GET /assets
-│   ├── POST /assets
-│   ├── PUT /assets/:id
-│   ├── DELETE /assets/:id
-│   └── POST /assets/import
-├── alerts/
-│   ├── GET /alerts
-│   ├── GET /alerts/:id
-│   ├── PUT /alerts/:id/status
-│   └── POST /alerts/:id/response
-├── reports/
-│   ├── GET /reports
-│   ├── POST /reports/generate
-│   └── GET /reports/:id/download
-└── config/
-    ├── GET /config
-    └── PUT /config
-```
-
-### 3. AI Agent Layer
-
-**Technology**: Python 3.11 + CrewAI + LangChain + Groq API
-
-**Agent Architecture**:
-
-#### Threat Intelligence Agent
-```python
-Role: Threat Intelligence Analyst
-Goal: Monitor and filter relevant threats
-Responsibilities:
-- Poll data collection layer every 4 hours
-- Filter low-confidence indicators
-- Correlate threats across sources
-- Enrich with geolocation, ASN data
-- Identify threat campaigns
-```
-
-#### Vulnerability Assessment Agent
-```python
-Role: Vulnerability Analyst
-Goal: Map CVEs to organizational assets
-Responsibilities:
-- Parse asset inventory (CPE matching)
-- Cross-reference with NVD database
-- Version range comparison
-- Dependency analysis
-- Generate vulnerability-asset mappings
-```
-
-#### Risk Analysis Agent
-```python
-Role: Risk Assessment Specialist
-Goal: Prioritize threats by business impact
-Scoring Algorithm:
-- CVSS Base Score (40%)
-- Exploit availability (20%)
-- Asset criticality (20%)
-- Network exposure (10%)
-- Data sensitivity (10%)
-
-Output: Risk score (0-100)
-MITRE ATT&CK technique mapping
-```
-
-#### Incident Response Agent
-```python
-Role: Incident Response Coordinator
-Goal: Generate actionable playbooks
-Process:
-1. Receive threat context from Risk Agent
-2. Query LLM with structured prompt
-3. Generate playbook sections:
-   - Investigation procedures
-   - Containment strategies
-   - Eradication steps
-   - Recovery procedures
-   - Lessons learned
-4. Validate completeness
-5. Format for human readability
-```
-
-#### Reporting Agent
-```python
-Role: Security Reporter
-Goal: Generate multi-format documentation
-Report Types:
-- Executive Summary (business language)
-- Technical Report (detailed indicators)
-- Compliance Report (ISO 27001, NIST CSF)
-
-Features:
-- Natural language generation
-- Data visualization (charts, graphs)
-- Customizable templates
-```
-
-**Agent Communication**:
-```python
-from crewai import Agent, Task, Crew
-
-# Agent initialization
-threat_agent = Agent(role="Threat Intel", ...)
-vuln_agent = Agent(role="Vuln Assessment", ...)
-risk_agent = Agent(role="Risk Analysis", ...)
-incident_agent = Agent(role="Incident Response", ...)
-report_agent = Agent(role="Reporting", ...)
-
-# Task pipeline
-threat_task = Task(description="Collect threats", agent=threat_agent)
-vuln_task = Task(description="Map vulnerabilities", agent=vuln_agent)
-risk_task = Task(description="Calculate risk", agent=risk_agent)
-incident_task = Task(description="Generate playbook", agent=incident_agent)
-report_task = Task(description="Create report", agent=report_agent)
-
-# Execution
-crew = Crew(agents=[...], tasks=[...], process="sequential")
-result = crew.kickoff()
-```
-
-### 4. Data Collection Layer
-
-**Connectors**:
-
-```python
-# NVD Connector
-class NVDConnector:
-    base_url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-    rate_limit = "50 requests per 30 seconds"
-    
-    def fetch_recent_cves(self, last_modified_date):
-        # Query CVEs modified since last check
-        # Parse JSON response
-        # Normalize to internal schema
-        # Store in MongoDB
-        pass
-
-# OTX Connector
-class OTXConnector:
-    base_url = "https://otx.alienvault.com/api/v1"
-    
-    def fetch_pulses(self, modified_since):
-        # Retrieve threat pulses
-        # Extract IoCs (IPs, domains, hashes)
-        # Normalize and deduplicate
-        pass
-
-# ThreatFox Connector
-class ThreatFoxConnector:
-    base_url = "https://threatfox-api.abuse.ch/api/v1/"
-    
-    def fetch_malware_indicators(self):
-        # Get recent malware IoCs
-        # Extract C2 servers, file hashes
-        pass
-
-# URLhaus Connector
-class URLhausConnector:
-    base_url = "https://urlhaus-api.abuse.ch/v1/"
-    
-    def fetch_malicious_urls(self):
-        # Retrieve malicious URLs
-        # Parse payload information
-        pass
-
-# AbuseIPDB Connector
-class AbuseIPDBConnector:
-    base_url = "https://api.abuseipdb.com/api/v2/"
-    
-    def check_ip_reputation(self, ip_address):
-        # Query IP reputation score
-        # Get abuse confidence percentage
-        pass
-```
-
-**Data Normalization**:
-```python
-# Unified threat indicator schema
-{
-    "indicator_id": "uuid",
-    "type": "ip|domain|hash|url|cve",
-    "value": "actual_value",
-    "source": "nvd|otx|threatfox|urlhaus|abuseipdb",
-    "confidence": 0.0-1.0,
-    "severity": "critical|high|medium|low",
-    "first_seen": "ISO8601_timestamp",
-    "last_seen": "ISO8601_timestamp",
-    "tags": ["malware", "botnet", "phishing"],
-    "related_indicators": ["indicator_id"],
-    "metadata": {
-        "geolocation": {},
-        "asn": "",
-        "threat_actor": ""
-    }
-}
-```
-
-### 5. Data Storage Layer
-
-#### MongoDB (Threat Intelligence)
-```javascript
-// Collections
-threats_collection: {
-    indicator_id, type, value, source,
-    confidence, severity, timestamps,
-    tags, metadata
-}
-
-campaigns_collection: {
-    campaign_id, name, threat_actor,
-    indicators[], first_seen, last_seen
-}
-
-enrichment_collection: {
-    indicator_id, geolocation, asn,
-    whois_data, dns_records
-}
-```
-
-#### Supabase (PostgreSQL)
-```sql
--- Users table
-CREATE TABLE users (
-    id UUID PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Assets table
-CREATE TABLE assets (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(100) NOT NULL,
-    version VARCHAR(50),
-    cpe_string VARCHAR(255),
-    criticality VARCHAR(20),
-    owner_id UUID REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Alerts table
-CREATE TABLE alerts (
-    id UUID PRIMARY KEY,
-    threat_indicator_id VARCHAR(255),
-    asset_id UUID REFERENCES assets(id),
-    severity VARCHAR(20),
-    risk_score INTEGER,
-    status VARCHAR(50),
-    assigned_to UUID REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    resolved_at TIMESTAMP
-);
-
--- Incident Response table
-CREATE TABLE incident_responses (
-    id UUID PRIMARY KEY,
-    alert_id UUID REFERENCES alerts(id),
-    playbook_text TEXT,
-    steps_completed JSONB,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Redis (Caching)
-```
-# Cache structure
-active_threats_cache: TTL=300s (5 minutes)
-recent_alerts_cache: TTL=60s (1 minute)
-user_sessions: TTL=3600s (1 hour)
-rate_limit_counters: TTL=based on API limits
+┌─────────────────────────────────────────────────────────────┐
+│                      DATA LAYER                              │
+├─────────────────────────────────────────────────────────────┤
+│  PostgreSQL               │  MongoDB         │  Redis       │
+│  (Structured Data)        │  (Logs)          │  (Cache)     │
+│  ├─ Users                 │  ├─ Audit logs   │              │
+│  ├─ Organizations         │  ├─ Threat logs  │              │
+│  ├─ Assets                │  └─ System logs  │              │
+│  ├─ CVEs                  │                  │              │
+│  ├─ Risk Scores           │                  │              │
+│  ├─ Incidents             │                  │              │
+│  └─ Alerts                │                  │              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow
 
-### Threat Detection Workflow
+### 1. Authentication Flow
 
 ```
-1. Data Collection (Every 4 hours)
-   ↓
-2. Threat Intelligence Agent (Filter & Correlate)
-   ↓
-3. Vulnerability Assessment Agent (Map to Assets)
-   ↓
-4. Risk Analysis Agent (Score & Prioritize)
-   ↓
-5. Generate Alert (If risk_score > threshold)
-   ↓
-6. Store in Database + Cache
-   ↓
-7. WebSocket Notification to Dashboard
-   ↓
-8. User Views Alert
-   ↓
-9. Request Incident Response Playbook
-   ↓
-10. Incident Response Agent (Generate)
+User Login
     ↓
-11. User Reviews & Executes
+[Next.js Frontend]
+    ↓ POST /api/auth/login
+[Express Backend] - Validate credentials
     ↓
-12. Update Alert Status
+[PostgreSQL] - Query user
     ↓
-13. Generate Report (On-demand or Scheduled)
+[Express Backend] - Generate JWT token
+    ↓
+[Next.js Frontend] - Store token in memory
+    ↓
+Include in subsequent requests as Bearer token
 ```
 
-## Security Considerations
-
-1. **Authentication**: JWT tokens with refresh mechanism
-2. **Authorization**: Role-based access control (RBAC)
-3. **Data Encryption**: 
-   - TLS 1.3 for all communications
-   - AES-256 for sensitive data at rest
-4. **API Security**: Rate limiting, API key rotation
-5. **Input Validation**: Sanitize all user inputs
-6. **Audit Logging**: Track all security-relevant actions
-
-## Scalability Design
-
-1. **Horizontal Scaling**: 
-   - Stateless API servers (load balanced)
-   - MongoDB sharding for large datasets
-   
-2. **Caching Strategy**:
-   - Redis for frequently accessed data
-   - CDN for static assets
-   
-3. **Async Processing**:
-   - Message queues for long-running tasks
-   - Background workers for report generation
-
-## Monitoring & Observability
+### 2. CVE Processing Flow
 
 ```
-Metrics to Track:
-- API response times
-- Database query performance
-- Alert processing latency
-- Agent execution times
-- Cache hit rates
-- Error rates
+[Express Backend Scheduled Job]
+    ↓
+Fetch from NVD/OTX APIs
+    ↓
+[FastAPI] CVE Enrichment Service
+    ↓ Normalize data
+    ↓
+[PostgreSQL] Store CVE records
+    ↓
+[Redis] Cache enriched data (24h TTL)
+    ↓
+[Express Backend] Match CVEs to organizational assets
+    ↓
+[PostgreSQL] Update asset vulnerability counts
+```
 
-Logging:
-- Structured JSON logs
-- Centralized log aggregation
-- Log retention: 90 days
+### 3. Risk Scoring Flow
+
+```
+[Express Backend] Receives asset query
+    ↓
+Check [Redis] for cached risk scores
+    ↓ Cache miss
+    ↓
+POST to [FastAPI] /risk-score/calculate
+    ↓
+[FastAPI] Analyzes:
+    • CVE base score
+    • Asset criticality
+    • Exploit availability
+    • Industry factors
+    ↓
+Contextual risk score calculated
+    ↓
+[Redis] Cache result (1h TTL)
+    ↓
+Response to [Express Backend]
+    ↓
+Response to [Next.js Frontend]
+```
+
+### 4. Incident Response Flow
+
+```
+[User] Creates/Detects Incident
+    ↓
+[Next.js Frontend] POST /api/incidents
+    ↓
+[Express Backend] Create incident record
+    ↓ Store in [PostgreSQL]
+    ↓
+[User] Requests playbook generation
+    ↓
+POST to [FastAPI] /playbook/generate
+    ↓
+[FastAPI] Uses LLM (OpenAI GPT-4)
+    • Understands CVE context
+    • Knows asset configuration
+    • Considers organization size/industry
+    ↓ Generates steps
+    ↓
+[MongoDB] Store playbook
+    ↓
+[PostgreSQL] Link playbook to incident
+    ↓
+[Next.js Frontend] Display playbook steps
+```
+
+## Authentication & Authorization
+
+### JWT Token Structure
+
+```json
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "userId": "user-uuid",
+    "email": "user@example.com",
+    "organizationId": "org-uuid",
+    "role": "analyst",
+    "iat": 1704067200,
+    "exp": 1704068100
+  }
+}
+```
+
+### Role-Based Access Control (RBAC)
+
+| Role | Permissions |
+|------|------------|
+| **Admin** | Full access - users, org settings, all data operations |
+| **Analyst** | Read all, create/edit incidents, generate playbooks |
+| **Viewer** | Read-only access to dashboard and reports |
+
+### API Key Authentication
+
+For integrations:
+- Generate API keys in user profile
+- Keys hashed before storage
+- Include in `X-API-Key` header
+- Scoped to organization
+
+## Security Measures
+
+### 1. Password Security
+- Hashed with bcrypt (12 salt rounds)
+- Minimum 8 characters
+- Never logged or exposed
+
+### 2. Token Security
+- JWT signed with HS256
+- Short expiry: 15 minutes (access token)
+- Refresh tokens: 7 days
+- Tokens stored in memory (not localStorage)
+
+### 3. Data Protection
+- PostgreSQL connections over SSL
+- API keys hashed before storage
+- Sensitive data encrypted at rest
+- Row-level security (RLS) for MongoDB
+
+### 4. Network Security
+- CORS restricted to frontend domain
+- Rate limiting on auth endpoints
+- HTTPS enforced in production
+- API request logging and monitoring
+
+### 5. Input Validation
+- All inputs validated against Pydantic schemas
+- SQL injection prevention with parameterized queries
+- XSS prevention through React
+- CSRF tokens for state-changing operations
+
+## Database Schema
+
+### PostgreSQL Core Tables
+
+```sql
+-- Users
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  password_hash VARCHAR,
+  role VARCHAR, -- admin, analyst, viewer
+  organization_id UUID FOREIGN KEY
+);
+
+-- Assets
+CREATE TABLE assets (
+  id UUID PRIMARY KEY,
+  organization_id UUID,
+  name VARCHAR,
+  cpe VARCHAR, -- Common Platform Enumeration
+  criticality VARCHAR, -- critical, high, medium, low
+  vulnerability_count INT,
+  risk_score NUMERIC,
+  FOREIGN KEY (organization_id)
+);
+
+-- CVEs
+CREATE TABLE cves (
+  id UUID PRIMARY KEY,
+  cve_id VARCHAR UNIQUE, -- CVE-2024-XXXXX
+  severity VARCHAR,
+  base_score NUMERIC,
+  exploitability_score NUMERIC,
+  published_date TIMESTAMP,
+  source VARCHAR -- nvd, otx, both
+);
+
+-- Risk Scores
+CREATE TABLE risk_scores (
+  id UUID PRIMARY KEY,
+  asset_id UUID FOREIGN KEY,
+  cve_id UUID FOREIGN KEY,
+  contextual_score NUMERIC,
+  calculated_at TIMESTAMP
+);
+
+-- Incidents
+CREATE TABLE incidents (
+  id UUID PRIMARY KEY,
+  organization_id UUID,
+  title VARCHAR,
+  status VARCHAR, -- open, investigating, resolved
+  cve_ids VARCHAR[],
+  assigned_to UUID FOREIGN KEY (users)
+);
+
+-- Playbooks
+CREATE TABLE incident_playbooks (
+  id UUID PRIMARY KEY,
+  incident_id UUID FOREIGN KEY,
+  cve_id UUID FOREIGN KEY,
+  steps JSONB, -- Array of playbook steps
+  estimated_time_to_resolve INT
+);
+```
+
+### MongoDB Collections
+
+```javascript
+// Incident Logs
+db.incident_logs.insertOne({
+  _id: ObjectId,
+  incident_id: "uuid",
+  organization_id: "uuid",
+  action: "created",
+  timestamp: new Date(),
+  actor_id: "uuid",
+  details: { ... }
+});
+
+// Threat Intelligence
+db.threat_logs.insertOne({
+  _id: ObjectId,
+  organization_id: "uuid",
+  threat_type: "malware",
+  indicators: [...],
+  detected_at: new Date(),
+  related_cves: [...]
+});
+
+// System Logs
+db.system_logs.insertOne({
+  _id: ObjectId,
+  level: "info|warning|error|critical",
+  message: "Log message",
+  timestamp: new Date(),
+  source: "service-name",
+  metadata: { ... }
+});
 ```
 
 ## Deployment Architecture
 
-```
-┌─────────────────┐
-│   Load Balancer │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    │  Nginx  │ (Reverse Proxy)
-    └────┬────┘
-         │
-    ┌────┴──────────────────────┐
-    │                           │
-┌───┴────┐              ┌──────┴──────┐
-│Next.js │              │  Node.js API│
-│Frontend│              │   Backend   │
-└────────┘              └──────┬──────┘
-                               │
-                      ┌────────┴────────┐
-                      │                 │
-                ┌─────┴─────┐    ┌─────┴──────┐
-                │  Python   │    │ Databases  │
-                │ AI Agents │    │   Cluster  │
-                └───────────┘    └────────────┘
+### Local Development
+
+```bash
+# Terminal 1 - PostgreSQL + MongoDB
+docker-compose up postgres mongodb redis
+
+# Terminal 2 - Express Backend
+cd backend && npm run dev
+
+# Terminal 3 - FastAPI Service
+cd fastapi-service && python -m uvicorn app.main:app --reload
+
+# Terminal 4 - Next.js Frontend
+cd frontend && npm run dev
 ```
 
-## Technology Justification
+### Docker Compose Production
 
-| Component | Technology | Justification |
-|-----------|-----------|---------------|
-| Frontend | Next.js + React | SSR performance, modern dev experience |
-| Backend API | Node.js + Express | Non-blocking I/O, JavaScript ecosystem |
-| AI Agents | Python + CrewAI | Rich ML/AI libraries, agent framework |
-| LLM | Groq + Llama 3.1 | Ultra-fast inference, cost-effective |
-| Threat DB | MongoDB | Flexible schema for varied indicators |
-| User DB | Supabase (PostgreSQL) | Relational integrity, built-in auth |
-| Cache | Redis | Sub-millisecond latency |
-| Real-time | Socket.io | Bidirectional event-based communication |
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: cyberguard_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://cyberguard:password@postgres:5432/cyberguard_db
+      MONGODB_URI: mongodb://mongodb:27017/cyberguard_logs
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+
+  fastapi:
+    build: ./fastapi-service
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://cyberguard:password@postgres:5432/cyberguard_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_FASTAPI_URL: http://localhost:8000
+
+volumes:
+  postgres_data:
+  mongodb_data:
+```
+
+### Production Deployment
+
+**Option 1: Kubernetes (Recommended)**
+- Docker images for each service
+- Helm charts for deployment
+- Horizontal pod autoscaling
+- Persistent volumes for databases
+- Ingress controller for routing
+
+**Option 2: Cloud Platforms**
+- **AWS:** ECS/Fargate for services, RDS for PostgreSQL, DocumentDB for MongoDB
+- **Google Cloud:** Cloud Run for services, Cloud SQL, Firestore
+- **Azure:** Container Instances, Azure Database for PostgreSQL, Cosmos DB
+
+## Performance Optimization
+
+### Caching Strategy
+
+1. **Database Query Results** (Redis, 5 minutes)
+   - Risk scores for assets
+   - CVE details
+   - Dashboard statistics
+
+2. **Enriched CVE Data** (Redis, 24 hours)
+   - Normalized CVE information
+   - Exploit probability
+
+3. **User Profiles** (Redis, 1 hour)
+   - User details and permissions
+   - Organization settings
+
+### Query Optimization
+
+1. **Indexing**
+   ```sql
+   -- PostgreSQL indexes
+   CREATE INDEX idx_assets_organization ON assets(organization_id);
+   CREATE INDEX idx_risk_scores_asset ON risk_scores(asset_id);
+   CREATE INDEX idx_cves_severity ON cves(severity);
+   ```
+
+2. **Pagination**
+   - All list endpoints paginated (default 20 items)
+   - Cursor-based pagination for large datasets
+
+3. **Batch Processing**
+   - CVE matching done in batches
+   - Risk calculation queued for bulk operations
+
+## Monitoring & Observability
+
+### Logging
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "level": "info|warning|error|critical",
+  "service": "express|fastapi|frontend",
+  "message": "Descriptive message",
+  "userId": "user-uuid",
+  "organizationId": "org-uuid",
+  "requestId": "correlation-id",
+  "duration_ms": 150,
+  "status_code": 200
+}
+```
+
+### Key Metrics
+
+- **Availability:** % of successful API requests
+- **Response Time:** P50, P95, P99 latencies
+- **Error Rate:** % of failed requests by error type
+- **CVE Processing Time:** Time from fetch to storage
+- **Risk Score Calculation:** Latency for score computation
+- **ML Model Performance:** Accuracy, precision, recall
+
+### Alerting
+
+- Error rate > 1%
+- Response latency P99 > 2 seconds
+- Database connection pool exhausted
+- CVE sync failures
+- Playbook generation timeouts
+
+## CI/CD Pipeline
+
+```
+┌─ Git Push
+│
+├─ Code Quality Checks
+│  ├─ ESLint / Prettier
+│  ├─ TypeScript type checking
+│  └─ Pylint / Black
+│
+├─ Unit Tests
+│  ├─ Jest (frontend)
+│  ├─ Mocha/Chai (backend)
+│  └─ Pytest (fastapi)
+│
+├─ Integration Tests
+│  ├─ API endpoint tests
+│  └─ Database migration tests
+│
+├─ Build
+│  ├─ Frontend build
+│  ├─ Backend build
+│  └─ FastAPI build
+│
+├─ Security Scanning
+│  ├─ Dependency vulnerability check
+│  ├─ SAST analysis
+│  └─ Container scanning
+│
+└─ Deploy
+   ├─ Staging environment
+   ├─ Smoke tests
+   └─ Production environment
+```
+
+## Troubleshooting Guide
+
+### Common Issues
+
+1. **JWT Token Expired**
+   - Use refresh token endpoint
+   - Automatic refresh handled by client
+
+2. **CVE Sync Failures**
+   - Check NVD/OTX API keys
+   - Verify network connectivity
+   - Review rate limiting
+
+3. **Risk Score Calculation Slow**
+   - Check Redis cache hit rate
+   - Verify FastAPI service health
+   - Scale FastAPI replicas if needed
+
+4. **Database Connection Issues**
+   - Verify connection strings
+   - Check database is running
+   - Review connection pool settings
 
 ## Future Enhancements
 
-1. **Machine Learning Models**: Anomaly detection, predictive analytics
-2. **Mobile Application**: Native iOS/Android apps
-3. **Advanced Integrations**: EDR tools, cloud security platforms
-4. **Multi-tenancy**: Support for multiple organizations
-5. **Automated Remediation**: Execute containment actions automatically
+1. **GraphQL API** - Alternative to REST for complex queries
+2. **Real-time Websockets** - Live incident updates
+3. **Multi-tenancy** - Enterprise support
+4. **Advanced ML Models** - Custom threat detection
+5. **SIEM Integration** - Connect with existing tools
+6. **Compliance Reporting** - NIST, PCI-DSS reporting
+
+## Documentation Files
+
+- `BACKEND_SETUP.md` - Express backend detailed setup
+- `FASTAPI_SETUP.md` - FastAPI microservice setup
+- `scripts/postgres-schema.sql` - Database schema
+- API documentation available at `/api/docs` (Swagger UI)
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: February 2025  
-**Maintained By**: CyberGuard Development Team
+**Last Updated:** 2026-02-22
+**Version:** 1.0.0
