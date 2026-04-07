@@ -1,65 +1,117 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { AlertTriangle, TrendingUp, Shield, Activity } from 'lucide-react'
+import { MetricCard } from '@/components/metric-card'
+import { ThreatChart } from '@/components/threat-chart'
+import { dashboardMetrics, chartData, threatData, incidents } from '@/lib/mock-data'
+
+export default function DashboardPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+      {/* Page Title */}
+      <div>
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Dashboard</h2>
+        <p className="text-sm md:text-base text-muted-foreground">Real-time security monitoring and threat detection</p>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <MetricCard
+          title="Threats Detected"
+          value={dashboardMetrics.threatsDetected.toLocaleString()}
+          change={dashboardMetrics.threatsDetectedChange}
+          icon={<AlertTriangle className="w-8 h-8" />}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <MetricCard
+          title="Risk Score"
+          value={dashboardMetrics.riskScore}
+          change={dashboardMetrics.riskScoreChange}
+          unit="%"
+          icon={<TrendingUp className="w-8 h-8" />}
+        />
+        <MetricCard
+          title="Active Incidents"
+          value={dashboardMetrics.incidentsActive}
+          change={dashboardMetrics.incidentsActiveChange}
+          icon={<Shield className="w-8 h-8" />}
+        />
+        <MetricCard
+          title="Systems Monitored"
+          value={dashboardMetrics.systemsMonitored}
+          change={dashboardMetrics.systemsMonitoredChange}
+          icon={<Activity className="w-8 h-8" />}
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2">
+          <ThreatChart data={chartData} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Quick Stats */}
+        <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Quick Stats</h3>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center pb-3 border-b border-border">
+              <span className="text-sm text-muted-foreground">Detection Rate</span>
+              <span className="font-semibold text-foreground">77%</span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b border-border">
+              <span className="text-sm text-muted-foreground">Response Time</span>
+              <span className="font-semibold text-foreground">2.3 min</span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b border-border">
+              <span className="text-sm text-muted-foreground">False Positives</span>
+              <span className="font-semibold text-foreground">3%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">System Uptime</span>
+              <span className="font-semibold text-foreground">99.99%</span>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Recent Incidents */}
+      <div className="bg-card border border-border rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-6">Recent Incidents</h3>
+
+        <div className="space-y-4">
+          {incidents.slice(0, 3).map((incident) => (
+            <div
+              key={incident.id}
+              className="p-4 border border-border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h4 className="font-semibold text-foreground">{incident.title}</h4>
+                  <p className="text-sm text-muted-foreground">{incident.id}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${incident.severity === 'critical'
+                    ? 'bg-destructive/20 text-destructive'
+                    : incident.severity === 'high'
+                      ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                  {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">{incident.description}</p>
+              <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                <span className="text-xs text-muted-foreground">{incident.assignee}</span>
+                <span className={`text-xs font-medium px-2 py-1 rounded ${incident.status === 'resolved'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-orange-500/20 text-orange-400'
+                  }`}>
+                  {incident.status === 'resolved' ? 'Resolved' : 'In Progress'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
