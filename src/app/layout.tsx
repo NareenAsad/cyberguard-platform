@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
-import { Sidebar } from '@/components/sidebar'
-import { Header } from '@/components/header'
+import { Sidebar } from '@/components/layout/sidebar'
+import { Header } from '@/components/layout/header'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 

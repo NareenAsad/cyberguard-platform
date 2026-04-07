@@ -26,16 +26,16 @@ export function ThreatChart({ data }: ThreatChartProps) {
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
-          <XAxis 
-            dataKey="name" 
+          <XAxis
+            dataKey="name"
             stroke="rgba(100, 116, 139, 0.8)"
             style={{ fontSize: '12px' }}
           />
-          <YAxis 
+          <YAxis
             stroke="rgba(100, 116, 139, 0.8)"
             style={{ fontSize: '12px' }}
           />
-          <Tooltip 
+          <Tooltip
             contentStyle={{
               backgroundColor: 'rgba(18, 26, 58, 0.95)',
               border: '1px solid rgba(30, 41, 59, 0.5)',
@@ -44,7 +44,7 @@ export function ThreatChart({ data }: ThreatChartProps) {
             labelStyle={{ color: 'rgba(232, 234, 246, 1)' }}
             itemStyle={{ color: 'rgba(6, 182, 212, 1)' }}
           />
-          <Legend 
+          <Legend
             wrapperStyle={{ paddingTop: '20px' }}
             iconType="line"
           />
