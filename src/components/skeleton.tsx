@@ -1,5 +1,5 @@
-export function Skeleton() {
-  return <div className="animate-pulse bg-secondary/30 rounded-lg" />
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-secondary/30 rounded-lg ${className || ''}`} />
 }
 
 export function MetricCardSkeleton() {
