@@ -1,6 +1,3 @@
-// API Service Layer for CyberGuard
-// Centralized API calls - switch USE_API_FALLBACK to enable/disable API usage
-
 const USE_API = true // Set to false to use mock data fallback
 
 interface ApiResponse<T> {
@@ -17,6 +14,11 @@ interface PaginatedResponse<T> extends ApiResponse<T[]> {
     limit?: number
 }
 
+// Common fetch config
+const fetchConfig = {
+    next: { revalidate: 30 }, // cache for 30 seconds
+}
+
 // Dashboard APIs
 export const dashboardAPI = {
     getMetrics: async () => {
@@ -25,9 +27,7 @@ export const dashboardAPI = {
             return dashboardMetrics
         }
 
-        const response = await fetch('/api/dashboard/metrics', {
-            cache: 'no-store',
-        })
+        const response = await fetch('/api/dashboard/metrics', fetchConfig)
         const json = await response.json()
         return json.data
     },
@@ -38,9 +38,10 @@ export const dashboardAPI = {
             return chartData
         }
 
-        const response = await fetch(`/api/dashboard/chart-data?timeRange=${timeRange}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(
+            `/api/dashboard/chart-data?timeRange=${timeRange}`,
+            fetchConfig
+        )
         const json = await response.json()
         return json.data
     },
@@ -65,9 +66,7 @@ export const threatsAPI = {
         if (filters?.page) params.append('page', filters.page.toString())
         if (filters?.limit) params.append('limit', filters.limit.toString())
 
-        const response = await fetch(`/api/threats?${params.toString()}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(`/api/threats?${params.toString()}`, fetchConfig)
         const json = await response.json()
         return json.data
     },
@@ -87,14 +86,17 @@ export const riskAPI = {
         }
 
         const params = new URLSearchParams()
-        if (filters?.minRisk !== undefined) params.append('minRisk', filters.minRisk.toString())
-        if (filters?.maxRisk !== undefined) params.append('maxRisk', filters.maxRisk.toString())
+        if (filters?.minRisk !== undefined)
+            params.append('minRisk', filters.minRisk.toString())
+        if (filters?.maxRisk !== undefined)
+            params.append('maxRisk', filters.maxRisk.toString())
         if (filters?.sortBy) params.append('sortBy', filters.sortBy)
         if (filters?.order) params.append('order', filters.order)
 
-        const response = await fetch(`/api/risk-analysis?${params.toString()}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(
+            `/api/risk-analysis?${params.toString()}`,
+            fetchConfig
+        )
         const json = await response.json()
         return json.data
     },
@@ -119,9 +121,10 @@ export const incidentAPI = {
         if (filters?.page) params.append('page', filters.page.toString())
         if (filters?.limit) params.append('limit', filters.limit.toString())
 
-        const response = await fetch(`/api/incident-response?${params.toString()}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(
+            `/api/incident-response?${params.toString()}`,
+            fetchConfig
+        )
         const json = await response.json()
         return json.data
     },
@@ -160,9 +163,10 @@ export const playbooksAPI = {
         if (filters?.page) params.append('page', filters.page.toString())
         if (filters?.limit) params.append('limit', filters.limit.toString())
 
-        const response = await fetch(`/api/playbooks?${params.toString()}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(
+            `/api/playbooks?${params.toString()}`,
+            fetchConfig
+        )
         const json = await response.json()
         return json.data
     },
@@ -187,9 +191,10 @@ export const reportsAPI = {
         if (filters?.page) params.append('page', filters.page.toString())
         if (filters?.limit) params.append('limit', filters.limit.toString())
 
-        const response = await fetch(`/api/reports?${params.toString()}`, {
-            cache: 'no-store',
-        })
+        const response = await fetch(
+            `/api/reports?${params.toString()}`,
+            fetchConfig
+        )
         const json = await response.json()
         return json.data
     },
