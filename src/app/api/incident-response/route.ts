@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { incidents } from '@/lib/mock-data'
+import { getIncidents, createIncident } from '@/lib/db'
+import { incidents as mockIncidents } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
-        const status = searchParams.get('status')
-        const severity = searchParams.get('severity')
+        const status = searchParams.get('status') || undefined
+        const severity = searchParams.get('severity') || undefined
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
 
-        // TODO: Replace with actual database query
-        // let query = db.query('SELECT * FROM incidents')
-        // if (status) query = query.where('status', status)
-        // if (severity) query = query.where('severity', severity)
-        // const incidents = await query.limit(limit).offset((page - 1) * limit)
+        // Try to fetch from database
+        const result = await getIncidents({ status, severity, page, limit })
 
-        let filtered = incidents
+        if (result.success && result.data) {
+            return NextResponse.json(
+                {
+                    success: true,
+                    data: result.data,
+                    total: result.data.length,
+                    page,
+                    limit,
+                    pages: Math.ceil(result.data.length / limit),
+                    timestamp: new Date().toISOString(),
+                },
+                { status: 200 }
+            )
+        }
+
+        // Fallback to mock data
+        let filtered = mockIncidents
         if (status) {
             filtered = filtered.filter(i => i.status === status)
         }
@@ -34,6 +48,7 @@ export async function GET(request: NextRequest) {
                 limit,
                 pages: Math.ceil(filtered.length / limit),
                 timestamp: new Date().toISOString(),
+                _warning: 'Using mock data - database unavailable',
             },
             { status: 200 }
         )
@@ -53,11 +68,34 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
 
-        // TODO: Validate and save to database
-        // const newIncident = await db.incidents.create(body)
+        // Validate required fields
+        if (!body.title || !body.description || !body.severity || !body.assignee) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Missing required fields: title, description, severity, assignee',
+                },
+                { status: 400 }
+            )
+        }
 
+        // Try to save to database
+        const result = await createIncident(body)
+
+        if (result.success && result.data) {
+            return NextResponse.json(
+                {
+                    success: true,
+                    data: result.data,
+                    message: 'Incident created successfully',
+                },
+                { status: 201 }
+            )
+        }
+
+        // Fallback: return mock response
         const newIncident = {
-            id: `INC-2024-${String(incidents.length + 1).padStart(3, '0')}`,
+            id: `INC-2024-${String(mockIncidents.length + 1).padStart(3, '0')}`,
             ...body,
             created: new Date().toISOString(),
             updated: new Date().toISOString(),
@@ -67,7 +105,7 @@ export async function POST(request: NextRequest) {
             {
                 success: true,
                 data: newIncident,
-                message: 'Incident created successfully',
+                message: 'Incident created successfully (mock mode)',
             },
             { status: 201 }
         )

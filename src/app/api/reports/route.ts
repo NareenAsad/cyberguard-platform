@@ -1,20 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { reports } from '@/lib/mock-data'
+import { getReports } from '@/lib/db'
+import { reports as mockReports } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
-        const type = searchParams.get('type')
-        const status = searchParams.get('status')
+        const type = searchParams.get('type') || undefined
+        const status = searchParams.get('status') || undefined
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
 
-        // TODO: Replace with actual database query
-        // let query = db.query('SELECT * FROM reports')
-        // if (type) query = query.where('type', type)
-        // if (status) query = query.where('status', status)
+        // Try to fetch from database
+        const result = await getReports({ type, status, page, limit })
 
-        let filtered = reports
+        if (result.success && result.data) {
+            return NextResponse.json(
+                {
+                    success: true,
+                    data: result.data,
+                    total: result.data.length,
+                    page,
+                    limit,
+                    pages: Math.ceil(result.data.length / limit),
+                    timestamp: new Date().toISOString(),
+                },
+                { status: 200 }
+            )
+        }
+
+        // Fallback to mock data
+        let filtered = mockReports
         if (type) {
             filtered = filtered.filter(r => r.type === type)
         }
@@ -33,6 +48,7 @@ export async function GET(request: NextRequest) {
                 limit,
                 pages: Math.ceil(filtered.length / limit),
                 timestamp: new Date().toISOString(),
+                _warning: 'Using mock data - database unavailable',
             },
             { status: 200 }
         )
@@ -52,11 +68,20 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
 
-        // TODO: Validate and save to database, generate actual report
-        // const newReport = await db.reports.create(body)
+        // Validate required fields
+        if (!body.title || !body.type) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Missing required fields: title, type',
+                },
+                { status: 400 }
+            )
+        }
 
+        // Mock report creation (database integration would go here)
         const newReport = {
-            id: `REP-${String(reports.length + 1).padStart(3, '0')}`,
+            id: `REP-${String(mockReports.length + 1).padStart(3, '0')}`,
             ...body,
             status: 'generating',
             generated: new Date().toISOString().split('T')[0],

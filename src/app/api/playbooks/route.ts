@@ -1,20 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { playbooks } from '@/lib/mock-data'
+import { getPlaybooks } from '@/lib/db'
+import { playbooks as mockPlaybooks } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
-        const category = searchParams.get('category')
-        const search = searchParams.get('search')
+        const category = searchParams.get('category') || undefined
+        const search = searchParams.get('search') || undefined
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
 
-        // TODO: Replace with actual database query
-        // let query = db.query('SELECT * FROM playbooks')
-        // if (category) query = query.where('category', category)
-        // if (search) query = query.where('title', 'LIKE', `%${search}%`)
+        // Try to fetch from database
+        const result = await getPlaybooks({ category, search, page, limit })
 
-        let filtered = playbooks
+        if (result.success && result.data) {
+            return NextResponse.json(
+                {
+                    success: true,
+                    data: result.data,
+                    total: result.data.length,
+                    page,
+                    limit,
+                    pages: Math.ceil(result.data.length / limit),
+                    timestamp: new Date().toISOString(),
+                },
+                { status: 200 }
+            )
+        }
+
+        // Fallback to mock data
+        let filtered = mockPlaybooks
         if (category) {
             filtered = filtered.filter(p => p.category === category)
         }
@@ -36,6 +51,7 @@ export async function GET(request: NextRequest) {
                 limit,
                 pages: Math.ceil(filtered.length / limit),
                 timestamp: new Date().toISOString(),
+                _warning: 'Using mock data - database unavailable',
             },
             { status: 200 }
         )

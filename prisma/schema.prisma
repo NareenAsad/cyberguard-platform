@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Threats table
+model Threat {
+  id        String   @id @default(cuid())
+  threatId  String   @unique
+  type      String
+  severity  String   // critical, high, medium, low
+  source    String
+  target    String
+  detected  String
+  status    String   // blocked, mitigating, quarantined, isolated
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([severity])
+  @@index([status])
+  @@index([detected])
+}
+
+// Risk Analysis table
+model RiskAnalysis {
+  id             String   @id @default(cuid())
+  asset          String   @unique
+  riskLevel      Int      // 0-100
+  vulnerabilities Int
+  exposureTime   String
+  recommendation String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([riskLevel])
+}
+
+// Incidents table
+model Incident {
+  id          String   @id @default(cuid())
+  incidentId  String   @unique
+  title       String
+  description String
+  severity    String   // critical, high, medium
+  status      String   // in-progress, resolved
+  assignee    String
+  created     String
+  updated     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([severity])
+  @@index([status])
+  @@index([created])
+}
+
+// Playbooks table
+model Playbook {
+  id          String   @id @default(cuid())
+  playbookId  String   @unique
+  title       String
+  description String
+  category    String
+  steps       Int
+  updatedBy   String
+  lastUpdated String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+// Reports table
+model Report {
+  id        String   @id @default(cuid())
+  reportId  String   @unique
+  title     String
+  type      String   // compliance, incident, risk, performance
+  status    String   // completed, generating, pending
+  generated String
+  threats   Int
+  resolved  Int
+  download  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([generated])
+}
+
+// Dashboard Metrics table
+model DashboardMetric {
+  id                        String   @id @default(cuid())
+  threatsDetected           Int      @default(0)
+  threatsDetectedChange     Int      @default(0)
+  riskScore                 Int      @default(0)
+  riskScoreChange           Int      @default(0)
+  incidentsActive           Int      @default(0)
+  incidentsActiveChange     Int      @default(0)
+  systemsMonitored          Int      @default(0)
+  systemsMonitoredChange    Int      @default(0)
+  updatedAt                 DateTime @updatedAt
+
+  @@unique([id])
+}

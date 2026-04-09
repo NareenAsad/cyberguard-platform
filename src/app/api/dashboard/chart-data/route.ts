@@ -1,20 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { chartData } from '@/lib/mock-data'
+import { getThreats } from '@/lib/db'
+import { chartData as mockChartData } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
         const timeRange = searchParams.get('timeRange') || '6m'
 
-        // TODO: Replace with actual database query based on timeRange
-        // const data = await db.query('SELECT * FROM threat_history WHERE date >= ...')
+        // Try to fetch threats data and aggregate for chart
+        const result = await getThreats({ limit: 100 })
 
+        if (result.success && result.data) {
+            // Aggregate threat data by time or status for chart display
+            // This would typically be done with a separate aggregation query
+            const chartData = result.data
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    data: chartData,
+                    timeRange,
+                    timestamp: new Date().toISOString(),
+                },
+                { status: 200 }
+            )
+        }
+
+        // Fallback to mock data
         return NextResponse.json(
             {
                 success: true,
-                data: chartData,
+                data: mockChartData,
                 timeRange,
                 timestamp: new Date().toISOString(),
+                _warning: 'Using mock data - database unavailable',
             },
             { status: 200 }
         )
