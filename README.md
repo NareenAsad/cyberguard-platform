@@ -102,81 +102,48 @@ An enterprise-grade, AI-powered cybersecurity platform that revolutionizes secur
 
 ```
 cyberguard/
-├── app/                           # Next.js App Router
-│   ├── layout.tsx                 # Root layout with sidebar/header
-│   ├── page.tsx                   # Dashboard (refactored)
-│   ├── risk-analysis/page.tsx     # Risk analysis (refactored)
-│   ├── incident-response/page.tsx # Incident response (refactored)
-│   ├── playbooks/page.tsx         # Playbooks (refactored)
-│   ├── reports/page.tsx           # Reports (refactored)
-│   ├── api/                       # Next.js API routes
-│   │   ├── dashboard/
-│   │   │   ├── metrics/route.ts   # Database-backed metrics
-│   │   │   └── chart-data/route.ts
-│   │   ├── threats/route.ts       # Threats with filtering
-│   │   ├── risk-analysis/route.ts # Risk data with sorting
-│   │   ├── incident-response/route.ts # CRUD operations
-│   │   ├── playbooks/route.ts     # Playbooks with search
-│   │   └── reports/route.ts       # Reports with filtering
-│   ├── globals.css                # Global styles + design tokens
-│   └── layout.tsx
-│
-├── components/                    # Reusable React components
-│   ├── layout/
-│   │   ├── sidebar.tsx
-│   │   ├── header.tsx
-│   │   └── main-layout.tsx
-│   ├── dashboard/                 # Dashboard components
-│   │   ├── metrics-grid.tsx
-│   │   ├── threat-chart.tsx
-│   │   ├── recent-incidents.tsx
-│   │   └── quick-stats.tsx
-│   ├── risk-analysis/             # Risk analysis components
-│   │   ├── risk-distribution.tsx
-│   │   ├── risk-prioritization.tsx
-│   │   └── risk-statistics.tsx
-│   ├── incident-response/         # Incident components
-│   │   ├── incidents-list.tsx
-│   │   └── incident-details.tsx
-│   ├── playbooks/                 # Playbook components
-│   │   ├── playbook-categories.tsx
-│   │   ├── playbook-card.tsx
-│   │   └── playbooks-grid.tsx
-│   ├── reports/                   # Report components
-│   │   ├── report-filters.tsx
-│   │   ├── report-card.tsx
-│   │   └── reports-list.tsx
-│   ├── shared/                    # Shared components
-│   │   ├── page-header.tsx
-│   │   └── loading-skeleton.tsx
-│   └── ui/                        # shadcn/ui components
-│
-├── lib/                           # Utilities & services
-│   ├── db.ts                      # Database query functions (8)
-│   ├── mock-data.ts               # Fallback mock data
-│   ├── utils.ts                   # Common utilities
-│   └── constants.ts               # App constants
-│
+├── docs/                          # Documentation files
 ├── prisma/                        # Database schema
 │   └── schema.prisma              # Prisma schema (6 tables)
-│
+├── public/                        # Static assets
 ├── scripts/                       # Database scripts
 │   ├── init-db.ts                 # Initialize database
 │   └── seed-db.ts                 # Seed initial data
-│
-├── hooks/                         # React hooks
-│   ├── use-mobile.ts
-│   └── use-toast.ts
-│
-├── DATABASE_SETUP.md              # 320-line setup guide
-├── INTEGRATION_CHECKLIST.md       # Implementation checklist
-├── IMPLEMENTATION_SUMMARY.md      # Technical details
-├── COMPLETION_REPORT.md           # Project status
-├── package.json                   # Dependencies + scripts
-├── tsconfig.json                  # TypeScript config
-├── next.config.mjs                # Next.js config
-├── tailwind.config.ts             # Tailwind config (v4)
-└── README.md
+├── src/                           # Source directory
+│   ├── app/                       # Next.js App Router
+│   │   ├── layout.tsx             # Root layout with sidebar/header
+│   │   ├── page.tsx               # Dashboard (refactored)
+│   │   ├── risk-analysis/         # Risk analysis pages
+│   │   ├── incident-response/     # Incident response pages
+│   │   ├── playbooks/             # Playbooks pages
+│   │   ├── reports/               # Reports pages
+│   │   └── api/                   # Next.js API routes
+│   │       ├── dashboard/
+│   │       ├── threats/
+│   │       ├── risk-analysis/
+│   │       ├── incident-response/
+│   │       ├── playbooks/
+│   │       └── reports/
+│   ├── components/                # Reusable React components
+│   │   ├── layout/
+│   │   ├── dashboard/
+│   │   ├── risk-analysis/
+│   │   ├── incident-response/
+│   │   ├── playbooks/
+│   │   ├── reports/
+│   │   ├── shared/
+│   │   └── ui/                    # shadcn/ui components
+│   ├── hooks/                     # React hooks
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   ├── lib/                       # Utilities & services
+│   │   ├── db.ts                  # Database query functions (8)
+│   │   ├── mock-data.ts           # Fallback mock data
+│   │   ├── utils.ts               # Common utilities
+│   │   └── constants.ts           # App constants
+│   └── styles/                    # Global styles and design tokens
+├── LICENSE                        # MIT License
+└── README.md                      # Project documentation
 ```
 
 ---
