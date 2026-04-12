@@ -1,6 +1,79 @@
 # CyberGuard Backend Architecture
 
-## System Architecture
+## System Architecture (with Real-Time WebSocket)
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                         USER BROWSER                                    │
+└────────────────────────────────────────────────────────────────────────┘
+          ↓ WebSocket                                    ↓ HTTP
+          │                                              │
+    ┌─────┴──────┐                              ┌────────┴──────┐
+    │             │                              │                │
+┌───────────────────────────────┐    ┌────────────────────────────────┐
+│  Socket.io Client             │    │  Frontend Components            │
+│  (lib/socket.ts)              │    │  Pages & Components             │
+│  • metrics:update             │    └────────────────────────────────┘
+│  • threats:new                │                   ↓
+│  • incidents:update           │    ┌────────────────────────────────┐
+│  • chart:update               │    │  USE FETCH DATA HOOK           │
+└───────────────────────────────┘    │  (lib/use-fetch-data.ts)       │
+          ↓                           │  Fallback API fetching         │
+     WebSocket                        └────────────────────────────────┘
+  ws://localhost:3000/api/socket              ↓
+                                    ┌────────────────────────────────┐
+                                    │  API SERVICE LAYER             │
+                                    │  (lib/api-service.ts)          │
+                                    └────────────────────────────────┘
+                                              ↓ HTTP
+                                    ┌────────────────────────────────┐
+                                    │  NEXT.JS API ROUTES            │
+                                    │  /api/dashboard/*              │
+                                    │  /api/threats                  │
+                                    │  /api/incident-response        │
+                                    └────────────────────────────────┘
+```
+
+## Real-Time Data Flow (WebSocket)
+
+```
+┌─────────────────────────────────────────┐
+│  server.js (Custom HTTP + Socket.io)    │
+├─────────────────────────────────────────┤
+│  • Serves Next.js                       │
+│  • Manages WebSocket connections        │
+│  • Broadcasts events every 10 seconds   │
+└─────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────┐
+│  Mock Data Generator                    │
+│  (lib/mock-data-generator.ts)           │
+├─────────────────────────────────────────┤
+│  generateMetrics()      → metrics:update│
+│  generateThreat()       → threats:new   │
+│  generateIncidentUpdate() → incidents:  │
+│  generateChartPoint()   → chart:update  │
+└─────────────────────────────────────────┘
+          ↓ Broadcast to all connected clients
+┌─────────────────────────────────────────┐
+│  Browser WebSocket Client               │
+│  (hooks/use-socket-events.ts)           │
+├─────────────────────────────────────────┤
+│  useSocketMetrics()                     │
+│  useSocketThreats()                     │
+│  useSocketIncidents()                   │
+│  useSocketChartData()                   │
+└─────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────┐
+│  Component Updates                      │
+│  MetricsGrid (real-time indicator ⚡)  │
+│  ThreatChart (live points)              │
+│  RecentIncidents (status changes)       │
+└─────────────────────────────────────────┘
+```
+
+## System Architecture (REST API - Fallback)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐

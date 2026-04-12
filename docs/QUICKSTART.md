@@ -268,24 +268,24 @@ const { data: newReport } = await reportsAPI.createReport({
 ## Files Overview
 
 ### API Routes
-- `/app/api/dashboard/metrics/route.ts` - Metrics endpoint
-- `/app/api/dashboard/chart-data/route.ts` - Chart data endpoint
-- `/app/api/threats/route.ts` - Threats endpoint
-- `/app/api/risk-analysis/route.ts` - Risk analysis endpoint
-- `/app/api/incident-response/route.ts` - Incidents endpoint
-- `/app/api/playbooks/route.ts` - Playbooks endpoint
-- `/app/api/reports/route.ts` - Reports endpoint
+- `/src/app/api/dashboard/metrics/route.ts` - Metrics endpoint
+- `/src/app/api/dashboard/chart-data/route.ts` - Chart data endpoint
+- `/src/app/api/threats/route.ts` - Threats endpoint
+- `/src/app/api/risk-analysis/route.ts` - Risk analysis endpoint
+- `/src/app/api/incident-response/route.ts` - Incidents endpoint
+- `/src/app/api/playbooks/route.ts` - Playbooks endpoint
+- `/src/app/api/reports/route.ts` - Reports endpoint
 
 ### Client Code
-- `/lib/api-service.ts` - Centralized API service
-- `/hooks/use-fetch-data.ts` - Data fetching hook
-- `/lib/mock-data.ts` - Mock data
+- `/src/lib/api-service.ts` - Centralized API service
+- `/src/hooks/use-fetch-data.ts` - Data fetching hook
+- `/src/lib/mock-data.ts` - Mock data
 
 ### Documentation
-- `/API_DOCUMENTATION.md` - Complete API reference
-- `/MIGRATION_GUIDE.md` - How to migrate pages
-- `/BACKEND_IMPLEMENTATION.md` - Architecture overview
-- `/QUICKSTART.md` - This file
+- `/docs/API_DOCUMENTATION.md` - Complete API reference
+- `/docs/MIGRATION_GUIDE.md` - How to migrate pages
+- `/docs/BACKEND_IMPLEMENTATION.md` - Architecture overview
+- `/docs/QUICKSTART.md` - This file
 
 ## Next: Integrating a Real Database
 

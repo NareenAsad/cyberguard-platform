@@ -4,11 +4,7 @@ import { Bell, Settings, User } from 'lucide-react'
 
 export function Header() {
   return (
-    <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Security Operations</h1>
-      </div>
-
+    <header className="h-16 bg-card border-b border-border px-8 flex items-right justify-between">
       <div className="flex items-center gap-6">
         {/* Status Indicator */}
         <div className="flex items-center gap-2">
