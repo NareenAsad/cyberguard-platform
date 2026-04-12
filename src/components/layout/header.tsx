@@ -4,7 +4,7 @@ import { Bell, Settings, User } from 'lucide-react'
 
 export function Header() {
   return (
-    <header className="h-16 bg-card border-b border-border px-8 flex items-right justify-between">
+    <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-end">
       <div className="flex items-center gap-6">
         {/* Status Indicator */}
         <div className="flex items-center gap-2">
