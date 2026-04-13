@@ -13,20 +13,42 @@ import {
   Shield,
   Menu,
   X,
+  Users,
+  Settings,
 } from 'lucide-react'
+import type { UserRole } from '@/lib/auth'
 
-const navigation = [
+interface NavItem {
+  name: string
+  href: string
+  icon: React.ElementType
+  roles?: UserRole[] // If undefined, accessible to all authenticated users
+}
+
+const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Threats', href: '/threats', icon: AlertTriangle },
   { name: 'Risk Analysis', href: '/risk-analysis', icon: TrendingUp },
   { name: 'Incident Response', href: '/incident-response', icon: Zap },
   { name: 'Playbooks', href: '/playbooks', icon: BookOpen },
   { name: 'Reports', href: '/reports', icon: FileText },
+  { name: 'User Management', href: '/users', icon: Users, roles: ['admin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'manager'] },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  userRole?: UserRole
+}
+
+export function Sidebar({ userRole = 'analyst' }: SidebarProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter((item) => {
+    if (!item.roles) return true
+    return item.roles.includes(userRole)
+  })
 
   return (
     <>
@@ -56,8 +78,8 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {filteredNavigation.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
