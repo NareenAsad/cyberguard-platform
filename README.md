@@ -4,221 +4,146 @@ An enterprise-grade, AI-powered cybersecurity platform that revolutionizes secur
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
-[![Python](https://img.shields.io/badge/Python-3.11-blue)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688)](https://fastapi.tiangolo.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green)](https://www.mongodb.com/)
-[![Redis](https://img.shields.io/badge/Redis-7.2-red)](https://redis.io/)
-[![Docker](https://img.shields.io/badge/Docker-24.x-blue)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)](https://neon.tech/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ---
 
-## 🎯 Overview
+## ✨ Project Status
 
-CyberGuard addresses critical gaps in modern cybersecurity by providing a unified platform that:
-
-- **Aggregates Threat Intelligence** from multiple authoritative sources (NVD, AlienVault OTX, ThreatFox, URLhaus, AbuseIPDB)
-- **AI-Powered Risk Analysis** using multi-agent architecture for contextual threat prioritization
-- **Intelligent Incident Response** with automated playbook generation using LLM technology (Groq + LangChain + Llama 3.1)
-- **Real-Time Monitoring Dashboard** with live visualizations, WebSocket updates, and global attack maps
-- **Enterprise-Grade Security** at less than 5% the cost of traditional SOAR platforms
-- **Explainable AI** — transparent reasoning chains so security teams can trust automated decisions
-
-### 📊 Key Performance Targets
-
-| Metric | Target | Status |
-|--------|--------|--------|
-| Threat Detection Time Reduction (MTTD) | 70% | 🟡 In Development |
-| Incident Response Time Reduction (MTTR) | 60% | 🟡 In Development |
-| Vulnerability Identification Accuracy | 95%+ | 🟡 In Development |
-| Daily Threat Indicators Processed | 10,000+ | 🟡 In Development |
-| Cost vs Traditional SOAR Platforms | <5% | ✅ Achieved |
+| Component | Status | Details |
+|-----------|--------|---------|
+| **Frontend** | ✅ Complete | Next.js 16, React 19, responsive design |
+| **Component Architecture** | ✅ Refactored | 20+ reusable components across 5 pages |
+| **Database Integration** | ✅ Complete | Neon PostgreSQL with 6 tables, Prisma ORM |
+| **API Layer** | ✅ Complete | 7 endpoints with DB-first approach + fallback |
+| **Validation & Error Handling** | ✅ Complete | Input validation, parameterized queries, graceful degradation |
+| **Documentation** | ✅ Complete | Setup guides, implementation summaries, checklists |
+| **AI Agents** | 🚧 In Progress | CrewAI integration, LangChain, Groq API |
+| **Real-time Updates** | 🚧 In Progress | WebSocket integration, Socket.io |
 
 ---
 
-## ✨ Key Features
+## 🎯 Key Features
 
-### 🤖 Multi-Agent AI System
-Five specialized AI agents working collaboratively via CrewAI:
-- **Threat Intelligence Agent** — Continuous monitoring, correlation, and enrichment
-- **Vulnerability Assessment Agent** — Asset-to-CVE mapping using CPE matching
-- **Risk Analysis Agent** — Context-aware prioritization using CVSS + MITRE ATT&CK
-- **Incident Response Agent** — AI-generated step-by-step playbooks via LangChain + Groq
-- **Reporting Agent** — Multi-format documentation for technical and executive audiences
+### Dashboard
+- Real-time metrics (threats detected, risk score, incidents, systems monitored)
+- Threat activity trend chart with historical data
+- Recent incidents list with status tracking
+- Quick statistics overview
+- Database-backed metrics with auto-refresh
 
-### 📊 Real-Time Dashboard
-- Live global threat map with geographic attack visualization
-- Color-coded prioritized alert feed (critical, warning, informational)
-- Threat activity trend charts with 24h / 7d / 30d views
-- WebSocket-powered instant updates via Socket.io
+### Risk Analysis
+- Asset risk distribution visualization
+- Prioritized risk ranking by severity
+- Vulnerability counts and exposure time tracking
+- Risk score breakdown and recommendations
+- Sortable and filterable asset list
 
-### 🎯 Contextual Risk Scoring
-- CVSS base score + temporal metrics integration
-- Business impact and asset criticality consideration
-- Active exploit availability tracking
-- MITRE ATT&CK framework mapping and tactic classification
+### Incident Response
+- Active incident management with timeline
+- Incident severity and status tracking
+- Assignee and priority management
+- Incident creation with validation
+- Response playbook execution
 
-### 📝 Automated Incident Response Playbooks
-- AI-generated, scenario-specific response procedures
-- Investigation, containment, eradication, and recovery steps
-- Human-readable guidance tailored to each threat
-- Reviewed and validated before execution
+### Playbooks
+- Pre-built response procedures by category
+- Full-text search across playbooks
+- Step-by-step execution guidance
+- Integration with incident response
+- Execution history tracking
 
-### 🔍 MITRE ATT&CK Integration
-- Attack pattern and technique identification
-- Tactic classification across 14 categories
-- Threat actor behavior analysis
-- Defensive gap assessment
+### Reports
+- Security report generation and tracking
+- Report type filtering (Security, Compliance, Threat)
+- Status tracking (Completed, In Progress)
+- Threat and resolution statistics
+- Downloadable report management
 
-### 📈 Multi-Format Reporting
-- Executive summaries in business language
-- Detailed technical reports with IoCs and timelines
-- Compliance documentation (ISO 27001, NIST CSF)
-
-### 🔐 Enterprise Security Features
-- JWT-based authentication with refresh tokens
-- Role-based access control (Admin, Analyst, Viewer)
-- Per-organization data isolation
-- bcrypt password hashing + comprehensive audit logging
-- API key management for integrations
+### Enterprise Features
+- Input validation on all forms
+- Error handling with user-friendly messages
+- Graceful fallback to mock data
+- Responsive mobile design
+- Dark theme optimized for security operations
 
 ---
 
-## 🚀 Technology Stack
+## 🚀 Tech Stack
 
 ### Frontend
-| Technology | Version | Purpose |
-|---|---|---|
-| Next.js | 16 | App Router, SSR, static generation |
-| React | 18 | UI components, hooks, context, suspense |
-| TypeScript | 5.0 | Type safety across the codebase |
-| Tailwind CSS | 3.4 | Utility-first styling system |
-| Recharts | 2.10 | Data visualization and charts |
-| Lucide React | Latest | Consistent icon system |
-| Socket.io-client | 4.6 | Real-time WebSocket updates |
+- **Next.js 16** - App Router, SSR, static generation
+- **React 19+** - Component composition with hooks
+- **TypeScript 5.0** - Type-safe development
+- **Tailwind CSS 4.x** - Utility-first styling with design tokens
+- **shadcn/ui** - High-quality reusable components
+- **Recharts** - Interactive data visualization
+- **Lucide React** - Consistent icon system
 
-### Backend Services
-| Technology | Version | Purpose |
-|---|---|---|
-| Node.js + Express.js | 20.x / 4.18 | Main REST API gateway and business logic |
-| Python + FastAPI | 3.11 / 0.109 | AI agent microservice endpoints |
-| Socket.io | 4.6 | Bidirectional real-time communication |
+### Backend & Database
+- **Next.js API Routes** - REST endpoints with validation
+- **Neon PostgreSQL** - Serverless PostgreSQL database
+- **Prisma ORM** - Database schema and queries
+- **@neondatabase/serverless** - SQL client for Neon
 
-### AI & Machine Learning
-| Technology | Purpose |
-|---|---|
-| CrewAI | Multi-agent orchestration and task delegation |
-| LangChain 0.1 | LLM integration, prompt engineering, memory |
-| Groq Cloud API | Ultra-fast Llama 3.1 inference (sub-second) |
-| Exa API | Intelligent web search for threat research |
-| scikit-learn | Risk scoring ML models |
-| PyTorch | Threat detection model training |
-
-### Databases
-| Technology | Version | Purpose |
-|---|---|---|
-| MongoDB | 7.0 | Unstructured threat intelligence data |
-| Supabase (PostgreSQL) | 15 | Structured app data, users, incidents, assets |
-| Redis | 7.2 | Caching, session storage, real-time queues |
-
-### External Threat Intelligence APIs
-| API | Data Provided |
-|---|---|
-| NVD (National Vulnerability Database) | CVE data, CVSS scores, CPE identifiers |
-| AlienVault OTX | Community threat intelligence, IoCs |
-| ThreatFox | Malware indicators, C2 infrastructure |
-| URLhaus | Malicious URL tracking |
-| AbuseIPDB | IP reputation scores |
-| MITRE ATT&CK | Threat taxonomy and attack patterns |
-
-### DevOps & Infrastructure
-| Technology | Purpose |
-|---|---|
-| Docker 24.x + Docker Compose | Containerization and local orchestration |
-| GitHub + GitHub Actions | Version control and CI/CD pipelines |
-| Nginx | Reverse proxy, load balancing, SSL termination |
-| AWS EC2 / DigitalOcean / GCP | Cloud production hosting |
-| Prometheus + Grafana | Metrics collection and visualization |
-| Sentry | Error tracking and alerting |
-| Winston | Structured logging for Node.js |
-
-### Development & Testing Tools
-| Tool | Purpose |
-|---|---|
-| VS Code | Primary IDE (Python, TypeScript, Docker extensions) |
-| Postman | API testing and documentation |
-| Jest + React Testing Library | JavaScript/React unit testing |
-| Pytest | Python unit testing with coverage |
-| ESLint + Prettier | JavaScript code quality |
-| Black | Python code formatting |
-| Figma | UI/UX design and prototyping |
+### Database Tables
+- `threats` - Threat indicators with severity/status
+- `risk_analyses` - Asset risk assessments
+- `incidents` - Security incidents with timeline
+- `playbooks` - Incident response procedures
+- `reports` - Generated security reports
+- `dashboard_metrics` - Aggregated statistics
 
 ---
 
-## 🏗️ Project Structure
+## 📂 Project Structure
 
 ```
-cyberguard-platform/
-├── docs/                          # 📚 Documentation
-│   ├── architecture.md
-│   ├── api.md
-│   ├── setup.md
-│   └── user-guide.md
-│
-├── src/                           # 🎨 Next.js Frontend
-│   ├── app/                       # App Router pages
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
+cyberguard/
+├── docs/                          # Documentation files
+├── prisma/                        # Database schema
+│   └── schema.prisma              # Prisma schema (6 tables)
+├── public/                        # Static assets
+├── scripts/                       # Database scripts
+│   ├── init-db.ts                 # Initialize database
+│   └── seed-db.ts                 # Seed initial data
+├── src/                           # Source directory
+│   ├── app/                       # Next.js App Router
+│   │   ├── layout.tsx             # Root layout with sidebar/header
+│   │   ├── page.tsx               # Dashboard (refactored)
+│   │   ├── risk-analysis/         # Risk analysis pages
+│   │   ├── incident-response/     # Incident response pages
+│   │   ├── playbooks/             # Playbooks pages
+│   │   ├── reports/               # Reports pages
+│   │   └── api/                   # Next.js API routes
+│   │       ├── dashboard/
+│   │       ├── threats/
+│   │       ├── risk-analysis/
+│   │       ├── incident-response/
+│   │       ├── playbooks/
+│   │       └── reports/
+│   ├── components/                # Reusable React components
+│   │   ├── layout/
 │   │   ├── dashboard/
-│   │   ├── threat-logs/
+│   │   ├── risk-analysis/
 │   │   ├── incident-response/
-│   │   ├── asset-inventory/
-│   │   ├── threat-intelligence/
-│   │   └── settings/
-│   │
-│   ├── components/
-│   │   ├── layout/                # Sidebar, Header, MainLayout
-│   │   ├── dashboard/             # StatsRow, Charts, Tables, Alerts
-│   │   ├── incident-response/     # Incident tables and stats
-│   │   ├── threat-intelligence/   # Threat detail panels and tables
-│   │   ├── asset-inventory/       # Asset management components
-│   │   └── ui/                    # Reusable: StatCard, SeverityBadge, etc.
-│   │
-│   ├── hooks/                     # useSocket.ts, useThreats.ts
-│   ├── lib/                       # utils.ts, api.ts, constants.ts
-│   ├── types/                     # index.ts (all TypeScript interfaces)
-│   └── data/                      # Mock data: threats, incidents, alerts, assets
-│
-├── services/                      # 🐍 Backend Services
-│   ├── ai-agents/                 # CrewAI agent implementations
-│   │   ├── threat_intelligence_agent.py
-│   │   ├── vulnerability_assessment_agent.py
-│   │   ├── risk_analysis_agent.py
-│   │   ├── incident_response_agent.py
-│   │   └── reporting_agent.py
-│   ├── workers/                   # Background data collection workers
-│   └── connectors/                # NVD, OTX, ThreatFox, URLhaus, AbuseIPDB connectors
-│
-├── backend/                       # Express.js API (Node.js)
-│   └── src/
-│       ├── controllers/
-│       ├── services/
-│       ├── routes/
-│       ├── models/
-│       └── middleware/
-│
-├── fastapi-service/               # Python AI Microservice
-│   └── app/
-│       ├── api/
-│       ├── models/
-│       ├── services/
-│       └── main.py
-│
-├── tests/                         # 🧪 Test suites (Jest, Pytest, E2E)
-├── public/                        # 🖼️ Static assets
-├── docker-compose.yml
-├── .env.example
-└── README.md
+│   │   ├── playbooks/
+│   │   ├── reports/
+│   │   ├── shared/
+│   │   └── ui/                    # shadcn/ui components
+│   ├── hooks/                     # React hooks
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   ├── lib/                       # Utilities & services
+│   │   ├── db.ts                  # Database query functions (8)
+│   │   ├── mock-data.ts           # Fallback mock data
+│   │   ├── utils.ts               # Common utilities
+│   │   └── constants.ts           # App constants
+│   └── styles/                    # Global styles and design tokens
+├── LICENSE                        # MIT License
+└── README.md                      # Project documentation
 ```
 
 ---
@@ -226,295 +151,262 @@ cyberguard-platform/
 ## 🚦 Quick Start
 
 ### Prerequisites
-
 - Node.js 20.x or higher
-- Python 3.11 or higher
-- Docker & Docker Compose
+- Neon PostgreSQL account (free tier available)
 - Git
 
-### 1. Clone & Install Frontend
+### 1. Install & Setup
 
 ```bash
+# Clone repository
 git clone https://github.com/YOUR_USERNAME/cyberguard-platform.git
 cd cyberguard-platform
 
+# Install dependencies
 npm install
 
+# Copy environment template
 cp .env.example .env.local
-# Edit .env.local with your API keys (see Configuration section)
 
-npm run dev
-# Visit http://localhost:3000
+# Add your Neon DATABASE_URL to .env.local
+# Get it from: https://console.neon.tech
 ```
 
-### 2. Backend (Express.js) Setup
+### 2. Initialize Database
 
 ```bash
-cd backend
-npm install
-cp .env.example .env
+# Create tables and schema
 npm run db:init
+
+# Seed with sample data
+npm run db:seed
+
+# Or do both at once
+npm run db:setup
+```
+
+### 3. Start Development Server
+
+```bash
 npm run dev
-# Runs on http://localhost:3001
+# Open http://localhost:3000
 ```
 
-### 3. FastAPI AI Microservice Setup
+The app now uses real PostgreSQL database! All endpoints query the database with automatic fallback to mock data if unavailable.
+
+### Test API Endpoints
 
 ```bash
-cd fastapi-service
-python3.11 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Get dashboard metrics
+curl http://localhost:3000/api/dashboard/metrics
 
-pip install -r requirements.txt
-cp .env.example .env
-python -m uvicorn app.main:app --reload
-# Runs on http://localhost:8000
-# Swagger UI: http://localhost:8000/docs
-```
+# Get threats
+curl "http://localhost:3000/api/threats?severity=high"
 
-### 4. Start Everything with Docker
+# Get risk analysis
+curl "http://localhost:3000/api/risk-analysis?sortBy=riskLevel"
 
-```bash
-docker-compose up -d
-
-# Services available at:
-# Frontend:    http://localhost:3000
-# Backend API: http://localhost:3001/api
-# FastAPI:     http://localhost:8000
-# Swagger UI:  http://localhost:8000/docs
+# Get incidents
+curl http://localhost:3000/api/incident-response
 ```
 
 ---
 
-## ⚙️ Configuration
+## 🗄️ Database Configuration
 
-### Frontend — `.env.local`
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-NEXT_PUBLIC_FASTAPI_URL=http://localhost:8000
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
-NEXT_PUBLIC_ENABLE_AI_PLAYBOOKS=true
-NEXT_PUBLIC_ENABLE_RISK_SCORING=true
-```
-
-### Backend — `.env`
+### Environment Variables
 
 ```env
-NODE_ENV=development
-PORT=3001
-DATABASE_URL=postgresql://user:password@localhost:5432/cyberguard_db
-MONGODB_URI=mongodb://localhost:27017/cyberguard_logs
-REDIS_URL=redis://localhost:6379/0
-JWT_SECRET=your-strong-secret-key
-NVD_API_KEY=your-nvd-api-key
-OTX_API_KEY=your-otx-api-key
-FASTAPI_URL=http://localhost:8000
+# .env.local
+DATABASE_URL=postgresql://username:password@host/dbname
 ```
 
-### FastAPI — `.env`
+### Get Neon Database URL
 
-```env
-ENVIRONMENT=development
-DATABASE_URL=postgresql://user:password@localhost:5432/cyberguard_db
-MONGODB_URI=mongodb://localhost:27017/cyberguard_logs
-REDIS_URL=redis://localhost:6379/0
-EXPRESS_BACKEND_URL=http://localhost:3001/api
-GROQ_API_KEY=your-groq-api-key
-EXA_API_KEY=your-exa-api-key
-OPENAI_API_KEY=your-openai-key
-```
+1. Sign up at [neon.tech](https://neon.tech) (free tier)
+2. Create a new project
+3. Copy the connection string
+4. Set `DATABASE_URL` in `.env.local`
+
+### Database Tables
+
+| Table | Columns | Purpose |
+|-------|---------|---------|
+| `threats` | id, title, severity, status, source, created_at | Threat tracking |
+| `risk_analyses` | id, asset, risk_level, vulnerabilities, exposure_time | Risk assessment |
+| `incidents` | id, title, description, severity, status, created_at | Incident management |
+| `playbooks` | id, title, category, description, steps | Response procedures |
+| `reports` | id, title, type, status, threats, resolved | Report generation |
+| `dashboard_metrics` | id, threats_detected, risk_score, incidents_active | Dashboard stats |
 
 ---
 
 ## 📡 API Reference
 
-### Authentication
-```
-POST   /api/auth/register          # Create new account
-POST   /api/auth/login             # Authenticate user
-POST   /api/auth/refresh           # Refresh access token
-POST   /api/auth/logout            # Logout user
-GET    /api/auth/validate          # Validate token
+### Database-Backed Endpoints
+
+All endpoints use database-first approach with graceful fallback to mock data.
+
+```bash
+# Dashboard Metrics
+GET /api/dashboard/metrics          # Real-time metrics (DB-backed)
+GET /api/dashboard/chart-data       # Chart data aggregation
+
+# Threats
+GET /api/threats                    # List all threats
+GET /api/threats?severity=high      # Filter by severity
+GET /api/threats?status=active      # Filter by status
+GET /api/threats?page=1&limit=10   # Pagination
+
+# Risk Analysis
+GET /api/risk-analysis              # List all risks
+GET /api/risk-analysis?minRisk=50   # Filter by risk range
+GET /api/risk-analysis?sortBy=riskLevel  # Sort options
+
+# Incident Response
+GET /api/incident-response          # List incidents
+GET /api/incident-response?status=active
+POST /api/incident-response         # Create incident (validated)
+
+# Playbooks
+GET /api/playbooks                  # List playbooks
+GET /api/playbooks?category=malware # Filter by category
+GET /api/playbooks?search=ransomware # Search playbooks
+
+# Reports
+GET /api/reports                    # List reports
+GET /api/reports?type=security      # Filter by type
+POST /api/reports                   # Generate report (validated)
 ```
 
-### CVE & Threat Intelligence
-```
-GET    /api/cves                   # List CVEs
-GET    /api/cves/{cveId}           # Get CVE details
-GET    /api/cves/search            # Search CVEs
-POST   /api/cves/sync              # Sync from NVD/OTX
-POST   /api/cves/match-assets      # Match CVEs to assets
+---
+
+## 🧪 Database Integration Features
+
+### Input Validation
+- POST endpoints validate required fields
+- Return 400 Bad Request with error messages
+- Prevents invalid data in database
+
+### Error Handling
+- Parameterized SQL queries (SQL injection prevention)
+- Try-catch blocks on all database calls
+- Graceful fallback to mock data on errors
+- Warning headers in API responses indicate fallback mode
+
+### Graceful Degradation
+- If database unavailable, app still works with mock data
+- Warning flag in API response: `_warning: "Using mock data - database unavailable"`
+- No user-facing errors, seamless experience
+
+### Database Queries (lib/db.ts)
+
+```typescript
+// 8 database query functions:
+1. getDashboardMetrics()      # Aggregated metrics
+2. getThreats()               # Threats with filters
+3. getRisks()                 # Risk data with sorting
+4. getIncidents()             # Incidents CRUD
+5. createIncident()           # Create with validation
+6. getPlaybooks()             # Playbooks with search
+7. getReports()               # Reports with filters
 ```
 
-### Asset Management
-```
-GET    /api/assets                 # List assets
-POST   /api/assets                 # Create asset
-PUT    /api/assets/{assetId}       # Update asset
-DELETE /api/assets/{assetId}       # Delete asset
-POST   /api/assets/upload          # Bulk upload (CSV/JSON)
-```
+---
 
-### Incident Response
-```
-GET    /api/incidents              # List incidents
-POST   /api/incidents              # Create incident
-PUT    /api/incidents/{id}         # Update incident
-POST   /api/incidents/{id}/timeline # Add timeline event
-GET    /api/playbooks/{id}         # Get AI playbook
-POST   /api/playbooks/generate     # Generate AI playbook
-```
+## 🎨 Component Architecture
 
-### Risk & Analytics
-```
-GET    /api/risk-scores            # List risk scores
-POST   /api/risk-scores/calculate  # Calculate contextual risk
-GET    /api/dashboard/stats        # Dashboard statistics
-GET    /api/dashboard/threat-activity # Threat trend data
-```
+### Refactored Pages (20+ Components)
 
-### User & Settings
-```
-GET    /api/users/profile          # Get user profile
-PUT    /api/users/profile          # Update profile
-GET    /api/users/api-keys         # List API keys
-POST   /api/users/api-keys         # Create API key
-DELETE /api/users/api-keys/{keyId} # Delete API key
-```
+**Dashboard Page**
+- `MetricsGrid` - 4-column metrics display
+- `ThreatChart` - Line chart with trend data
+- `RecentIncidents` - Table with status badges
+- `QuickStats` - Statistics panels
 
-Full interactive API documentation at `http://localhost:8000/docs` (Swagger UI).
+**Risk Analysis Page**
+- `RiskDistribution` - Bar chart visualization
+- `RiskPrioritization` - Ranked asset list
+- `RiskStatistics` - Summary cards
+
+**Incident Response Page**
+- `IncidentsList` - Sidebar selector
+- `IncidentDetails` - Timeline and details
+
+**Playbooks Page**
+- `PlaybookCategories` - Category filter
+- `PlaybooksGrid` - Grid layout
+
+**Reports Page**
+- `ReportFilters` - Filter sidebar
+- `ReportsList` - Report list
+
+### Shared Components
+- `PageHeader` - Title and description
+- `LoadingSkeleton` - Loading states
+- `Sidebar` - Navigation
+- `Header` - Top bar
+
+---
+
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [DATABASE_SETUP.md](./DATABASE_SETUP.md) | Complete 320-line Neon setup guide |
+| [INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md) | Step-by-step integration checklist |
+| [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical implementation details |
+| [COMPLETION_REPORT.md](./COMPLETION_REPORT.md) | Project completion status |
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Frontend tests
+# Run all tests
 npm test
 
-# Tests in watch mode
+# Watch mode
 npm run test:watch
 
-# With coverage report
+# Coverage report
 npm run test:coverage
-
-# Backend tests
-cd backend && npm test
-
-# Python AI service tests
-cd fastapi-service && pytest
-
-# End-to-End tests
-npm run test:e2e
 ```
 
 ---
 
 ## 🌐 Deployment
 
-### Production Checklist
+### Vercel Deployment (Recommended)
 
-- [ ] Set `NODE_ENV=production` and `ENVIRONMENT=production`
-- [ ] Use strong, unique JWT secrets
-- [ ] Configure production database credentials
-- [ ] Enable HTTPS via Nginx + SSL certificate
-- [ ] Set up monitoring (Prometheus + Grafana)
-- [ ] Configure automated backups
-- [ ] Enable comprehensive logging (Winston + Sentry)
-- [ ] Set up CI/CD pipeline (GitHub Actions)
-- [ ] Configure rate limiting on all API routes
-- [ ] Test disaster recovery procedures
+1. Push to GitHub
+2. Connect repo to Vercel
+3. Add `DATABASE_URL` to environment variables
+4. Deploy with one click
 
-### Cloud Hosting Options
+### Environment Variables (Production)
 
-| Provider | Frontend | Backend | Database |
-|---|---|---|---|
-| AWS | CloudFront + S3 / Amplify | ECS/Fargate | RDS + DocumentDB |
-| Google Cloud | Cloud Storage + CDN | Cloud Run | Cloud SQL + Firestore |
-| Azure | Static Web Apps | Container Instances | Azure DB + Cosmos DB |
-| DigitalOcean | App Platform | Droplets | Managed DB |
-
----
-
-## 📋 Project Information
-
-### 🎓 Academic Context
-
-| Field | Details |
-|---|---|
-| Project Type | Final Year Project (FYP) |
-| Degree | Bachelor of Science (Software Engineering) |
-| Current Phase | Development & Implementation (Semester 2) |
-
-### 👥 Team Members
-
-| Name | Role |
-|---|---|
-| **Anber Aziz** | AI/ML & Backend |
-| **Minahil Irfan** | Frontend & UI/UX |
-| **Nareen Asad** | Backend & APIs |
-| **Sunbal Aziz** | Frontend & Testing |
-
-### 🧑‍🏫 Supervision
-
-- **Supervisor**: Dr. Muhammad Mohsin Nazir
-- **Title**: Head of Department, Software Engineering
----
-
-## 🗺️ Project Roadmap
-
-### ✅ Completed — Semester 1
-- [x] System architecture design and documentation
-- [x] Technology stack finalization
-- [x] Database schema design (PostgreSQL + MongoDB)
-- [x] Full API endpoint specification
-- [x] UI/UX mockups and high-fidelity prototypes (Figma)
-- [x] Literature review and research gap analysis
-- [x] Functional proof-of-concept
-
-### 🚧 In Progress — Semester 2 (Current)
-- [ ] Frontend dashboard implementation (Next.js)
-- [ ] Backend REST API development (Express.js)
-- [ ] AI agent integration (CrewAI + LangChain + Groq)
-- [ ] Database setup, migrations, and seeding
-- [ ] Real-time WebSocket implementation (Socket.io)
-- [ ] JWT authentication and RBAC system
-- [ ] Multi-source threat intelligence connectors
-
-### 📅 Upcoming
-- [ ] Comprehensive testing (Unit, Integration, E2E)
-- [ ] Performance optimization and load testing
-- [ ] Security audit and penetration testing
-- [ ] Production cloud deployment
-- [ ] User acceptance testing with security professionals
-- [ ] Final documentation and presentation
-- [ ] GraphQL API for complex queries
-- [ ] SIEM integration (Wazuh, Splunk)
-- [ ] Compliance reporting (NIST, PCI-DSS)
-- [ ] Mobile alert notifications
+```env
+DATABASE_URL=postgresql://...  # Neon production database
+NODE_ENV=production
+```
 
 ---
 
 ## ⚠️ Important Notes
 
 ### Educational Purpose
-This system is designed primarily for educational and research purposes. While it implements real cybersecurity concepts and technologies, it should be:
-- ✅ Used as a learning and research tool
-- ✅ Evaluated in controlled, non-production environments
-- ✅ Validated by security professionals before any production use
-- ❌ NOT relied upon as a sole security solution
-- ❌ NOT deployed without proper security review
-
-### AI-Generated Content
-AI-generated incident response playbooks must always be:
-- Reviewed by qualified security professionals
-- Validated against organizational policies
-- Tested in non-production environments first
-- Approved by management before executing critical actions
+This system is designed for educational and research purposes. While it implements real cybersecurity concepts, it should be:
+- ✅ Used as a learning tool
+- ✅ Evaluated in controlled environments
+- ✅ Validated by security professionals before production
+- ❌ NOT relied upon as sole security solution
 
 ### Data Privacy
-CyberGuard processes potentially sensitive security data. Ensure compliance with GDPR and relevant local data protection regulations, implement proper access controls, encrypt all data in transit and at rest, and conduct regular security audits.
+- Implements proper access controls
+- Encrypts data in transit (HTTPS)
+- Secure database credentials management
+- Regular security audits recommended
 
 ---
 
@@ -522,55 +414,19 @@ CyberGuard processes potentially sensitive security data. Ensure compliance with
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit with descriptive messages (`git commit -m 'Add AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-For major changes, please open an issue first to discuss what you'd like to change.
-
----
-
-## 🔧 Troubleshooting
-
-**Port already in use:**
-```bash
-lsof -i :3001   # Find process
-kill -9 <PID>   # Kill process
-```
-
-**Database connection error:**
-```bash
-psql -U cyberguard -d cyberguard_db -h localhost
-mongosh mongodb://localhost:27017
-```
-
-**CVE sync failures:** Verify your NVD and OTX API keys, check internet connectivity, and review rate limiting policies for free-tier API usage.
-
-**API token expired:** Use the `/api/auth/refresh` endpoint. The frontend handles token refresh automatically.
-
----
-
-## 📚 Documentation
-
-| Document | Description |
-|---|---|
-| [Architecture Overview](./docs/architecture.md) | System design, components, and data flows |
-| [API Documentation](./docs/fastapi_setup.md) | Complete REST API reference |
-| [Quick Start](./docs/quick_start.md) | Local environment configuration |
-| [Implementation Details](./docs/implementation_summary.md) | End-user tutorials and workflows |
-| [Backend Setup](./docs/backend_setup.md) | Backend setup and configuration |
-| [Interactive Swagger UI](http://localhost:8000/docs) | Live API testing interface |
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **NVD / NIST** — CVE vulnerability data and cybersecurity guidelines
-- **AlienVault / Abuse.ch** — Open threat intelligence feeds
-- **MITRE Corporation** — ATT&CK framework for threat taxonomy
-- **CrewAI & LangChain Teams** — Multi-agent and LLM integration frameworks
-- **Groq** — Ultra-fast LLM inference infrastructure
-- **Open-source security community** — Tools, libraries, and research
+- **Neon** - Serverless PostgreSQL infrastructure
+- **Vercel** - Next.js and deployment platform
+- **shadcn/ui** - React component library
+- **MITRE** - ATT&CK framework
+- **Open-source community** - Tools and libraries
 
 ---
 
@@ -578,6 +434,8 @@ mongosh mongodb://localhost:27017
 
 **Built with ❤️ by the CyberGuard Team**
 
-**Version:** 1.0.0 &nbsp;|&nbsp; **Status:** In Active Development &nbsp;|&nbsp; **Last Updated:** February 2026
+**Version:** 1.1.0 | **Status:** In Active Development | **Last Updated:** April 2026
+
+**Database Integrated ✓** | **Components Refactored ✓** | **Validation & Error Handling ✓**
 
 </div>

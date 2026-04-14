@@ -1,615 +1,531 @@
-# CyberGuard Full-Stack Architecture Guide
+# CyberGuard Backend Architecture
 
-## System Overview
-
-CyberGuard is a production-grade AI-driven cybersecurity platform built with a modern microservices architecture. It aggregates CVE data, analyzes organizational assets, calculates contextual risk scores, and generates AI-based incident response playbooks.
-
-## Technology Stack
-
-### Frontend
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **State Management:** SWR for client-side data fetching
-- **UI Components:** Shadcn/ui
-- **Charts:** Recharts
-- **Authentication:** JWT tokens with secure storage
-
-### Backend Services
-- **API Server:** Express.js (Node.js)
-- **Language:** TypeScript
-- **AI Microservice:** FastAPI (Python)
-- **Message Queue:** Celery (optional, for async tasks)
-- **Caching:** Redis
-
-### Databases
-- **Structured Data:** PostgreSQL 13+
-  - Users, organizations, assets
-  - CVEs, risk scores, incidents
-  - Alerts, playbooks
-- **Unstructured Logs:** MongoDB 4.4+
-  - Incident logs and audit trails
-  - Threat intelligence logs
-  - System logs
-
-### External Integrations
-- **CVE Data:** NVD API, OTX API
-- **LLM:** OpenAI (for playbook generation)
-- **AI Models:** scikit-learn, PyTorch
-
-## Architecture Diagram
+## System Architecture (with Real-Time WebSocket)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                          │
-├─────────────────────────────────────────────────────────────┤
-│  Next.js Frontend (Dashboard, Auth, Asset Management)        │
-│  - Real-time charts and alerts                              │
-│  - Authentication with JWT                                  │
-│  - Role-based access control                                │
-└─────────────────┬───────────────────────────────────────────┘
-                  │ HTTP/REST API
-                  │ (JWT Bearer Token)
-┌─────────────────┴───────────────────────────────────────────┐
-│                    API GATEWAY LAYER                         │
-├─────────────────────────────────────────────────────────────┤
-│  Express.js Backend (Port 3001)                             │
-│  - Authentication & Authorization                          │
-│  - Request validation & error handling                      │
-│  - Rate limiting & logging                                  │
-└────┬──────────────┬─────────────────────────┬───────────────┘
-     │              │                         │
-     │              │                         │
-┌────┴────┐    ┌────┴────┐            ┌─────┴──────┐
-│  CVE    │    │ Asset   │            │ Incident   │
-│ Manager │    │ Manager │            │  Manager   │
-└────┬────┘    └────┬────┘            └─────┬──────┘
-     │              │                       │
-     └──────────┬───┴───────────────────────┘
-                │
-        ┌───────┴──────────┐
-        │  FastAPI Service │  (Port 8000)
-        │  AI Microservice │
-        ├──────────────────┤
-        │ • Risk Scoring   │
-        │ • CVE Enrichment │
-        │ • Threat ML      │
-        │ • Playbooks      │
-        └────┬─────────────┘
-             │
-    ┌────────┴───────────┐
-    │  External APIs     │
-    ├────────────────────┤
-    │ • NVD API          │
-    │ • OTX API          │
-    │ • OpenAI (LLM)     │
-    └────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                      DATA LAYER                              │
-├─────────────────────────────────────────────────────────────┤
-│  PostgreSQL               │  MongoDB         │  Redis       │
-│  (Structured Data)        │  (Logs)          │  (Cache)     │
-│  ├─ Users                 │  ├─ Audit logs   │              │
-│  ├─ Organizations         │  ├─ Threat logs  │              │
-│  ├─ Assets                │  └─ System logs  │              │
-│  ├─ CVEs                  │                  │              │
-│  ├─ Risk Scores           │                  │              │
-│  ├─ Incidents             │                  │              │
-│  └─ Alerts                │                  │              │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                         USER BROWSER                                    │
+└────────────────────────────────────────────────────────────────────────┘
+          ↓ WebSocket                                    ↓ HTTP
+          │                                              │
+    ┌─────┴──────┐                              ┌────────┴──────┐
+    │             │                              │                │
+┌───────────────────────────────┐    ┌────────────────────────────────┐
+│  Socket.io Client             │    │  Frontend Components            │
+│  (lib/socket.ts)              │    │  Pages & Components             │
+│  • metrics:update             │    └────────────────────────────────┘
+│  • threats:new                │                   ↓
+│  • incidents:update           │    ┌────────────────────────────────┐
+│  • chart:update               │    │  USE FETCH DATA HOOK           │
+└───────────────────────────────┘    │  (lib/use-fetch-data.ts)       │
+          ↓                           │  Fallback API fetching         │
+     WebSocket                        └────────────────────────────────┘
+  ws://localhost:3000/api/socket              ↓
+                                    ┌────────────────────────────────┐
+                                    │  API SERVICE LAYER             │
+                                    │  (lib/api-service.ts)          │
+                                    └────────────────────────────────┘
+                                              ↓ HTTP
+                                    ┌────────────────────────────────┐
+                                    │  NEXT.JS API ROUTES            │
+                                    │  /api/dashboard/*              │
+                                    │  /api/threats                  │
+                                    │  /api/incident-response        │
+                                    └────────────────────────────────┘
 ```
 
-## Data Flow
-
-### 1. Authentication Flow
+## Real-Time Data Flow (WebSocket)
 
 ```
-User Login
-    ↓
-[Next.js Frontend]
-    ↓ POST /api/auth/login
-[Express Backend] - Validate credentials
-    ↓
-[PostgreSQL] - Query user
-    ↓
-[Express Backend] - Generate JWT token
-    ↓
-[Next.js Frontend] - Store token in memory
-    ↓
-Include in subsequent requests as Bearer token
+┌─────────────────────────────────────────┐
+│  server.js (Custom HTTP + Socket.io)    │
+├─────────────────────────────────────────┤
+│  • Serves Next.js                       │
+│  • Manages WebSocket connections        │
+│  • Broadcasts events every 10 seconds   │
+└─────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────┐
+│  Mock Data Generator                    │
+│  (lib/mock-data-generator.ts)           │
+├─────────────────────────────────────────┤
+│  generateMetrics()      → metrics:update│
+│  generateThreat()       → threats:new   │
+│  generateIncidentUpdate() → incidents:  │
+│  generateChartPoint()   → chart:update  │
+└─────────────────────────────────────────┘
+          ↓ Broadcast to all connected clients
+┌─────────────────────────────────────────┐
+│  Browser WebSocket Client               │
+│  (hooks/use-socket-events.ts)           │
+├─────────────────────────────────────────┤
+│  useSocketMetrics()                     │
+│  useSocketThreats()                     │
+│  useSocketIncidents()                   │
+│  useSocketChartData()                   │
+└─────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────┐
+│  Component Updates                      │
+│  MetricsGrid (real-time indicator ⚡)  │
+│  ThreatChart (live points)              │
+│  RecentIncidents (status changes)       │
+└─────────────────────────────────────────┘
 ```
 
-### 2. CVE Processing Flow
+## System Architecture (REST API - Fallback)
 
 ```
-[Express Backend Scheduled Job]
-    ↓
-Fetch from NVD/OTX APIs
-    ↓
-[FastAPI] CVE Enrichment Service
-    ↓ Normalize data
-    ↓
-[PostgreSQL] Store CVE records
-    ↓
-[Redis] Cache enriched data (24h TTL)
-    ↓
-[Express Backend] Match CVEs to organizational assets
-    ↓
-[PostgreSQL] Update asset vulnerability counts
+┌────────────────────────────────────────────────────────────────────────┐
+│                         USER BROWSER                                    │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                      FRONTEND COMPONENTS                                │
+│   Dashboard │ Threats │ Risk Analysis │ Incidents │ Playbooks │ Reports │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                   USE FETCH DATA HOOK                                   │
+│  • Loading state management                                            │
+│  • Error handling                                                      │
+│  • Auto-refetch intervals                                             │
+│  • Type safety                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                    API SERVICE LAYER                                    │
+│  dashboardAPI │ threatsAPI │ riskAPI │ incidentAPI │ playbooksAPI     │
+│  reportsAPI                                                            │
+│  (lib/api-service.ts)                                                 │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+                      HTTP GET/POST Requests
+                     (with query parameters)
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                      NEXT.JS API ROUTES                                │
+│  /api/dashboard/*     /api/threats         /api/risk-analysis         │
+│  /api/incident-response  /api/playbooks   /api/reports               │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                      BUSINESS LOGIC LAYER                              │
+│  • Query parameter validation                                         │
+│  • Filtering & sorting logic                                         │
+│  • Pagination                                                         │
+│  • Error handling                                                     │
+│  • Response formatting                                               │
+└────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                       DATA SOURCES                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
+│  │ Mock Data    │  │  Real DB     │  │  Cache       │                │
+│  │ (Currently) │  │ (PostgreSQL) │  │ (Redis)      │                │
+│  └──────────────┘  └──────────────┘  └──────────────┘                │
+│  Set via USE_API flag in api-service.ts                              │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Risk Scoring Flow
+## API Routes Organization
 
 ```
-[Express Backend] Receives asset query
-    ↓
-Check [Redis] for cached risk scores
-    ↓ Cache miss
-    ↓
-POST to [FastAPI] /risk-score/calculate
-    ↓
-[FastAPI] Analyzes:
-    • CVE base score
-    • Asset criticality
-    • Exploit availability
-    • Industry factors
-    ↓
-Contextual risk score calculated
-    ↓
-[Redis] Cache result (1h TTL)
-    ↓
-Response to [Express Backend]
-    ↓
-Response to [Next.js Frontend]
+/app/api/
+│
+├── dashboard/
+│   ├── metrics/
+│   │   └── route.ts
+│   │       GET /api/dashboard/metrics
+│   │       Returns: { dashboardMetrics }
+│   │
+│   └── chart-data/
+│       └── route.ts
+│           GET /api/dashboard/chart-data?timeRange=6m
+│           Returns: { chartData, timeRange }
+│
+├── threats/
+│   └── route.ts
+│       GET /api/threats?severity=critical&status=blocked&page=1&limit=10
+│       Returns: { threatData[], total, page, pages, limit }
+│
+├── risk-analysis/
+│   └── route.ts
+│       GET /api/risk-analysis?minRisk=50&maxRisk=100&sortBy=riskLevel
+│       Returns: { riskData[], total, filters }
+│
+├── incident-response/
+│   └── route.ts
+│       GET /api/incident-response?status=in-progress&severity=critical
+│       Returns: { incidentData[], total, page, pages, limit }
+│       
+│       POST /api/incident-response
+│       Body: { title, severity, description, ... }
+│       Returns: { newIncident }
+│
+├── playbooks/
+│   └── route.ts
+│       GET /api/playbooks?category=Incident%20Response&search=ransomware
+│       Returns: { playbookData[], total, page, pages, limit }
+│
+└── reports/
+    └── route.ts
+        GET /api/reports?type=Monthly%20Summary&status=completed
+        Returns: { reportData[], total, page, pages, limit }
+        
+        POST /api/reports
+        Body: { title, type, filters, ... }
+        Returns: { newReport }
 ```
 
-### 4. Incident Response Flow
+## Data Flow Example: Fetching Threats
 
 ```
-[User] Creates/Detects Incident
-    ↓
-[Next.js Frontend] POST /api/incidents
-    ↓
-[Express Backend] Create incident record
-    ↓ Store in [PostgreSQL]
-    ↓
-[User] Requests playbook generation
-    ↓
-POST to [FastAPI] /playbook/generate
-    ↓
-[FastAPI] Uses LLM (OpenAI GPT-4)
-    • Understands CVE context
-    • Knows asset configuration
-    • Considers organization size/industry
-    ↓ Generates steps
-    ↓
-[MongoDB] Store playbook
-    ↓
-[PostgreSQL] Link playbook to incident
-    ↓
-[Next.js Frontend] Display playbook steps
+User clicks "Threats" page
+        ↓
+React Component renders (<ThreatsPage>)
+        ↓
+useCallback creates fetch function
+        ↓
+useFetchData hook called
+        ↓
+threatsAPI.getThreats({ severity: 'critical' })
+        ↓
+Builds URL: /api/threats?severity=critical
+        ↓
+fetch() sends HTTP GET request
+        ↓
+Next.js Route Handler (/api/threats/route.ts)
+        ↓
+Receives query parameters
+        ↓
+Filters mock data (or queries database)
+        ↓
+Formats response { success: true, data: [...], total: X, page: 1 }
+        ↓
+HTTP response returned
+        ↓
+useFetchData parses JSON
+        ↓
+Updates component state (data, loading, error)
+        ↓
+Component re-renders with threats data
+        ↓
+User sees filtered threats list
 ```
 
-## Authentication & Authorization
+## Component Integration Pattern
 
-### JWT Token Structure
+```typescript
+// 1. Import API service and hook
+import { useFetchData } from '@/hooks/use-fetch-data'
+import { threatsAPI } from '@/lib/api-service'
 
+// 2. Create fetch callback with useCallback
+const threatsCallback = useCallback(
+  () => threatsAPI.getThreats({ severity: selectedSeverity }),
+  [selectedSeverity]  // Dependencies
+)
+
+// 3. Use fetch hook to get data
+const { data: threats, loading, error } = useFetchData(threatsCallback, {
+  refetchInterval: 30000  // Optional: auto-refresh every 30s
+})
+
+// 4. Render based on state
+return (
+  <>
+    {loading && <Skeleton />}
+    {error && <Error message={error.message} />}
+    {threats && <ThreatsList threats={threats} />}
+  </>
+)
+```
+
+## Response Format Standard
+
+All API responses follow this structure:
+
+```typescript
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  timestamp?: string
+}
+
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  total?: number
+  page?: number
+  pages?: number
+  limit?: number
+}
+```
+
+### Success Response Example
 ```json
 {
-  "header": {
-    "alg": "HS256",
-    "typ": "JWT"
+  "success": true,
+  "data": {
+    "threatsDetected": 2847,
+    "threatsDetectedChange": 12.5,
+    "riskScore": 42,
+    "riskScoreChange": -3.2,
+    "incidentsActive": 8,
+    "incidentsActiveChange": 2,
+    "systemsMonitored": 156,
+    "systemsMonitoredChange": 0
   },
-  "payload": {
-    "userId": "user-uuid",
-    "email": "user@example.com",
-    "organizationId": "org-uuid",
-    "role": "analyst",
-    "iat": 1704067200,
-    "exp": 1704068100
+  "timestamp": "2024-03-24T14:32:00.000Z"
+}
+```
+
+### Paginated Response Example
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "THR-001",
+      "type": "Malware",
+      "severity": "critical",
+      "source": "192.168.1.105",
+      "target": "Database Server",
+      "detected": "2024-03-24 14:32:00",
+      "status": "blocked"
+    }
+  ],
+  "total": 247,
+  "page": 1,
+  "pages": 25,
+  "limit": 10,
+  "timestamp": "2024-03-24T14:32:00.000Z"
+}
+```
+
+### Error Response Example
+```json
+{
+  "success": false,
+  "error": "Failed to fetch threats",
+  "timestamp": "2024-03-24T14:32:00.000Z"
+}
+```
+
+## API Service Layer Methods
+
+```typescript
+dashboardAPI
+  ├── getMetrics()
+  └── getChartData(timeRange)
+
+threatsAPI
+  └── getThreats(filters: { severity, status, page, limit })
+
+riskAPI
+  └── getRisks(filters: { minRisk, maxRisk, sortBy, order })
+
+incidentAPI
+  ├── getIncidents(filters: { status, severity, page, limit })
+  └── createIncident(data)
+
+playbooksAPI
+  └── getPlaybooks(filters: { category, search, page, limit })
+
+reportsAPI
+  ├── getReports(filters: { type, status, page, limit })
+  └── createReport(data)
+```
+
+## Database Integration Path
+
+Current (Development):
+```
+API Routes → Mock Data (lib/mock-data.ts)
+```
+
+After Database Integration:
+```
+API Routes → ORM/Query Builder → PostgreSQL/MongoDB
+```
+
+Example with Neon:
+```typescript
+import { neon } from '@neondatabase/serverless'
+
+const sql = neon(process.env.DATABASE_URL!)
+
+export async function GET(request: NextRequest) {
+  try {
+    const threats = await sql('SELECT * FROM threats WHERE severity = $1', ['critical'])
+    return NextResponse.json({ success: true, data: threats })
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Database error' },
+      { status: 500 }
+    )
   }
 }
 ```
 
-### Role-Based Access Control (RBAC)
+## Caching Strategy
 
-| Role | Permissions |
-|------|------------|
-| **Admin** | Full access - users, org settings, all data operations |
-| **Analyst** | Read all, create/edit incidents, generate playbooks |
-| **Viewer** | Read-only access to dashboard and reports |
+### Current Implementation
+- Dashboard metrics: Refresh every 30 seconds
+- Chart data: Refresh every 60 seconds
+- Incidents: Refresh every 45 seconds
+- Default: No cache (fresh data on each request)
 
-### API Key Authentication
-
-For integrations:
-- Generate API keys in user profile
-- Keys hashed before storage
-- Include in `X-API-Key` header
-- Scoped to organization
-
-## Security Measures
-
-### 1. Password Security
-- Hashed with bcrypt (12 salt rounds)
-- Minimum 8 characters
-- Never logged or exposed
-
-### 2. Token Security
-- JWT signed with HS256
-- Short expiry: 15 minutes (access token)
-- Refresh tokens: 7 days
-- Tokens stored in memory (not localStorage)
-
-### 3. Data Protection
-- PostgreSQL connections over SSL
-- API keys hashed before storage
-- Sensitive data encrypted at rest
-- Row-level security (RLS) for MongoDB
-
-### 4. Network Security
-- CORS restricted to frontend domain
-- Rate limiting on auth endpoints
-- HTTPS enforced in production
-- API request logging and monitoring
-
-### 5. Input Validation
-- All inputs validated against Pydantic schemas
-- SQL injection prevention with parameterized queries
-- XSS prevention through React
-- CSRF tokens for state-changing operations
-
-## Database Schema
-
-### PostgreSQL Core Tables
-
-```sql
--- Users
-CREATE TABLE users (
-  id UUID PRIMARY KEY,
-  email VARCHAR UNIQUE,
-  password_hash VARCHAR,
-  role VARCHAR, -- admin, analyst, viewer
-  organization_id UUID FOREIGN KEY
-);
-
--- Assets
-CREATE TABLE assets (
-  id UUID PRIMARY KEY,
-  organization_id UUID,
-  name VARCHAR,
-  cpe VARCHAR, -- Common Platform Enumeration
-  criticality VARCHAR, -- critical, high, medium, low
-  vulnerability_count INT,
-  risk_score NUMERIC,
-  FOREIGN KEY (organization_id)
-);
-
--- CVEs
-CREATE TABLE cves (
-  id UUID PRIMARY KEY,
-  cve_id VARCHAR UNIQUE, -- CVE-2024-XXXXX
-  severity VARCHAR,
-  base_score NUMERIC,
-  exploitability_score NUMERIC,
-  published_date TIMESTAMP,
-  source VARCHAR -- nvd, otx, both
-);
-
--- Risk Scores
-CREATE TABLE risk_scores (
-  id UUID PRIMARY KEY,
-  asset_id UUID FOREIGN KEY,
-  cve_id UUID FOREIGN KEY,
-  contextual_score NUMERIC,
-  calculated_at TIMESTAMP
-);
-
--- Incidents
-CREATE TABLE incidents (
-  id UUID PRIMARY KEY,
-  organization_id UUID,
-  title VARCHAR,
-  status VARCHAR, -- open, investigating, resolved
-  cve_ids VARCHAR[],
-  assigned_to UUID FOREIGN KEY (users)
-);
-
--- Playbooks
-CREATE TABLE incident_playbooks (
-  id UUID PRIMARY KEY,
-  incident_id UUID FOREIGN KEY,
-  cve_id UUID FOREIGN KEY,
-  steps JSONB, -- Array of playbook steps
-  estimated_time_to_resolve INT
-);
+### Recommended for Production
+```
+User Request
+     ↓
+Check Cache (Redis)
+     ↓
+If Found → Return cached data
+If Not Found → Query database
+     ↓
+Store in Cache with TTL
+     ↓
+Return to user
 ```
 
-### MongoDB Collections
+## Error Handling Flow
 
-```javascript
-// Incident Logs
-db.incident_logs.insertOne({
-  _id: ObjectId,
-  incident_id: "uuid",
-  organization_id: "uuid",
-  action: "created",
-  timestamp: new Date(),
-  actor_id: "uuid",
-  details: { ... }
-});
+```
+Try to fetch data
+     ↓
+┌─ Success? ─┐
+│            │
+Yes          No
+│            │
+✓ Return    → Catch error
+  data         │
+              Format error
+                │
+              Return error
+                │
+            Component shows
+            error message
+```
 
-// Threat Intelligence
-db.threat_logs.insertOne({
-  _id: ObjectId,
-  organization_id: "uuid",
-  threat_type: "malware",
-  indicators: [...],
-  detected_at: new Date(),
-  related_cves: [...]
-});
+## Authentication & Authorization (Future)
 
-// System Logs
-db.system_logs.insertOne({
-  _id: ObjectId,
-  level: "info|warning|error|critical",
-  message: "Log message",
-  timestamp: new Date(),
-  source: "service-name",
-  metadata: { ... }
-});
+```
+Client sends request
+        ↓
+API Middleware checks JWT token
+        ↓
+┌─ Valid? ──┐
+│           │
+Yes         No
+│           │
+Get user   → Return 401
+roles      │ Unauthorized
+│
+Check endpoint permissions
+│
+┌─ Allowed? ┐
+│           │
+Yes         No
+│           │
+Process   → Return 403
+request    │ Forbidden
+│
+Execute logic
+│
+Return response
+```
+
+## Performance Optimization Points
+
+1. **Request Level**
+   - Pagination (limit results)
+   - Filtering (reduce data)
+   - Compression (gzip)
+   - Caching headers
+
+2. **Database Level**
+   - Indexes on frequently filtered columns
+   - Query optimization
+   - Connection pooling
+   - Read replicas
+
+3. **Application Level**
+   - Redis cache layer
+   - Request deduplication
+   - Lazy loading
+   - Code splitting
+
+4. **Network Level**
+   - CDN for static assets
+   - API compression
+   - HTTP/2
+   - Optimal refetch intervals
+
+## Security Architecture
+
+```
+Client Request
+     ↓
+Validate HTTPS
+     ↓
+Validate CORS origin
+     ↓
+Check authentication (JWT)
+     ↓
+Check authorization (roles)
+     ↓
+Validate input parameters
+     ↓
+Rate limiting check
+     ↓
+Execute query with parameterized statements
+     ↓
+Sanitize output
+     ↓
+Log request (audit trail)
+     ↓
+Return response
 ```
 
 ## Deployment Architecture
 
-### Local Development
-
-```bash
-# Terminal 1 - PostgreSQL + MongoDB
-docker-compose up postgres mongodb redis
-
-# Terminal 2 - Express Backend
-cd backend && npm run dev
-
-# Terminal 3 - FastAPI Service
-cd fastapi-service && python -m uvicorn app.main:app --reload
-
-# Terminal 4 - Next.js Frontend
-cd frontend && npm run dev
+```
+┌─────────────────────────────┐
+│   Vercel (Frontend + API)   │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  Next.js App          │  │
+│  │  - UI Components      │  │
+│  │  - API Routes (/api)  │  │
+│  │  - Auth Middleware    │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+           ↓ (Optional)
+┌─────────────────────────────┐
+│   External Services         │
+│                             │
+│  - PostgreSQL (Neon)        │
+│  - Redis (Upstash)          │
+│  - Monitoring (Sentry)      │
+└─────────────────────────────┘
 ```
 
-### Docker Compose Production
+## Type Safety Flow
 
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: cyberguard_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/postgres-schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    ports:
-      - "5432:5432"
-
-  mongodb:
-    image: mongo:7
-    volumes:
-      - mongodb_data:/data/db
-    ports:
-      - "27017:27017"
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  backend:
-    build: ./backend
-    ports:
-      - "3001:3001"
-    environment:
-      DATABASE_URL: postgresql://cyberguard:password@postgres:5432/cyberguard_db
-      MONGODB_URI: mongodb://mongodb:27017/cyberguard_logs
-      REDIS_URL: redis://redis:6379/0
-    depends_on:
-      - postgres
-      - mongodb
-      - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
-      interval: 30s
-      timeout: 10s
-
-  fastapi:
-    build: ./fastapi-service
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://cyberguard:password@postgres:5432/cyberguard_db
-      REDIS_URL: redis://redis:6379/0
-    depends_on:
-      - postgres
-      - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
-      NEXT_PUBLIC_FASTAPI_URL: http://localhost:8000
-
-volumes:
-  postgres_data:
-  mongodb_data:
+```typescript
+API Service Layer (type-safe)
+        ↓
+threatData: Threat[]
+risksData: Risk[]
+incidents: Incident[]
+        ↓
+useFetchData Hook (generic <T>)
+        ↓
+Component Props (typed)
+        ↓
+JSX Rendering (compile-time checked)
 ```
 
-### Production Deployment
-
-**Option 1: Kubernetes (Recommended)**
-- Docker images for each service
-- Helm charts for deployment
-- Horizontal pod autoscaling
-- Persistent volumes for databases
-- Ingress controller for routing
-
-**Option 2: Cloud Platforms**
-- **AWS:** ECS/Fargate for services, RDS for PostgreSQL, DocumentDB for MongoDB
-- **Google Cloud:** Cloud Run for services, Cloud SQL, Firestore
-- **Azure:** Container Instances, Azure Database for PostgreSQL, Cosmos DB
-
-## Performance Optimization
-
-### Caching Strategy
-
-1. **Database Query Results** (Redis, 5 minutes)
-   - Risk scores for assets
-   - CVE details
-   - Dashboard statistics
-
-2. **Enriched CVE Data** (Redis, 24 hours)
-   - Normalized CVE information
-   - Exploit probability
-
-3. **User Profiles** (Redis, 1 hour)
-   - User details and permissions
-   - Organization settings
-
-### Query Optimization
-
-1. **Indexing**
-   ```sql
-   -- PostgreSQL indexes
-   CREATE INDEX idx_assets_organization ON assets(organization_id);
-   CREATE INDEX idx_risk_scores_asset ON risk_scores(asset_id);
-   CREATE INDEX idx_cves_severity ON cves(severity);
-   ```
-
-2. **Pagination**
-   - All list endpoints paginated (default 20 items)
-   - Cursor-based pagination for large datasets
-
-3. **Batch Processing**
-   - CVE matching done in batches
-   - Risk calculation queued for bulk operations
-
-## Monitoring & Observability
-
-### Logging
-
-```json
-{
-  "timestamp": "2024-01-15T10:30:00Z",
-  "level": "info|warning|error|critical",
-  "service": "express|fastapi|frontend",
-  "message": "Descriptive message",
-  "userId": "user-uuid",
-  "organizationId": "org-uuid",
-  "requestId": "correlation-id",
-  "duration_ms": 150,
-  "status_code": 200
-}
-```
-
-### Key Metrics
-
-- **Availability:** % of successful API requests
-- **Response Time:** P50, P95, P99 latencies
-- **Error Rate:** % of failed requests by error type
-- **CVE Processing Time:** Time from fetch to storage
-- **Risk Score Calculation:** Latency for score computation
-- **ML Model Performance:** Accuracy, precision, recall
-
-### Alerting
-
-- Error rate > 1%
-- Response latency P99 > 2 seconds
-- Database connection pool exhausted
-- CVE sync failures
-- Playbook generation timeouts
-
-## CI/CD Pipeline
-
-```
-┌─ Git Push
-│
-├─ Code Quality Checks
-│  ├─ ESLint / Prettier
-│  ├─ TypeScript type checking
-│  └─ Pylint / Black
-│
-├─ Unit Tests
-│  ├─ Jest (frontend)
-│  ├─ Mocha/Chai (backend)
-│  └─ Pytest (fastapi)
-│
-├─ Integration Tests
-│  ├─ API endpoint tests
-│  └─ Database migration tests
-│
-├─ Build
-│  ├─ Frontend build
-│  ├─ Backend build
-│  └─ FastAPI build
-│
-├─ Security Scanning
-│  ├─ Dependency vulnerability check
-│  ├─ SAST analysis
-│  └─ Container scanning
-│
-└─ Deploy
-   ├─ Staging environment
-   ├─ Smoke tests
-   └─ Production environment
-```
-
-## Troubleshooting Guide
-
-### Common Issues
-
-1. **JWT Token Expired**
-   - Use refresh token endpoint
-   - Automatic refresh handled by client
-
-2. **CVE Sync Failures**
-   - Check NVD/OTX API keys
-   - Verify network connectivity
-   - Review rate limiting
-
-3. **Risk Score Calculation Slow**
-   - Check Redis cache hit rate
-   - Verify FastAPI service health
-   - Scale FastAPI replicas if needed
-
-4. **Database Connection Issues**
-   - Verify connection strings
-   - Check database is running
-   - Review connection pool settings
-
-## Future Enhancements
-
-1. **GraphQL API** - Alternative to REST for complex queries
-2. **Real-time Websockets** - Live incident updates
-3. **Multi-tenancy** - Enterprise support
-4. **Advanced ML Models** - Custom threat detection
-5. **SIEM Integration** - Connect with existing tools
-6. **Compliance Reporting** - NIST, PCI-DSS reporting
-
-## Documentation Files
-
-- `BACKEND_SETUP.md` - Express backend detailed setup
-- `FASTAPI_SETUP.md` - FastAPI microservice setup
-- `scripts/postgres-schema.sql` - Database schema
-- API documentation available at `/api/docs` (Swagger UI)
-
----
-
-**Last Updated:** 2026-02-22
-**Version:** 1.0.0
+All data flows are fully typed with TypeScript!
