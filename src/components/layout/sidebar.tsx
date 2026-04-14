@@ -13,42 +13,20 @@ import {
   Shield,
   Menu,
   X,
-  Users,
-  Settings,
 } from 'lucide-react'
-import type { UserRole } from '@/lib/auth'
 
-interface NavItem {
-  name: string
-  href: string
-  icon: React.ElementType
-  roles?: UserRole[] // If undefined, accessible to all authenticated users
-}
-
-const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Threats', href: '/threats', icon: AlertTriangle },
   { name: 'Risk Analysis', href: '/risk-analysis', icon: TrendingUp },
   { name: 'Incident Response', href: '/incident-response', icon: Zap },
   { name: 'Playbooks', href: '/playbooks', icon: BookOpen },
   { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'User Management', href: '/users', icon: Users, roles: ['admin'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'manager'] },
 ]
 
-interface SidebarProps {
-  userRole?: UserRole
-}
-
-export function Sidebar({ userRole = 'analyst' }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-
-  // Filter navigation based on user role
-  const filteredNavigation = navigation.filter((item) => {
-    if (!item.roles) return true
-    return item.roles.includes(userRole)
-  })
 
   return (
     <>
@@ -62,9 +40,8 @@ export function Sidebar({ userRole = 'analyst' }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 z-30 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
+        className={`fixed md:relative w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}
       >
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
@@ -78,20 +55,19 @@ export function Sidebar({ userRole = 'analyst' }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {filteredNavigation.map((item) => {
+        <nav className="flex-1 p-4 space-y-2">
+          {navigation.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent/20'
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 <span className="text-sm font-medium">{item.name}</span>

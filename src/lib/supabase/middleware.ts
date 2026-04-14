@@ -1,26 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Define role-based route permissions
-const routePermissions: Record<string, string[]> = {
-  '/': ['admin', 'analyst', 'manager'],
-  '/threats': ['admin', 'analyst', 'manager'],
-  '/incident-response': ['admin', 'analyst', 'manager'],
-  '/risk-analysis': ['admin', 'analyst', 'manager'],
-  '/reports': ['admin', 'analyst', 'manager'],
-  '/playbooks': ['admin', 'analyst', 'manager'],
-  '/settings': ['admin', 'manager'],
-  '/users': ['admin'],
-}
-
-// Public routes that don't require authentication
-const publicRoutes = ['/auth/login', '/auth/sign-up', '/auth/callback', '/auth/error', '/auth/sign-up-success', '/unauthorized']
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  // With Fluid compute, don't put this client in a global environment
+  // variable. Always create a new one on each request.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,56 +31,56 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
+  // Do not run code between createServerClient and
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
+  // IMPORTANT: If you remove getUser() and you use server-side rendering
+  // with the Supabase client, your users may be randomly logged out.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
 
-  // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
-    // If user is logged in and tries to access login page, redirect to dashboard
-    if (user && pathname === '/auth/login') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
-    return supabaseResponse
-  }
+  // Define public routes that don't require authentication
+  const publicRoutes = ['/auth/login', '/auth/signup', '/auth/callback', '/auth/error']
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
-  // If no user and trying to access protected route, redirect to login
-  if (!user) {
+  // If user is not logged in and trying to access protected route
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
   }
 
-  // Get user's role from profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const userRole = profile?.role || 'analyst'
-
-  // Check route permissions
-  const matchingRoute = Object.keys(routePermissions).find(route => {
-    if (route === '/') return pathname === '/'
-    return pathname.startsWith(route)
-  })
-
-  if (matchingRoute) {
-    const allowedRoles = routePermissions[matchingRoute]
-    if (!allowedRoles.includes(userRole)) {
-      // User doesn't have permission, redirect to dashboard with error
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      url.searchParams.set('error', 'unauthorized')
-      return NextResponse.redirect(url)
-    }
+  // If user is logged in and trying to access auth pages, redirect to dashboard
+  if (user && (pathname === '/auth/login' || pathname === '/auth/signup')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
+
+  // Redirect root to dashboard if logged in, otherwise to login
+  if (pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = user ? '/dashboard' : '/auth/login'
+    return NextResponse.redirect(url)
+  }
+
+  // IMPORTANT: You *must* return the supabaseResponse object as it is.
+  // If you're creating a new response object with NextResponse.next() make sure to:
+  // 1. Pass the request in it, like so:
+  //    const myNewResponse = NextResponse.next({ request })
+  // 2. Copy over the cookies, like so:
+  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
+  // 3. Change the myNewResponse object to fit your needs, but avoid changing
+  //    the cookies!
+  // 4. Finally:
+  //    return myNewResponse
+  // If this is not done, you may be causing the browser and server to go out
+  // of sync and terminate the user's session prematurely!
 
   return supabaseResponse
 }

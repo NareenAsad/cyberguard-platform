@@ -1,6 +1,7 @@
 'use client'
 
 import { Bell, Settings, User } from 'lucide-react'
+import { UserMenu } from '../auth/user-menu'
 
 export function Header() {
   return (
@@ -16,12 +17,9 @@ export function Header() {
         <button className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
           <Bell className="w-5 h-5" />
         </button>
-        <button className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
-          <Settings className="w-5 h-5" />
-        </button>
-        <button className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
-          <User className="w-5 h-5" />
-        </button>
+
+        {/* User Menu */}
+        <UserMenu />
       </div>
     </header>
   )
