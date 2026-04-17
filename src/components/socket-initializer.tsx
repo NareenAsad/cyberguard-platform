@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { initSocket } from '@/lib/socket'
+import { initSocket } from '@/lib/socket/socket'
 
 export function SocketInitializer() {
     useEffect(() => {

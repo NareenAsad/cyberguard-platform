@@ -1,5 +1,5 @@
 // Mock data generator for real-time WebSocket updates
-import { mockData } from './mock-data'
+import { chartData } from '../mock-data'
 
 const THREAT_TYPES = ['Malware', 'Phishing', 'DDoS', 'SQL Injection', 'XSS', 'Zero-Day', 'Ransomware']
 const THREAT_SOURCES = [
@@ -34,7 +34,7 @@ let chartDataPoints: Array<{
     name: string
     threats: number
     detected: number
-}> = mockData.chartData || []
+}> = chartData || []
 
 export const mockDataGenerator = {
     generateMetrics() {
