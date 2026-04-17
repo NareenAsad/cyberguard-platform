@@ -8,8 +8,7 @@ from typing import Optional
 import asyncio
 from dotenv import load_dotenv
 
-env_path = os.path.join(os.path.dirname(__file__), "..", ".env.local")
-load_dotenv(env_path)
+load_dotenv("../.env.local")
 
 from crew import CyberGuardCrew
 

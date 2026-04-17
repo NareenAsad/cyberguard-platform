@@ -1,10 +1,20 @@
-# Use compatible ranges rather than strict versions
+# CyberGuard Python AI Service — Dependencies
+# Install: pip install -r requirements.txt
+# Let pip resolve compatible versions automatically (no strict pins)
+
+# CrewAI & Agents
 crewai>=0.51.0
 crewai-tools>=0.8.3
-langchain>=0.2.1,<0.3.0
-langchain-groq>=0.1.6
-langchain-community>=0.2.0
+
+# Groq (CrewAI.LLM uses litellm + groq under the hood)
+groq>=0.9.0
+
+# FastAPI Service
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
-pydantic>=2.7.0
+
+# HTTP Client
+httpx>=0.27.0
+
+# Utilities
 python-dotenv>=1.0.0

@@ -1,5 +1,4 @@
-from crewai import Agent
-from langchain_groq import ChatGroq
+from crewai import Agent, LLM
 from tools import (
     nvd_search_tool,
     otx_threat_tool,
@@ -8,15 +7,21 @@ from tools import (
     report_formatter_tool,
 )
 
+# ─────────────────────────────────────────────
 # Shared LLM (Groq / Llama 3.1)
-llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
-    temperature=0.1,          # low temp = deterministic security decisions
+# Modern CrewAI uses crewai.LLM — pass the model as a string.
+# Make sure GROQ_API_KEY is set in your .env file.
+# ─────────────────────────────────────────────
+llm = LLM(
+    model="groq/llama-3.1-70b-versatile",
+    temperature=0.1,
     max_tokens=2048,
 )
 
 
+# ─────────────────────────────────────────────
 # 1. Threat Intelligence Agent
+# ─────────────────────────────────────────────
 threat_intelligence_agent = Agent(
     role="Senior Threat Intelligence Analyst",
     goal=(
@@ -41,7 +46,9 @@ threat_intelligence_agent = Agent(
 )
 
 
+# ─────────────────────────────────────────────
 # 2. Vulnerability Assessment Agent
+# ─────────────────────────────────────────────
 vulnerability_assessment_agent = Agent(
     role="Vulnerability Management Specialist",
     goal=(
@@ -66,7 +73,9 @@ vulnerability_assessment_agent = Agent(
 )
 
 
+# ─────────────────────────────────────────────
 # 3. Risk Analysis Agent
+# ─────────────────────────────────────────────
 risk_analysis_agent = Agent(
     role="Cybersecurity Risk Strategist",
     goal=(
@@ -91,7 +100,9 @@ risk_analysis_agent = Agent(
 )
 
 
+# ─────────────────────────────────────────────
 # 4. Incident Response Agent
+# ─────────────────────────────────────────────
 incident_response_agent = Agent(
     role="Incident Response Lead",
     goal=(
@@ -117,7 +128,9 @@ incident_response_agent = Agent(
 )
 
 
+# ─────────────────────────────────────────────
 # 5. Reporting Agent
+# ─────────────────────────────────────────────
 reporting_agent = Agent(
     role="Security Communications Officer",
     goal=(
