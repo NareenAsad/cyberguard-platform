@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
     // Subscribe to real-time socket updates
     const { metrics: socketMetrics } = useSocketMetrics(initialMetrics)
-    const socketChartData = useSocketChartData(initialChartData)
+    const socketChartData = useSocketChartData(initialChartData as any[] | undefined)
     const { incidents: socketIncidents } = useSocketIncidents(initialIncidents)
 
     // Use socket data if available, fall back to API data
