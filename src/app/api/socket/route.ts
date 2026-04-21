@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { initSocketServer } from '@/lib/socket-server'
+import { initSocketServer } from '@/lib/socket/socket-server'
 
 // This route handles WebSocket upgrades for Socket.io
 // Socket.io will upgrade HTTP connections to WebSocket when possible

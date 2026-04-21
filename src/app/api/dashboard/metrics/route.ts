@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDashboardMetrics } from '@/lib/db'
-import { dashboardMetrics as mockMetrics } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
-        // Try to fetch from database first
         const result = await getDashboardMetrics()
 
         if (result.success && result.data) {
@@ -18,28 +16,18 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // Fallback to mock data if database is unavailable
-        console.warn('[API] Database unavailable, using mock data')
+        // DB is reachable but returned no data — tables might be empty
+        console.warn('[API] getDashboardMetrics returned no data:', result.error)
         return NextResponse.json(
-            {
-                success: true,
-                data: mockMetrics,
-                timestamp: new Date().toISOString(),
-                _warning: 'Using mock data - database not available',
-            },
-            { status: 200 }
+            { success: false, error: 'No metrics available' },
+            { status: 503 }
         )
+
     } catch (error) {
-        console.error('[API] Error fetching metrics:', error)
-        // Return mock data on error for graceful degradation
+        console.error('[API] Unexpected error in metrics route:', error)
         return NextResponse.json(
-            {
-                success: true,
-                data: mockMetrics,
-                timestamp: new Date().toISOString(),
-                _error: 'Database error, using mock data',
-            },
-            { status: 200 }
+            { success: false, error: 'Internal server error' },
+            { status: 500 }
         )
     }
 }

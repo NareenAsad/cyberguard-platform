@@ -8,7 +8,7 @@ import {
     onNewThreat,
     onIncidentUpdate,
     onChartUpdate,
-} from '@/lib/socket'
+} from '@/lib/socket/socket'
 
 // Hook for subscribing to metrics updates
 export function useSocketMetrics(initialData?: any) {

@@ -226,8 +226,139 @@ export async function getReports(filters?: {
 // Dashboard metrics query
 export async function getDashboardMetrics() {
     try {
-        const result = await sql`SELECT * FROM "DashboardMetric" LIMIT 1`
-        return { success: true, data: result[0] || null }
+        // Run all metric queries in parallel for speed
+        const [
+            threatCounts,
+            incidentCounts,
+            riskStats,
+            recentThreats,
+            recentIncidents,
+        ] = await Promise.all([
+
+            // Total threats + breakdown by severity
+            sql`
+                SELECT
+                    COUNT(*)::int                                              AS total,
+                    COUNT(*) FILTER (WHERE severity = 'critical')::int        AS critical,
+                    COUNT(*) FILTER (WHERE severity = 'high')::int            AS high,
+                    COUNT(*) FILTER (WHERE severity = 'medium')::int          AS medium,
+                    COUNT(*) FILTER (WHERE severity = 'low')::int             AS low,
+                    COUNT(*) FILTER (WHERE status = 'active')::int            AS active,
+                    COUNT(*) FILTER (WHERE status = 'resolved')::int          AS resolved,
+                    COUNT(*) FILTER (
+                        WHERE detected >= NOW() - INTERVAL '24 hours'
+                    )::int AS last_24h
+                FROM "Threat"
+            `,
+
+            // Incident counts + status breakdown
+            sql`
+                SELECT
+                    COUNT(*)::int                                                    AS total,
+                    COUNT(*) FILTER (WHERE status = 'open')::int                    AS open,
+                    COUNT(*) FILTER (WHERE status = 'in-progress')::int             AS in_progress,
+                    COUNT(*) FILTER (WHERE status = 'resolved')::int                AS resolved,
+                    COUNT(*) FILTER (WHERE severity = 'critical')::int              AS critical,
+                    COUNT(*) FILTER (
+                        WHERE created >= NOW() - INTERVAL '24 hours'
+                    )::int AS last_24h
+                FROM "Incident"
+            `,
+
+            // Risk score statistics
+            sql`
+                SELECT
+                    COUNT(*)::int                                                        AS total,
+                    ROUND(AVG("riskLevel")::numeric, 1)                                 AS avg_risk,
+                    MAX("riskLevel")::int                                                AS max_risk,
+                    COUNT(*) FILTER (WHERE "riskLevel" >= 70)::int                      AS critical_count,
+                    COUNT(*) FILTER (WHERE "riskLevel" >= 50 AND "riskLevel" < 70)::int AS high_count,
+                    COUNT(*) FILTER (WHERE "riskLevel" >= 30 AND "riskLevel" < 50)::int AS medium_count,
+                    COUNT(*) FILTER (WHERE "riskLevel" < 30)::int                       AS low_count
+                FROM "RiskAnalysis"
+            `,
+
+            // 5 most recent threats for the live feed
+            sql`
+                SELECT id, title, severity, status, detected, source
+                FROM "Threat"
+                ORDER BY detected DESC
+                LIMIT 5
+            `,
+
+            // 5 most recent incidents
+            sql`
+                SELECT id, "incidentId", title, severity, status, created, assignee
+                FROM "Incident"
+                ORDER BY created DESC
+                LIMIT 5
+            `,
+        ])
+
+        const threats = threatCounts[0]
+        const incidents = incidentCounts[0]
+        const risks = riskStats[0]
+
+        // Compute overall security posture score (0–100, higher = safer)
+        // Penalize heavily for critical/high findings
+        const posturePenalty =
+            (threats.critical * 10) +
+            (threats.high * 5) +
+            (incidents.critical * 8) +
+            (risks.critical_count * 6)
+        const postureScore = Math.max(0, 100 - posturePenalty)
+
+        return {
+            success: true,
+            data: {
+                // Threat summary
+                threats: {
+                    total: threats.total,
+                    critical: threats.critical,
+                    high: threats.high,
+                    medium: threats.medium,
+                    low: threats.low,
+                    active: threats.active,
+                    resolved: threats.resolved,
+                    last24h: threats.last_24h,
+                },
+
+                // Incident summary
+                incidents: {
+                    total: incidents.total,
+                    open: incidents.open,
+                    inProgress: incidents.in_progress,
+                    resolved: incidents.resolved,
+                    critical: incidents.critical,
+                    last24h: incidents.last_24h,
+                },
+
+                // Risk summary
+                risks: {
+                    total: risks.total,
+                    avgScore: Number(risks.avg_risk) || 0,
+                    maxScore: risks.max_risk || 0,
+                    critical: risks.critical_count,
+                    high: risks.high_count,
+                    medium: risks.medium_count,
+                    low: risks.low_count,
+                },
+
+                // Overall posture
+                postureScore,
+                postureLabel:
+                    postureScore >= 80 ? 'Good' :
+                        postureScore >= 60 ? 'Fair' :
+                            postureScore >= 40 ? 'Poor' : 'Critical',
+
+                // Live feeds for dashboard widgets
+                recentThreats,
+                recentIncidents,
+
+                // Meta
+                generatedAt: new Date().toISOString(),
+            },
+        }
     } catch (error) {
         console.error('Error fetching dashboard metrics:', error)
         return { success: false, error }
