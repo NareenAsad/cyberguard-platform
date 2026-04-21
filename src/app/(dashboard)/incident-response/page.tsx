@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import type { Incident } from '@/types/incident'
 import { incidents } from '@/lib/mock-data'
 import { PageHeader } from '@/components/shared/page-header'
 import { IncidentsList } from '@/components/incident-response/incidents-list'
 import { IncidentDetails } from '@/components/incident-response/incident-details'
 
 export default function IncidentResponsePage() {
-    const [selectedIncident, setSelectedIncident] = useState(incidents[0])
+    const [selectedIncident, setSelectedIncident] = useState<Incident | null>(incidents[0] ?? null)
 
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">

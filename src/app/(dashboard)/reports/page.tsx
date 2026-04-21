@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { Report } from '@/types/report'
 import { reports } from '@/lib/mock-data'
 import { Plus } from 'lucide-react'
 import { ReportFilters } from '@/components/reports/report-filters'

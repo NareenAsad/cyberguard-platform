@@ -1,14 +1,6 @@
 'use client'
 
-interface Report {
-    id: string
-    title: string
-    type: string
-    date: string
-    size: string
-    status: string
-    description: string
-}
+import type { Report } from '@/types/report'
 
 interface ReportCardProps {
     report: Report
@@ -32,7 +24,7 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
             <div className="flex items-start justify-between mb-3">
                 <div>
                     <h3 className="font-semibold text-foreground mb-1">{report.title}</h3>
-                    <p className="text-xs text-muted-foreground">{report.description}</p>
+                    <p className="text-xs text-muted-foreground">{report.description ?? '—'}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(report.status)}`}>
                     {report.status}
@@ -46,11 +38,11 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
                 </div>
                 <div>
                     <p className="text-muted-foreground">Date</p>
-                    <p className="text-foreground font-medium">{report.date}</p>
+                    <p className="text-foreground font-medium">{report.date ?? '—'}</p>
                 </div>
                 <div>
                     <p className="text-muted-foreground">Size</p>
-                    <p className="text-foreground font-medium">{report.size}</p>
+                    <p className="text-foreground font-medium">{report.size ?? '—'}</p>
                 </div>
             </div>
         </button>

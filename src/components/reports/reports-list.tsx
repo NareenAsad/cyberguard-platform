@@ -1,16 +1,7 @@
 'use client'
 
 import { ReportCard } from './report-card'
-
-interface Report {
-    id: string
-    title: string
-    type: string
-    date: string
-    size: string
-    status: string
-    description: string
-}
+import type { Report } from '@/types/report'
 
 interface ReportsListProps {
     reports: Report[]

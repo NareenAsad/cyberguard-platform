@@ -28,9 +28,9 @@ export default function DashboardPage() {
     })
 
     // Subscribe to real-time socket updates
-    const { metrics: socketMetrics } = useSocketMetrics(initialMetrics)
+    const { metrics: socketMetrics } = useSocketMetrics(initialMetrics as any)
     const socketChartData = useSocketChartData(initialChartData as any[] | undefined)
-    const { incidents: socketIncidents } = useSocketIncidents(initialIncidents)
+    const { incidents: socketIncidents } = useSocketIncidents(initialIncidents as any[] | undefined)
 
     // Use socket data if available, fall back to API data
     const displayMetrics = socketMetrics || initialMetrics || {
@@ -44,8 +44,8 @@ export default function DashboardPage() {
         systemsMonitoredChange: 0,
     }
 
-    const displayChartData = socketChartData?.length > 0 ? socketChartData : initialChartData
-    const displayIncidents = socketIncidents?.length > 0 ? socketIncidents : initialIncidents || []
+    const displayChartData = socketChartData?.length > 0 ? socketChartData : (initialChartData as { name: string; threats: number; detected: number }[] | null)
+    const displayIncidents = socketIncidents?.length > 0 ? socketIncidents : ((initialIncidents as any[] | null) || [])
 
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
