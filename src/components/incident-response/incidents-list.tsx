@@ -1,11 +1,6 @@
 'use client'
 
-interface Incident {
-    id: string
-    title: string
-    description: string
-    severity: string
-}
+import type { Incident } from '@/types/incident'
 
 interface IncidentsListProps {
     incidents: Incident[]

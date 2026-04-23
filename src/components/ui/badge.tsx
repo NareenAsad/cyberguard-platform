@@ -1,5 +1,5 @@
 interface BadgeProps {
-  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info'
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info' | 'outline'
   children: React.ReactNode
   className?: string
 }
@@ -11,6 +11,7 @@ export function Badge({ variant = 'default', children, className = '' }: BadgePr
     success: 'bg-green-500/20 text-green-400',
     warning: 'bg-yellow-500/20 text-yellow-400',
     info: 'bg-blue-500/20 text-blue-400',
+    outline: 'border border-current bg-transparent',
   }
 
   return (

@@ -1,19 +1,3 @@
-const USE_API = true // Set to false to use mock data fallback
-
-interface ApiResponse<T> {
-    success: boolean
-    data?: T
-    error?: string
-    timestamp?: string
-}
-
-interface PaginatedResponse<T> extends ApiResponse<T[]> {
-    total?: number
-    page?: number
-    pages?: number
-    limit?: number
-}
-
 // Common fetch config
 const fetchConfig = {
     next: { revalidate: 30 }, // cache for 30 seconds
@@ -22,28 +6,42 @@ const fetchConfig = {
 // Dashboard APIs
 export const dashboardAPI = {
     getMetrics: async () => {
-        if (!USE_API) {
-            const { dashboardMetrics } = await import('./mock-data')
-            return dashboardMetrics
-        }
-
         const response = await fetch('/api/dashboard/metrics', fetchConfig)
         const json = await response.json()
-        return json.data
+        const d = json.data
+
+        if (!d) return { success: false, error: 'No metrics available' }
+
+        // Map nested DB shape → flat shape expected by MetricsGrid
+        const mapped = {
+            threatsDetected: d.threats?.total ?? 0,
+            threatsDetectedChange: d.threats?.last24h ?? 0,
+            riskScore: d.risks?.avgScore ?? 0,
+            riskScoreChange: d.risks?.critical ?? 0,
+            incidentsActive: d.incidents?.open ?? 0,
+            incidentsActiveChange: d.incidents?.last24h ?? 0,
+            systemsMonitored: d.risks?.total ?? 0,
+            systemsMonitoredChange: 0,
+            // raw sub-objects
+            threats: d.threats,
+            incidents: d.incidents,
+            risks: d.risks,
+            postureScore: d.postureScore,
+            postureLabel: d.postureLabel,
+            recentThreats: d.recentThreats,
+            recentIncidents: d.recentIncidents,
+        }
+        return { success: true, data: mapped }
     },
 
     getChartData: async (timeRange = '6m') => {
-        if (!USE_API) {
-            const { chartData } = await import('./mock-data')
-            return chartData
-        }
-
         const response = await fetch(
             `/api/dashboard/chart-data?timeRange=${timeRange}`,
             fetchConfig
         )
         const json = await response.json()
-        return json.data
+        // useFetchData expects { success, data }
+        return { success: !!json.data, data: json.data ?? [] }
     },
 }
 
@@ -55,11 +53,6 @@ export const threatsAPI = {
         page?: number
         limit?: number
     }) => {
-        if (!USE_API) {
-            const { threatData } = await import('./mock-data')
-            return threatData
-        }
-
         const params = new URLSearchParams()
         if (filters?.severity) params.append('severity', filters.severity)
         if (filters?.status) params.append('status', filters.status)
@@ -80,11 +73,6 @@ export const riskAPI = {
         sortBy?: string
         order?: 'asc' | 'desc'
     }) => {
-        if (!USE_API) {
-            const { riskAnalysis } = await import('./mock-data')
-            return riskAnalysis
-        }
-
         const params = new URLSearchParams()
         if (filters?.minRisk !== undefined)
             params.append('minRisk', filters.minRisk.toString())
@@ -110,11 +98,6 @@ export const incidentAPI = {
         page?: number
         limit?: number
     }) => {
-        if (!USE_API) {
-            const { incidents } = await import('./mock-data')
-            return incidents
-        }
-
         const params = new URLSearchParams()
         if (filters?.status) params.append('status', filters.status)
         if (filters?.severity) params.append('severity', filters.severity)
@@ -126,14 +109,10 @@ export const incidentAPI = {
             fetchConfig
         )
         const json = await response.json()
-        return json.data
+        return json.data  // raw array, consistent with other API methods
     },
 
     createIncident: async (incident: any) => {
-        if (!USE_API) {
-            return incident
-        }
-
         const response = await fetch('/api/incident-response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -152,11 +131,6 @@ export const playbooksAPI = {
         page?: number
         limit?: number
     }) => {
-        if (!USE_API) {
-            const { playbooks } = await import('./mock-data')
-            return playbooks
-        }
-
         const params = new URLSearchParams()
         if (filters?.category) params.append('category', filters.category)
         if (filters?.search) params.append('search', filters.search)
@@ -170,6 +144,21 @@ export const playbooksAPI = {
         const json = await response.json()
         return json.data
     },
+
+    createPlaybook: async (playbook: {
+        title: string
+        description: string
+        category: string
+        steps: number
+    }) => {
+        const response = await fetch('/api/playbooks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(playbook),
+        })
+        const json = await response.json()
+        return json
+    },
 }
 
 // Reports APIs
@@ -180,11 +169,6 @@ export const reportsAPI = {
         page?: number
         limit?: number
     }) => {
-        if (!USE_API) {
-            const { reports } = await import('./mock-data')
-            return reports
-        }
-
         const params = new URLSearchParams()
         if (filters?.type) params.append('type', filters.type)
         if (filters?.status) params.append('status', filters.status)
@@ -200,16 +184,12 @@ export const reportsAPI = {
     },
 
     createReport: async (report: any) => {
-        if (!USE_API) {
-            return report
-        }
-
         const response = await fetch('/api/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(report),
         })
         const json = await response.json()
-        return json.data
+        return json  // return full { success, data, error } so caller can inspect
     },
 }

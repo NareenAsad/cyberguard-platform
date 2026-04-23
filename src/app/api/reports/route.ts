@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getReports } from '@/lib/db'
-import { reports as mockReports } from '@/lib/mock-data'
+import { getReports, createReport } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
     try {
@@ -10,7 +9,6 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
 
-        // Try to fetch from database
         const result = await getReports({ type, status, page, limit })
 
         if (result.success && result.data) {
@@ -28,37 +26,14 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // Fallback to mock data
-        let filtered = mockReports
-        if (type) {
-            filtered = filtered.filter(r => r.type === type)
-        }
-        if (status) {
-            filtered = filtered.filter(r => r.status === status)
-        }
-
-        const paginated = filtered.slice((page - 1) * limit, page * limit)
-
         return NextResponse.json(
-            {
-                success: true,
-                data: paginated,
-                total: filtered.length,
-                page,
-                limit,
-                pages: Math.ceil(filtered.length / limit),
-                timestamp: new Date().toISOString(),
-                _warning: 'Using mock data - database unavailable',
-            },
-            { status: 200 }
+            { success: false, error: 'Failed to fetch reports from database' },
+            { status: 503 }
         )
     } catch (error) {
         console.error('[API] Error fetching reports:', error)
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Failed to fetch reports',
-            },
+            { success: false, error: 'Failed to fetch reports' },
             { status: 500 }
         )
     }
@@ -67,41 +42,32 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
+        const { title, type, description } = body
 
-        // Validate required fields
-        if (!body.title || !body.type) {
+        if (!title || !type) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Missing required fields: title, type',
-                },
+                { success: false, error: 'Missing required fields: title, type' },
                 { status: 400 }
             )
         }
 
-        // Mock report creation (database integration would go here)
-        const newReport = {
-            id: `REP-${String(mockReports.length + 1).padStart(3, '0')}`,
-            ...body,
-            status: 'generating',
-            generated: new Date().toISOString().split('T')[0],
+        const result = await createReport({ title, type, description })
+
+        if (result.success && result.data) {
+            return NextResponse.json(
+                { success: true, data: result.data, message: 'Report generated successfully' },
+                { status: 201 }
+            )
         }
 
         return NextResponse.json(
-            {
-                success: true,
-                data: newReport,
-                message: 'Report generation started',
-            },
-            { status: 201 }
+            { success: false, error: 'Failed to save report to database' },
+            { status: 503 }
         )
     } catch (error) {
         console.error('[API] Error creating report:', error)
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Failed to create report',
-            },
+            { success: false, error: 'Failed to create report' },
             { status: 500 }
         )
     }

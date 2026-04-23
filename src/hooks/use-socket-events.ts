@@ -72,6 +72,13 @@ export function useSocketIncidents(initialData?: any[]) {
     const [incidents, setIncidents] = useState(initialData || [])
     const [latestIncident, setLatestIncident] = useState<any>(null)
 
+    // Sync state when initialData arrives (async API fetch)
+    useEffect(() => {
+        if (initialData && initialData.length > 0) {
+            setIncidents(initialData)
+        }
+    }, [initialData])
+
     useEffect(() => {
         const socket = initSocket()
 
