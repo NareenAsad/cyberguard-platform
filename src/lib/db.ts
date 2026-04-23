@@ -399,3 +399,72 @@ export async function createIncident(incident: {
         return { success: false, error }
     }
 }
+
+// Create playbook
+export async function createPlaybook(playbook: {
+    title: string
+    description: string
+    category: string
+    steps: number
+}) {
+    try {
+        const playbookId = `pb-${Date.now()}`
+        const now = new Date().toISOString()
+        // Store steps count in the jsonb content field
+        const content = JSON.stringify({ steps: playbook.steps })
+
+        const result = await sql`
+            INSERT INTO "Playbook" (
+                id, title, description, category, content, "lastUpdated", created
+            ) VALUES (
+                ${playbookId},
+                ${playbook.title},
+                ${playbook.description},
+                ${playbook.category},
+                ${content},
+                ${now},
+                ${now}
+            )
+            RETURNING *
+        `
+
+        return { success: true, data: result[0] }
+    } catch (error) {
+        console.error('Error creating playbook:', error)
+        return { success: false, error }
+    }
+}
+
+// Create report
+export async function createReport(report: {
+    title: string
+    type: string
+    description?: string
+}) {
+    try {
+        const reportId = `REP-${Date.now()}`
+        const now = new Date().toISOString()
+        // Store description inside the jsonb content field
+        const content = report.description ? JSON.stringify({ description: report.description }) : null
+
+        const result = await sql`
+            INSERT INTO "Report" (
+                id, title, type, status, content, "jobId", generated
+            ) VALUES (
+                ${reportId},
+                ${report.title},
+                ${report.type},
+                'final',
+                ${content},
+                ${reportId},
+                ${now}
+            )
+            RETURNING *
+        `
+
+        return { success: true, data: result[0] }
+    } catch (error) {
+        console.error('Error creating report:', error)
+        return { success: false, error }
+    }
+}

@@ -46,7 +46,7 @@ export function RiskPrioritization({ risks }: RiskPrioritizationProps) {
             <div className="space-y-4">
                 {risks.map((risk, index) => (
                     <div
-                        key={risk.asset}
+                        key={`${risk.asset}-${index}`}
                         className="p-4 border border-border rounded-lg hover:bg-secondary/50 transition-colors"
                     >
                         <div className="flex items-start justify-between mb-3">

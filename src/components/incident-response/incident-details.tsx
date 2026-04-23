@@ -1,6 +1,7 @@
 'use client'
-import { Clock } from 'lucide-react'
+import { Clock, Download } from 'lucide-react'
 import type { Incident } from '@/types/incident'
+import { exportToPDF } from '@/lib/export-utils'
 
 interface IncidentDetailsProps {
     incident: Incident | null
@@ -15,6 +16,23 @@ export function IncidentDetails({ incident }: IncidentDetailsProps) {
             : 'bg-orange-500/20 text-orange-400'
     }
 
+    const handleDownload = () => {
+        exportToPDF(
+            `Incident Report: ${incident.title}`,
+            [incident],
+            [
+                { header: 'ID', dataKey: 'id' },
+                { header: 'Title', dataKey: 'title' },
+                { header: 'Status', dataKey: 'status' },
+                { header: 'Severity', dataKey: 'severity' },
+                { header: 'Created', dataKey: 'created' },
+                { header: 'Updated', dataKey: 'updated' },
+                { header: 'Description', dataKey: 'description' },
+            ],
+            `Incident-${incident.id}`
+        )
+    }
+
     return (
         <div className="bg-card border border-border rounded-lg p-6 space-y-6">
             <div className="border-b border-border pb-6">
@@ -23,11 +41,20 @@ export function IncidentDetails({ incident }: IncidentDetailsProps) {
                         <h3 className="text-2xl font-bold text-foreground mb-2">{incident.title}</h3>
                         <p className="text-sm text-muted-foreground font-mono">{incident.id}</p>
                     </div>
-                    {incident.status && (
-                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(incident.status)}`}>
-                            {incident.status === 'resolved' ? 'Resolved' : 'In Progress'}
-                        </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {incident.status && (
+                            <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(incident.status)}`}>
+                                {incident.status === 'resolved' ? 'Resolved' : 'In Progress'}
+                            </span>
+                        )}
+                        <button
+                            onClick={handleDownload}
+                            className="p-2 bg-secondary text-secondary-foreground rounded-lg hover:opacity-80 transition-opacity"
+                            title="Download PDF"
+                        >
+                            <Download className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
             <div className="space-y-4">
@@ -52,4 +79,4 @@ export function IncidentDetails({ incident }: IncidentDetailsProps) {
             </div>
         </div>
     )
-}
+}

@@ -1,21 +1,42 @@
 'use client'
 
-import { useState } from 'react'
-import { threatData } from '@/lib/mock-data'
+import { useState, useEffect } from 'react'
 import { PageHeader } from '@/components/shared/page-header'
 import { ThreatFilters } from '@/components/threats/threat-filters'
 import { ThreatsTable } from '@/components/threats/threats-table'
 import { ThreatsSummary } from '@/components/threats/threats-summary'
+import { threatsAPI } from '@/lib/api-service'
+import { Download } from 'lucide-react'
+import { exportToCSV } from '@/lib/export-utils'
 
 export default function ThreatsPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null)
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
+    const [threats, setThreats] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const filteredThreats = threatData.filter(threat => {
+    useEffect(() => {
+        const fetchThreats = async () => {
+            setLoading(true)
+            try {
+                const data = await threatsAPI.getThreats()
+                if (data) {
+                    setThreats(data)
+                }
+            } catch (error) {
+                console.error("Failed to fetch threats:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchThreats()
+    }, [])
+
+    const filteredThreats = threats.filter(threat => {
         const matchesSearch = threat.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            threat.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            threat.source.toLowerCase().includes(searchTerm.toLowerCase())
+            threat.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            threat.source?.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesSeverity = !selectedSeverity || threat.severity === selectedSeverity
         const matchesStatus = !selectedStatus || threat.status === selectedStatus
 
@@ -24,10 +45,19 @@ export default function ThreatsPage() {
 
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
-            <PageHeader
-                title="Threats"
-                description="Monitor and manage detected security threats"
-            />
+            <div className="flex items-center justify-between">
+                <PageHeader
+                    title="Threats"
+                    description="Monitor and manage detected security threats"
+                />
+                <button 
+                    onClick={() => exportToCSV(filteredThreats, 'threats-export')}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+                >
+                    <Download className="w-4 h-4" />
+                    Export CSV
+                </button>
+            </div>
 
             <ThreatFilters
                 searchTerm={searchTerm}
@@ -38,9 +68,14 @@ export default function ThreatsPage() {
                 onStatusChange={setSelectedStatus}
             />
 
-            <ThreatsTable threats={filteredThreats} />
-
-            <ThreatsSummary threats={threatData} />
+            {loading ? (
+                <div>Loading threats...</div>
+            ) : (
+                <>
+                    <ThreatsTable threats={filteredThreats} />
+                    <ThreatsSummary threats={threats} />
+                </>
+            )}
         </div>
     )
 }

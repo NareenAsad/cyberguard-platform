@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRisks } from '@/lib/db'
-import { riskAnalysis } from '@/lib/mock-data'
 
 export async function GET(request: NextRequest) {
     try {
@@ -10,7 +9,6 @@ export async function GET(request: NextRequest) {
         const sortBy = searchParams.get('sortBy') || 'riskLevel'
         const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
 
-        // Try to fetch from database
         const result = await getRisks({ minRisk, maxRisk, sortBy, order })
 
         if (result.success && result.data) {
@@ -26,27 +24,9 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // Fallback to mock data
-        let filtered = riskAnalysis.filter(
-            r => r.riskLevel >= minRisk && r.riskLevel <= maxRisk
-        )
-
-        if (sortBy === 'riskLevel') {
-            filtered.sort((a, b) => order === 'asc' ? a.riskLevel - b.riskLevel : b.riskLevel - a.riskLevel)
-        } else if (sortBy === 'vulnerabilities') {
-            filtered.sort((a, b) => order === 'asc' ? a.vulnerabilities - b.vulnerabilities : b.vulnerabilities - a.vulnerabilities)
-        }
-
         return NextResponse.json(
-            {
-                success: true,
-                data: filtered,
-                total: filtered.length,
-                filters: { minRisk, maxRisk },
-                timestamp: new Date().toISOString(),
-                _warning: 'Using mock data - database unavailable',
-            },
-            { status: 200 }
+            { success: false, error: 'Failed to fetch risk analysis from database' },
+            { status: 503 }
         )
     } catch (error) {
         console.error('[API] Error fetching risk analysis:', error)

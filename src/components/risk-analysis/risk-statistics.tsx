@@ -11,8 +11,10 @@ interface RiskStatisticsProps {
 
 export function RiskStatistics({ risks }: RiskStatisticsProps) {
     const criticalCount = risks.filter(r => r.riskLevel >= 70).length
-    const totalVulnerabilities = risks.reduce((sum, r) => sum + r.vulnerabilities, 0)
-    const avgRiskScore = Math.round(risks.reduce((sum, r) => sum + r.riskLevel, 0) / risks.length)
+    const totalVulnerabilities = risks.reduce((sum, r) => sum + (r.vulnerabilities ?? 0), 0)
+    const avgRiskScore = risks.length > 0
+        ? Math.round(risks.reduce((sum, r) => sum + r.riskLevel, 0) / risks.length)
+        : 0
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

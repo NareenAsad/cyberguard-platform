@@ -1,6 +1,8 @@
 'use client'
 
 import type { Report } from '@/types/report'
+import { Download } from 'lucide-react'
+import { exportToPDF } from '@/lib/export-utils'
 
 interface ReportCardProps {
     report: Report
@@ -15,6 +17,22 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
             : 'bg-blue-500/20 text-blue-400'
     }
 
+    const handleDownload = (e: React.MouseEvent) => {
+        e.stopPropagation() // Prevent triggering card selection
+        exportToPDF(
+            report.title,
+            [report],
+            [
+                { header: 'ID', dataKey: 'id' },
+                { header: 'Type', dataKey: 'type' },
+                { header: 'Status', dataKey: 'status' },
+                { header: 'Date', dataKey: 'date' },
+                { header: 'Description', dataKey: 'description' },
+            ],
+            `Report-${report.id}`
+        )
+    }
+
     return (
         <button
             onClick={() => onSelect(report.id)}
@@ -22,13 +40,24 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
                 }`}
         >
             <div className="flex items-start justify-between mb-3">
-                <div>
+                <div className="pr-4">
                     <h3 className="font-semibold text-foreground mb-1">{report.title}</h3>
                     <p className="text-xs text-muted-foreground">{report.description ?? '—'}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(report.status)}`}>
-                    {report.status}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(report.status)}`}>
+                        {report.status}
+                    </span>
+                    <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleDownload}
+                        className="p-1.5 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                        title="Download PDF"
+                    >
+                        <Download className="w-4 h-4" />
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-xs">
