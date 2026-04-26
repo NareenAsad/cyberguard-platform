@@ -2,7 +2,10 @@ import os
 import httpx
 from crewai.tools import tool
 
+
+# ─────────────────────────────────────────────
 # 1. NVD CVE Search Tool
+# ─────────────────────────────────────────────
 @tool("NVD CVE Search")
 def nvd_search_tool(query: str) -> str:
     """
@@ -60,9 +63,7 @@ def nvd_search_tool(query: str) -> str:
             results.append(
                 f"CVE ID: {cve_id}\n"
                 f"CVSS Score: {cvss_score} ({cvss_severity})\n"
-                f"CVSS Vector: {cvss_vector}\n"
-                f"Description: {description[:300]}\n"
-                f"Affected CPEs: {', '.join(cpe_list[:3]) or 'N/A'}\n"
+                f"Affected CPEs: {', '.join(cpe_list[:2]) or 'N/A'}\n"
             )
 
         return "\n---\n".join(results)
@@ -71,7 +72,9 @@ def nvd_search_tool(query: str) -> str:
         return f"NVD API error: {str(e)}"
 
 
+# ─────────────────────────────────────────────
 # 2. OTX Threat Intelligence Tool
+# ─────────────────────────────────────────────
 @tool("OTX Threat Intelligence Search")
 def otx_threat_tool(indicator: str) -> str:
     """
@@ -130,17 +133,17 @@ def otx_threat_tool(indicator: str) -> str:
             f"Indicator: {indicator} ({indicator_type})\n"
             f"OTX Pulse Count: {pulse_count}\n"
             f"Confidence Score: {confidence}/100\n"
-            f"Malware Families: {', '.join(malware_families) or 'None identified'}\n"
-            f"Threat Actors: {', '.join(filter(None, threat_actors)) or 'Unknown'}\n"
-            f"MITRE ATT&CK Techniques: {', '.join(mitre_techniques) or 'None mapped'}\n"
-            f"Tags: {', '.join(list(tags)[:10]) or 'None'}\n"
+            f"Malware Families: {', '.join(list(malware_families)[:2]) or 'None identified'}\n"
+            f"MITRE ATT&CK Techniques: {', '.join(list(mitre_techniques)[:3]) or 'None mapped'}\n"
         )
 
     except Exception as e:
         return f"OTX API error: {str(e)}"
 
 
+# ─────────────────────────────────────────────
 # 3. Asset Lookup Tool (Supabase)
+# ─────────────────────────────────────────────
 @tool("Asset Inventory Lookup")
 def asset_lookup_tool(query: str) -> str:
     """
@@ -196,7 +199,17 @@ def asset_lookup_tool(query: str) -> str:
         ]
 
         if query.upper() == "ALL":
-            return str(mock_assets)
+            compact_assets = [
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "criticality": a["criticality"],
+                    "software": a.get("software", [])[:2],
+                    "network_exposure": a.get("network_exposure", "internal"),
+                }
+                for a in mock_assets[:10]
+            ]
+            return str(compact_assets)
 
         # Filter by query
         filtered = [
@@ -205,7 +218,19 @@ def asset_lookup_tool(query: str) -> str:
             or query.lower() in a["ip_address"]
             or any(query.lower() in s["name"].lower() for s in a.get("software", []))
         ]
-        return str(filtered) if filtered else f"No assets matching '{query}' found."
+        if not filtered:
+            return f"No assets matching '{query}' found."
+        compact_filtered = [
+            {
+                "id": a["id"],
+                "name": a["name"],
+                "criticality": a["criticality"],
+                "software": a.get("software", [])[:2],
+                "network_exposure": a.get("network_exposure", "internal"),
+            }
+            for a in filtered[:10]
+        ]
+        return str(compact_filtered)
 
     # Real Supabase query
     try:
@@ -226,13 +251,27 @@ def asset_lookup_tool(query: str) -> str:
         response = httpx.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         assets = response.json()
-        return str(assets) if assets else f"No assets found for query: {query}"
+        if not assets:
+            return f"No assets found for query: {query}"
+        compact_assets = [
+            {
+                "id": a.get("id"),
+                "name": a.get("name"),
+                "criticality": a.get("criticality"),
+                "software": (a.get("software") or [])[:2],
+                "network_exposure": a.get("network_exposure", "internal"),
+            }
+            for a in assets[:10]
+        ]
+        return str(compact_assets)
 
     except Exception as e:
         return f"Supabase asset lookup error: {str(e)}"
 
 
+# ─────────────────────────────────────────────
 # 4. MITRE ATT&CK Lookup Tool
+# ─────────────────────────────────────────────
 @tool("MITRE ATT&CK Framework Lookup")
 def mitre_lookup_tool(technique_id: str) -> str:
     """
@@ -243,53 +282,128 @@ def mitre_lookup_tool(technique_id: str) -> str:
     # Curated subset of the most common techniques for CyberGuard's use case
     # In production, replace with full MITRE STIX data from attack.mitre.org
     mitre_db = {
+        # ── Initial Access ────────────────────────────────────────────────
         "T1190": {
             "name": "Exploit Public-Facing Application",
-            "tactic": "Initial Access",
-            "tactic_id": "TA0001",
+            "tactic": "Initial Access", "tactic_id": "TA0001",
             "description": "Adversaries exploit weaknesses in internet-facing software.",
             "detection": "Monitor web server logs for unusual requests, 4xx/5xx spikes, SQLi/XSS patterns.",
             "mitigation": "Patch promptly, WAF deployment, input validation, network segmentation.",
         },
+        "T1566": {
+            "name": "Phishing",
+            "tactic": "Initial Access", "tactic_id": "TA0001",
+            "description": "Adversaries send phishing messages to gain access to victim systems.",
+            "detection": "Email gateway scanning, user-reported phishing, link analysis.",
+            "mitigation": "Email filtering, user awareness training, MFA.",
+        },
+        # ── Execution ─────────────────────────────────────────────────────
         "T1059": {
             "name": "Command and Scripting Interpreter",
-            "tactic": "Execution",
-            "tactic_id": "TA0002",
+            "tactic": "Execution", "tactic_id": "TA0002",
             "description": "Adversaries abuse scripting interpreters to execute malicious code.",
             "detection": "Monitor process creation events, PowerShell/bash history, script executions.",
             "mitigation": "Disable unnecessary interpreters, application whitelisting, EDR deployment.",
         },
+        "T1059.001": {
+            "name": "PowerShell",
+            "tactic": "Execution", "tactic_id": "TA0002",
+            "description": "Adversaries abuse PowerShell commands and scripts for execution.",
+            "detection": "PowerShell logging (Script Block Logging), encoded command detection, unusual parent processes.",
+            "mitigation": "Constrained Language Mode, AMSI, script block logging, execution policy.",
+        },
+        "T1059.003": {
+            "name": "Windows Command Shell",
+            "tactic": "Execution", "tactic_id": "TA0002",
+            "description": "Adversaries abuse cmd.exe to execute commands.",
+            "detection": "Monitor cmd.exe spawned from unusual parents like Office or browsers.",
+            "mitigation": "Application whitelisting, restrict cmd.exe access for standard users.",
+        },
+        # ── Persistence ───────────────────────────────────────────────────
+        "T1547": {
+            "name": "Boot or Logon Autostart Execution",
+            "tactic": "Persistence", "tactic_id": "TA0003",
+            "description": "Adversaries configure programs to execute during system boot or logon.",
+            "detection": "Monitor registry Run keys, startup folder changes, scheduled tasks.",
+            "mitigation": "Audit autostart entries, restrict registry write access.",
+        },
         "T1078": {
             "name": "Valid Accounts",
-            "tactic": "Defense Evasion / Persistence",
-            "tactic_id": "TA0003",
+            "tactic": "Defense Evasion / Persistence", "tactic_id": "TA0003",
             "description": "Adversaries use compromised legitimate credentials.",
-            "detection": "Anomalous login times, impossible travel, multiple failed logins, new device logins.",
+            "detection": "Anomalous login times, impossible travel, multiple failed logins.",
             "mitigation": "MFA enforcement, privileged access management, credential monitoring.",
         },
-        "T1486": {
-            "name": "Data Encrypted for Impact (Ransomware)",
-            "tactic": "Impact",
-            "tactic_id": "TA0040",
-            "description": "Adversaries encrypt files to disrupt availability and extort victims.",
-            "detection": "Mass file modification events, shadow copy deletion, unusual process I/O.",
-            "mitigation": "Offline backups, endpoint protection, network segmentation, least privilege.",
+        # ── Privilege Escalation ──────────────────────────────────────────
+        "T1134": {
+            "name": "Access Token Manipulation",
+            "tactic": "Privilege Escalation", "tactic_id": "TA0004",
+            "description": "Adversaries modify access tokens to operate under a different user context.",
+            "detection": "Monitor token manipulation APIs, unusual process privilege changes.",
+            "mitigation": "Privileged account protection, audit token use, restrict SeDebugPrivilege.",
         },
+        # ── Defense Evasion ───────────────────────────────────────────────
+        "T1222": {
+            "name": "File and Directory Permissions Modification",
+            "tactic": "Defense Evasion", "tactic_id": "TA0005",
+            "description": "Adversaries modify file permissions to evade defenses or enable access.",
+            "detection": "Monitor chmod/icacls commands, audit file permission changes.",
+            "mitigation": "Restrict permission modification to admins, audit ACL changes.",
+        },
+        # ── Credential Access ─────────────────────────────────────────────
+        "T1003": {
+            "name": "OS Credential Dumping",
+            "tactic": "Credential Access", "tactic_id": "TA0006",
+            "description": "Adversaries attempt to dump credentials from OS memory or files.",
+            "detection": "LSASS access events, mimikatz signatures, SAM database access.",
+            "mitigation": "Credential Guard, restricted admin mode, EDR with memory protection.",
+        },
+        "T1110": {
+            "name": "Brute Force",
+            "tactic": "Credential Access", "tactic_id": "TA0006",
+            "description": "Adversaries use brute force techniques to gain access to accounts.",
+            "detection": "Multiple failed authentication attempts, account lockout events.",
+            "mitigation": "Account lockout policies, MFA, strong password requirements.",
+        },
+        # ── Discovery ─────────────────────────────────────────────────────
+        "T1049": {
+            "name": "System Network Connections Discovery",
+            "tactic": "Discovery", "tactic_id": "TA0007",
+            "description": "Adversaries enumerate network connections to identify systems of interest.",
+            "detection": "Monitor netstat, ss, net use commands from unusual processes.",
+            "mitigation": "Network segmentation, limit discovery tool access.",
+        },
+        # ── Lateral Movement ──────────────────────────────────────────────
+        "T1021": {
+            "name": "Remote Services",
+            "tactic": "Lateral Movement", "tactic_id": "TA0008",
+            "description": "Adversaries use remote services like RDP or SMB to move laterally.",
+            "detection": "Monitor remote service usage, unusual login sources.",
+            "mitigation": "Disable unnecessary remote services, network segmentation, MFA for remote access.",
+        },
+        # ── Command and Control ───────────────────────────────────────────
         "T1071": {
             "name": "Application Layer Protocol (C2)",
-            "tactic": "Command and Control",
-            "tactic_id": "TA0011",
+            "tactic": "Command and Control", "tactic_id": "TA0011",
             "description": "Adversaries use common protocols (HTTP/DNS) for C2 communication.",
             "detection": "Unusual outbound connections, high-frequency DNS queries, beaconing patterns.",
             "mitigation": "DNS filtering, egress proxy inspection, network traffic analysis.",
         },
-        "T1003": {
-            "name": "OS Credential Dumping",
-            "tactic": "Credential Access",
-            "tactic_id": "TA0006",
-            "description": "Adversaries attempt to dump credentials from OS memory or files.",
-            "detection": "LSASS access events, mimikatz signatures, SAM database access.",
-            "mitigation": "Credential Guard, restricted admin mode, EDR with memory protection.",
+        # ── Execution (other) ─────────────────────────────────────────────
+        "T1127": {
+            "name": "Trusted Developer Utilities Proxy Execution",
+            "tactic": "Defense Evasion", "tactic_id": "TA0005",
+            "description": "Adversaries use trusted developer tools to proxy execution of malicious payloads.",
+            "detection": "Monitor MSBuild, mshta, regsvr32 spawning unexpected child processes.",
+            "mitigation": "Application whitelisting, block developer utilities on non-dev systems.",
+        },
+        # ── Impact ────────────────────────────────────────────────────────
+        "T1486": {
+            "name": "Data Encrypted for Impact (Ransomware)",
+            "tactic": "Impact", "tactic_id": "TA0040",
+            "description": "Adversaries encrypt files to disrupt availability and extort victims.",
+            "detection": "Mass file modification events, shadow copy deletion, unusual process I/O.",
+            "mitigation": "Offline backups, endpoint protection, network segmentation, least privilege.",
         },
     }
 
@@ -299,23 +413,30 @@ def mitre_lookup_tool(technique_id: str) -> str:
             f"Technique ID: {technique_id}\n"
             f"Name: {technique['name']}\n"
             f"Tactic: {technique['tactic']} ({technique['tactic_id']})\n"
-            f"Description: {technique['description']}\n"
-            f"Detection: {technique['detection']}\n"
-            f"Mitigation: {technique['mitigation']}\n"
         )
 
-    # Fallback: query MITRE ATT&CK TAXII server
-    try:
-        url = f"https://attack.mitre.org/techniques/{technique_id}/"
-        response = httpx.get(url, timeout=10)
-        if response.status_code == 200:
-            return f"Technique {technique_id} found at {url} — fetch full details from MITRE ATT&CK Navigator."
-        return f"Technique {technique_id} not found in local database or MITRE ATT&CK."
-    except Exception:
-        return f"Technique {technique_id} not found. Check https://attack.mitre.org for full details."
+    # Try stripping sub-technique suffix and look up parent (e.g. T1059.001 → T1059)
+    parent_id = technique_id.split(".")[0].upper()
+    parent = mitre_db.get(parent_id)
+    if parent:
+        return (
+            f"Technique ID: {technique_id} (showing parent {parent_id})\n"
+            f"Name: {parent['name']}\n"
+            f"Tactic: {parent['tactic']} ({parent['tactic_id']})\n"
+        )
+
+    # Final fallback — return a generic entry so the agent never tries to search the web
+    return (
+        f"Technique ID: {technique_id}\n"
+        f"Name: Unknown Technique (use T1190 as default)\n"
+        f"Tactic: Defense Evasion (TA0005)\n"
+        f"NOTE: Do NOT search the web. Use this default and proceed.\n"
+    )
 
 
+# ─────────────────────────────────────────────
 # 5. Report Formatter Tool
+# ─────────────────────────────────────────────
 @tool("Report Formatter")
 def report_formatter_tool(report_data: str) -> str:
     """

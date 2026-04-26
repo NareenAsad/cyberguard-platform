@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   Menu,
   X,
 } from 'lucide-react'
+import { initSocket } from '@/lib/socket/socket'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -27,6 +28,57 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [lastUpdatedIso, setLastUpdatedIso] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    // Initial value from API response metadata.
+    fetch('/api/dashboard/metrics')
+      .then((res) => res.json())
+      .then((json) => {
+        if (!mounted) return
+        const ts = json?.timestamp || json?.data?.generatedAt
+        if (ts) setLastUpdatedIso(ts)
+      })
+      .catch(() => {
+        // Keep "No updates yet" if API is unavailable.
+      })
+
+    const socket = initSocket()
+    const updateNow = () => setLastUpdatedIso(new Date().toISOString())
+    const updateFromPayload = (payload: any) =>
+      setLastUpdatedIso(payload?.updatedAt || payload?.timestamp || payload?.generatedAt || new Date().toISOString())
+
+    socket.on('metrics:update', updateFromPayload)
+    socket.on('chart:update', updateNow)
+    socket.on('threats:new', updateNow)
+    socket.on('incidents:update', updateNow)
+    socket.on('agent:complete', updateNow)
+
+    return () => {
+      mounted = false
+      socket.off('metrics:update', updateFromPayload)
+      socket.off('chart:update', updateNow)
+      socket.off('threats:new', updateNow)
+      socket.off('incidents:update', updateNow)
+      socket.off('agent:complete', updateNow)
+    }
+  }, [])
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!lastUpdatedIso) return 'No updates yet'
+    const dt = new Date(lastUpdatedIso)
+    if (Number.isNaN(dt.getTime())) return 'No updates yet'
+    return dt.toLocaleString('en-GB', {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZoneName: 'short',
+    })
+  }, [lastUpdatedIso])
 
   return (
     <>
@@ -83,7 +135,7 @@ export function Sidebar() {
               Last Update
             </p>
             <p className="text-xs text-sidebar-accent font-medium">
-              Mar 24, 14:32 UTC
+              {lastUpdatedLabel}
             </p>
           </div>
         </div>

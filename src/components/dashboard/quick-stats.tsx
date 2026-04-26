@@ -1,9 +1,38 @@
-export function QuickStats() {
+interface QuickStatsProps {
+    metrics: {
+        threatsDetected: number
+        threatsDetectedChange: number
+        riskScore: number
+        incidentsActive: number
+        systemsMonitored: number
+    }
+}
+
+export function QuickStats({ metrics }: QuickStatsProps) {
+    const hasActivity =
+        metrics.threatsDetected > 0 ||
+        metrics.threatsDetectedChange > 0 ||
+        metrics.incidentsActive > 0 ||
+        metrics.riskScore > 0 ||
+        metrics.systemsMonitored > 0
+
     const stats = [
-        { label: 'Detection Rate', value: '77%' },
-        { label: 'Response Time', value: '2.3 min' },
-        { label: 'False Positives', value: '3%' },
-        { label: 'System Uptime', value: '99.99%' },
+        {
+            label: 'Threats (24h)',
+            value: hasActivity ? String(metrics.threatsDetectedChange) : '—',
+        },
+        {
+            label: 'Open Incidents',
+            value: hasActivity ? String(metrics.incidentsActive) : '—',
+        },
+        {
+            label: 'Average Risk',
+            value: hasActivity ? `${metrics.riskScore}%` : '—',
+        },
+        {
+            label: 'Systems Monitored',
+            value: hasActivity ? String(metrics.systemsMonitored) : '—',
+        },
     ]
 
     return (

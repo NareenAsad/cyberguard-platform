@@ -1,14 +1,23 @@
 import 'dotenv/config'
-import { neon } from '@neondatabase/serverless'
+import { createClient } from '@supabase/supabase-js'
 
-console.log('DB URL:', process.env.DATABASE_URL) // 👈 ADD THIS
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const sql = neon(process.env.DATABASE_URL!)
+if (!supabaseUrl || !serviceKey) {
+    console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+    process.exit(1)
+}
+
+const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+})
 
 async function testConnection() {
     try {
-        const result = await sql`SELECT NOW()`
-        console.log('✅ Database connected:', result)
+        const { data, error } = await supabase.from('Threat').select('id').limit(1)
+        if (error) throw error
+        console.log('✅ Supabase connected. Threat rows sample:', data?.length ?? 0)
     } catch (error) {
         console.error('❌ Connection failed:', error)
     }

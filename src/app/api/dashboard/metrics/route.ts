@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     try {
         const result = await getDashboardMetrics()
 
-        if (result.success && result.data) {
+        if (result?.success && result?.data) {
             return NextResponse.json(
                 {
                     success: true,
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         }
 
         // DB is reachable but returned no data — tables might be empty
-        console.warn('[API] getDashboardMetrics returned no data:', result.error)
+        console.warn('[API] getDashboardMetrics returned no data:', result?.error)
         return NextResponse.json(
             { success: false, error: 'No metrics available' },
             { status: 503 }

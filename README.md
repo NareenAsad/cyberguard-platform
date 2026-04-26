@@ -4,7 +4,7 @@ An enterprise-grade, AI-powered cybersecurity platform that revolutionizes secur
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)](https://neon.tech/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -16,7 +16,7 @@ An enterprise-grade, AI-powered cybersecurity platform that revolutionizes secur
 |-----------|--------|---------|
 | **Frontend** | ✅ Complete | Next.js 16, React 19, responsive design |
 | **Component Architecture** | ✅ Refactored | 20+ reusable components across 5 pages |
-| **Database Integration** | ✅ Complete | Neon PostgreSQL with 6 tables, Prisma ORM |
+| **Database Integration** | ✅ Complete | Supabase Postgres with 6 tables |
 | **API Layer** | ✅ Complete | 7 endpoints with DB-first approach + fallback |
 | **Validation & Error Handling** | ✅ Complete | Input validation, parameterized queries, graceful degradation |
 | **Documentation** | ✅ Complete | Setup guides, implementation summaries, checklists |
@@ -84,9 +84,8 @@ An enterprise-grade, AI-powered cybersecurity platform that revolutionizes secur
 
 ### Backend & Database
 - **Next.js API Routes** - REST endpoints with validation
-- **Neon PostgreSQL** - Serverless PostgreSQL database
-- **Prisma ORM** - Database schema and queries
-- **@neondatabase/serverless** - SQL client for Neon
+- **Supabase Postgres** - Managed PostgreSQL database
+- **@supabase/supabase-js** - DB and auth client
 
 ### Database Tables
 - `threats` - Threat indicators with severity/status
@@ -152,7 +151,7 @@ cyberguard/
 
 ### Prerequisites
 - Node.js 20.x or higher
-- Neon PostgreSQL account (free tier available)
+- Supabase project (free tier available)
 - Git
 
 ### 1. Install & Setup
@@ -168,8 +167,8 @@ npm install
 # Copy environment template
 cp .env.example .env.local
 
-# Add your Neon DATABASE_URL to .env.local
-# Get it from: https://console.neon.tech
+# Add Supabase variables to .env.local
+# NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
 ```
 
 ### 2. Initialize Database
@@ -218,15 +217,16 @@ curl http://localhost:3000/api/incident-response
 
 ```env
 # .env.local
-DATABASE_URL=postgresql://username:password@host/dbname
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 ```
 
-### Get Neon Database URL
+### Get Supabase Credentials
 
-1. Sign up at [neon.tech](https://neon.tech) (free tier)
+1. Sign up at [supabase.com](https://supabase.com) (free tier)
 2. Create a new project
-3. Copy the connection string
-4. Set `DATABASE_URL` in `.env.local`
+3. Copy project URL + service role key
+4. Set `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
 
 ### Database Tables
 
@@ -353,7 +353,7 @@ POST /api/reports                   # Generate report (validated)
 
 | Document | Purpose |
 |----------|---------|
-| [DATABASE_SETUP.md](./DATABASE_SETUP.md) | Complete 320-line Neon setup guide |
+| [DATABASE_SETUP.md](./DATABASE_SETUP.md) | Database setup guide |
 | [INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md) | Step-by-step integration checklist |
 | [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical implementation details |
 | [COMPLETION_REPORT.md](./COMPLETION_REPORT.md) | Project completion status |
@@ -381,13 +381,14 @@ npm run test:coverage
 
 1. Push to GitHub
 2. Connect repo to Vercel
-3. Add `DATABASE_URL` to environment variables
+3. Add Supabase environment variables
 4. Deploy with one click
 
 ### Environment Variables (Production)
 
 ```env
-DATABASE_URL=postgresql://...  # Neon production database
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 NODE_ENV=production
 ```
 
@@ -422,7 +423,7 @@ This system is designed for educational and research purposes. While it implemen
 
 ## 🙏 Acknowledgments
 
-- **Neon** - Serverless PostgreSQL infrastructure
+- **Supabase** - Managed PostgreSQL + platform services
 - **Vercel** - Next.js and deployment platform
 - **shadcn/ui** - React component library
 - **MITRE** - ATT&CK framework
