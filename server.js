@@ -17,6 +17,67 @@ app.prepare().then(() => {
     const httpServer = createServer(async (req, res) => {
         try {
             const parsedUrl = parse(req.url, true)
+            
+            // Internal webhook to bridge Next.js API routes with Socket.io
+            if (req.method === 'POST' && parsedUrl.pathname === '/api/internal/socket-emit') {
+                let body = ''
+                req.on('data', chunk => body += chunk)
+                req.on('end', () => {
+                    try {
+                        const payload = JSON.parse(body)
+
+                        if (payload.event === 'agent:complete') {
+                            const result = payload.data?.result || {}
+
+                            // 1. Push new threats to live feed
+                            if (result.threats?.length) {
+                                io.emit('threats:new', result.threats)
+                            }
+
+                            // 2. Push updated risk scores
+                            if (result.risk_scores?.length) {
+                                io.emit('metrics:update', result.risk_scores)
+                            }
+
+                            // 3. Push dashboard metric numbers
+                            if (result.metrics) {
+                                io.emit('metrics:update', {
+                                    ...lastMetrics,
+                                    riskScore:      result.metrics.postureScore    ?? lastMetrics.riskScore,
+                                    incidentsActive: result.metrics.criticalCount  ?? lastMetrics.incidentsActive,
+                                    // Append change indicators
+                                    riskScoreChange:     result.metrics.postureScore - lastMetrics.riskScore,
+                                    incidentsActiveChange: result.metrics.criticalCount - lastMetrics.incidentsActive,
+                                })
+                            }
+
+                            // 4. Push a notification for the alert banner
+                            io.emit('alert:new', {
+                                id:       `alert-${Date.now()}`,
+                                type:     'agent_complete',
+                                title:    'AI Analysis Complete',
+                                message:  result.metrics?.topRisk || 'Threat analysis pipeline finished.',
+                                action:   result.metrics?.actionRequired || '',
+                                severity: result.metrics?.criticalCount > 0 ? 'critical' : 'info',
+                                timestamp: new Date().toISOString(),
+                            })
+
+                        } else {
+                            // Generic event passthrough
+                            io.emit(payload.event, payload.data)
+                        }
+
+                        res.statusCode = 200
+                        res.end('ok')
+                    } catch (e) {
+                        console.error('[Socket] Failed to parse emit payload:', e)
+                        res.statusCode = 500
+                        res.end('error')
+                    }
+                })
+                return
+            }
+            
             await handle(req, res, parsedUrl)
         } catch (err) {
             console.error('Error handling request:', err)
@@ -135,16 +196,7 @@ app.prepare().then(() => {
 
     // Start broadcasting data to all connected clients
     setInterval(() => {
-        io.emit('metrics:update', generateMetrics())
-
-        if (Math.random() < 0.3) {
-            io.emit('threats:new', generateThreat())
-        }
-
-        if (Math.random() < 0.2) {
-            io.emit('incidents:update', generateIncidentUpdate())
-        }
-
+        // Emit chart update mock data so the dashboard stays alive
         io.emit('chart:update', generateChartPoint())
     }, 10000)
 

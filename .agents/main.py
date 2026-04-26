@@ -1,23 +1,39 @@
+"""
+CyberGuard - Python AI Service
+main.py — FastAPI server that exposes CrewAI pipeline to the Node.js backend
+Run: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+"""
+
 import os
+import sys
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
 import asyncio
-from dotenv import load_dotenv
-
-load_dotenv("../.env.local")
 
 from crew import CyberGuardCrew
+from agents import llm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Windows console encoding can throw OSError [Errno 22] when verbose
+# tool/agent logs include emoji or non-ASCII characters.
+if os.name == "nt":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 app = FastAPI(
-    title="CyberGuard - AI-Driven Threat Intelligence and Incident Response System",
-    description="Enterprise cybersecurity threat detection and incident response platform with real-time monitoring",
+    title="CyberGuard AI Agent Service",
+    description="Multi-agent threat intelligence and incident response pipeline",
     version="1.0.0",
 )
 
@@ -31,8 +47,12 @@ app.add_middleware(
 # In-memory job store (replace with Redis in production)
 jobs: dict[str, dict] = {}
 crew = CyberGuardCrew(verbose=True)
+logger.info(f"[Config] Active Groq model: {getattr(llm, 'model', 'unknown')}")
 
+
+# ─────────────────────────────────────────────
 # Request / Response Models
+# ─────────────────────────────────────────────
 
 class ThreatIndicator(BaseModel):
     type: str = Field(..., description="ip | domain | hash | cve | url")
@@ -64,12 +84,15 @@ class JobStatusResponse(BaseModel):
     result: Optional[dict] = None
     error: Optional[str] = None
 
+
+# ─────────────────────────────────────────────
 # Routes
+# ─────────────────────────────────────────────
 
 @app.get("/health")
 def health_check():
     """Health check endpoint for Docker/load balancer."""
-    return {"status": "healthy", "service": "cyberguard-ai", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "service": "cyberguard-ai", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @app.post("/api/agents/analyze", response_model=JobStatusResponse, status_code=202)
@@ -80,12 +103,12 @@ async def run_analysis(request: AnalysisRequest, background_tasks: BackgroundTas
     
     Called by the Node.js backend after collecting fresh threat indicators.
     """
-    job_id = request.run_id or f"cg-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+    job_id = request.run_id or f"cg-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     
     jobs[job_id] = {
         "job_id": job_id,
         "status": "queued",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None,
         "result": None,
         "error": None,
@@ -128,28 +151,37 @@ def calculate_risk_score(payload: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ─────────────────────────────────────────────
 # Background Task
+# ─────────────────────────────────────────────
 
 async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict]):
     """Execute the CrewAI pipeline and store the result."""
+    from datetime import timezone
     jobs[job_id]["status"] = "running"
     logger.info(f"[Job {job_id}] Pipeline started")
 
     try:
-        # Run in thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: crew.run(indicators, assets)
+        # 5 minute timeout — prevents infinite hang on Windows
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: crew.run(indicators, assets)),
+            timeout=300,
         )
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = result
-        jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
         logger.info(f"[Job {job_id}] Pipeline completed successfully")
+
+    except asyncio.TimeoutError:
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = "Pipeline timed out after 5 minutes"
+        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+        logger.error(f"[Job {job_id}] Pipeline timed out")
 
     except Exception as e:
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["error"] = str(e)
-        jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
         logger.error(f"[Job {job_id}] Pipeline failed: {e}")
