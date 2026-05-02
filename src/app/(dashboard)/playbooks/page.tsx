@@ -1,18 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
 import { PlaybookCategories } from '@/components/playbooks/playbook-categories'
 import { PlaybooksGrid } from '@/components/playbooks/playbooks-grid'
-import { NewPlaybookModal } from '@/components/playbooks/new-playbook-modal'
+import { PlaybookDetailPanel } from '@/components/playbooks/playbook-detail-panel'
 import { playbooksAPI } from '@/lib/api-service'
 
 export default function PlaybooksPage() {
-    const [selectedPlaybook, setSelectedPlaybook] = useState<string | null>(null)
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     const [playbooks, setPlaybooks] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [modalOpen, setModalOpen] = useState(false)
+    const [selectedPlaybook, setSelectedPlaybook] = useState<any | null>(null)
 
     useEffect(() => {
         const fetchPlaybooks = async () => {
@@ -31,11 +29,6 @@ export default function PlaybooksPage() {
         fetchPlaybooks()
     }, [])
 
-    const handlePlaybookCreated = (newPlaybook: any) => {
-        // Prepend the newly created playbook so it appears first
-        setPlaybooks(prev => [newPlaybook, ...prev])
-    }
-
     const categories = Array.from(new Set(playbooks.map(p => p.category)))
 
     const filteredPlaybooks = selectedCategory
@@ -45,18 +38,9 @@ export default function PlaybooksPage() {
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
             {/* Page Title */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Response Playbooks</h2>
-                    <p className="text-sm md:text-base text-muted-foreground">Pre-built and custom incident response procedures</p>
-                </div>
-                <button
-                    onClick={() => setModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-                >
-                    <Plus className="w-5 h-5" />
-                    New Playbook
-                </button>
+            <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Response Playbooks</h2>
+                <p className="text-sm md:text-base text-muted-foreground">Pre-built and custom incident response procedures</p>
             </div>
 
             {loading ? (
@@ -70,16 +54,14 @@ export default function PlaybooksPage() {
                     />
                     <PlaybooksGrid
                         playbooks={filteredPlaybooks}
-                        selectedPlaybook={selectedPlaybook}
-                        onSelectPlaybook={setSelectedPlaybook}
+                        onSelect={setSelectedPlaybook}
                     />
                 </div>
             )}
 
-            <NewPlaybookModal
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                onCreated={handlePlaybookCreated}
+            <PlaybookDetailPanel
+                playbook={selectedPlaybook}
+                onClose={() => setSelectedPlaybook(null)}
             />
         </div>
     )

@@ -5,23 +5,19 @@ import { PlaybookCard } from './playbook-card'
 interface Playbook {
   id: string
   title: string
-  description: string
-  category: string
-  steps: number
+  description?: string
+  category?: string
+  content?: { steps?: number } | null
   lastUpdated: string
+  steps?: number
 }
 
 interface PlaybooksGridProps {
   playbooks: Playbook[]
-  selectedPlaybook: string | null
-  onSelectPlaybook: (id: string) => void
+  onSelect: (playbook: Playbook) => void
 }
 
-export function PlaybooksGrid({
-  playbooks,
-  selectedPlaybook,
-  onSelectPlaybook,
-}: PlaybooksGridProps) {
+export function PlaybooksGrid({ playbooks, onSelect }: PlaybooksGridProps) {
   return (
     <div className="lg:col-span-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -29,8 +25,7 @@ export function PlaybooksGrid({
           <PlaybookCard
             key={playbook.id}
             playbook={playbook}
-            isSelected={selectedPlaybook === playbook.id}
-            onSelect={onSelectPlaybook}
+            onSelect={onSelect}
           />
         ))}
       </div>

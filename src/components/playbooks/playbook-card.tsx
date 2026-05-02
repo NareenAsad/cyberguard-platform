@@ -15,11 +15,10 @@ interface Playbook {
 
 interface PlaybookCardProps {
     playbook: Playbook
-    isSelected: boolean
-    onSelect: (id: string) => void
+    onSelect: (playbook: Playbook) => void
 }
 
-export function PlaybookCard({ playbook, isSelected, onSelect }: PlaybookCardProps) {
+export function PlaybookCard({ playbook, onSelect }: PlaybookCardProps) {
     // steps lives in content.steps (new) or top-level steps (seeded data)
     const steps = playbook.content?.steps ?? playbook.steps ?? null
 
@@ -29,10 +28,9 @@ export function PlaybookCard({ playbook, isSelected, onSelect }: PlaybookCardPro
         : '—'
 
     return (
-        <button
-            onClick={() => onSelect(playbook.id)}
-            className={`text-left p-6 border rounded-lg transition-all hover:border-accent ${isSelected ? 'bg-primary/10 border-primary' : 'bg-card border-border hover:bg-secondary/50'
-                }`}
+        <div
+            onClick={() => onSelect(playbook)}
+            className="text-left p-6 border rounded-lg bg-card border-border cursor-pointer hover:border-accent hover:bg-secondary/30 transition-all"
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -56,6 +54,6 @@ export function PlaybookCard({ playbook, isSelected, onSelect }: PlaybookCardPro
                 </div>
                 <span className="text-muted-foreground">Updated {updatedDisplay}</span>
             </div>
-        </button>
+        </div>
     )
 }

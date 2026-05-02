@@ -6,20 +6,13 @@ import { Shield, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { signup } from '@/lib/auth/actions'
 
-const ROLES = [
-    { value: 'analyst', label: 'Security Analyst', description: 'View threats and incidents' },
-    { value: 'manager', label: 'Security Manager', description: 'Manage team and review reports' },
-    { value: 'admin', label: 'Administrator', description: 'Full system access' },
-]
 
 export default function SignupPage() {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [selectedRole, setSelectedRole] = useState('analyst')
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -27,7 +20,6 @@ export default function SignupPage() {
         setError(null)
 
         const formData = new FormData(event.currentTarget)
-        formData.set('role', selectedRole)
 
         const result = await signup(formData)
 
@@ -142,29 +134,9 @@ export default function SignupPage() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label htmlFor="role" className="text-sm font-medium text-foreground">
-                            Role
-                        </label>
-                        <Select value={selectedRole} onValueChange={setSelectedRole}>
-                            <SelectTrigger className="bg-input/50 border-border focus:border-primary">
-                                <SelectValue placeholder="Select your role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ROLES.map((role) => (
-                                    <SelectItem key={role.value} value={role.value}>
-                                        <div className="flex flex-col">
-                                            <span>{role.label}</span>
-                                            <span className="text-xs text-muted-foreground">{role.description}</span>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </CardContent>
 
-                <CardFooter className="flex flex-col gap-4">
+                <CardFooter className="flex flex-col gap-4 pt-6">
                     <Button
                         type="submit"
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

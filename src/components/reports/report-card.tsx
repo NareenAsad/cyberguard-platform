@@ -6,11 +6,10 @@ import { exportToPDF } from '@/lib/export-utils'
 
 interface ReportCardProps {
     report: Report
-    isSelected: boolean
-    onSelect: (id: string) => void
+    onSelect: (report: Report) => void
 }
 
-export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
+export function ReportCard({ report, onSelect }: ReportCardProps) {
     const getStatusColor = (status: string) => {
         return status === 'completed'
             ? 'bg-green-500/20 text-green-400'
@@ -18,7 +17,7 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
     }
 
     const handleDownload = (e: React.MouseEvent) => {
-        e.stopPropagation() // Prevent triggering card selection
+        e.stopPropagation()
         exportToPDF(
             report.title,
             [report],
@@ -34,10 +33,9 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
     }
 
     return (
-        <button
-            onClick={() => onSelect(report.id)}
-            className={`w-full text-left p-6 border rounded-lg transition-all hover:border-accent ${isSelected ? 'bg-primary/10 border-primary' : 'bg-card border-border hover:bg-secondary/50'
-                }`}
+        <div
+            onClick={() => onSelect(report)}
+            className="w-full text-left p-6 border rounded-lg bg-card border-border cursor-pointer hover:border-accent hover:bg-secondary/30 transition-all"
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="pr-4">
@@ -74,6 +72,6 @@ export function ReportCard({ report, isSelected, onSelect }: ReportCardProps) {
                     <p className="text-foreground font-medium">{report.size ?? '—'}</p>
                 </div>
             </div>
-        </button>
+        </div>
     )
 }
