@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type AuthResult = {
     error?: string
@@ -38,7 +39,6 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const fullName = formData.get('fullName') as string
-    const role = (formData.get('role') as string) || 'analyst'
 
     if (!email || !password) {
         return { error: 'Email and password are required' }
@@ -47,6 +47,13 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     if (password.length < 6) {
         return { error: 'Password must be at least 6 characters' }
     }
+
+    // Determine role: first user ever → admin, everyone else → analyst
+    const adminClient = createAdminClient()
+    const { count } = await adminClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+    const role = count === 0 ? 'admin' : 'analyst'
 
     const { error } = await supabase.auth.signUp({
         email,
@@ -57,7 +64,7 @@ export async function signup(formData: FormData): Promise<AuthResult> {
                 `${process.env.NEXT_PUBLIC_SITE_URL || ''}/auth/callback`,
             data: {
                 full_name: fullName || email.split('@')[0],
-                role: role,
+                role,
             },
         },
     })

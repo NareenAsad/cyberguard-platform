@@ -39,7 +39,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", os.getenv("NEXT_PUBLIC_APP_URL", "*")],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://cyberguard-platform.vercel.app",
+        os.getenv("NEXT_PUBLIC_APP_URL", "*"),
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )

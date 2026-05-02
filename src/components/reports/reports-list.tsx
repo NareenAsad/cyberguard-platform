@@ -5,15 +5,10 @@ import type { Report } from '@/types/report'
 
 interface ReportsListProps {
     reports: Report[]
-    selectedReport: string | null
-    onSelectReport: (id: string) => void
+    onSelect: (report: Report) => void
 }
 
-export function ReportsList({
-    reports,
-    selectedReport,
-    onSelectReport,
-}: ReportsListProps) {
+export function ReportsList({ reports, onSelect }: ReportsListProps) {
     return (
         <div className="lg:col-span-3">
             <div className="space-y-4">
@@ -21,8 +16,7 @@ export function ReportsList({
                     <ReportCard
                         key={report.id}
                         report={report}
-                        isSelected={selectedReport === report.id}
-                        onSelect={onSelectReport}
+                        onSelect={onSelect}
                     />
                 ))}
             </div>

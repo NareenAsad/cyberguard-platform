@@ -144,7 +144,8 @@ async function saveResultsToDB(jobId: string, result: any) {
 async function pushToSocket(result: any) {
     try {
         const execReport = result.executive_report ?? {}
-        await fetch('http://localhost:3000/api/internal/socket-emit', {
+        const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        await fetch(`${APP_URL}/api/internal/socket-emit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
