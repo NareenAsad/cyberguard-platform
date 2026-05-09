@@ -19,9 +19,6 @@ RUN pip install --no-cache-dir --upgrade pip \
 # ── Copy application code ─────────────────────────────────────────
 COPY agents.py crew.py tasks.py tools.py main.py risk_engine_py.py ./
 
-# Copy skills directory if it exists
-COPY skills/ ./skills/
-
 # ── Runtime config ────────────────────────────────────────────────
 # All secrets are injected at runtime via --env-file or -e flags.
 # Never bake API keys into the image.
