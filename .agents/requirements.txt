@@ -3,7 +3,7 @@
 # Let pip resolve compatible versions automatically (no strict pins)
 
 # CrewAI & Agents
-crewai>=0.51.0
+crewai[litellm]>=0.51.0
 crewai-tools>=0.8.3
 
 # Groq (CrewAI.LLM uses litellm + groq under the hood)
