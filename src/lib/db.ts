@@ -1,12 +1,34 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: { persistSession: false, autoRefreshToken: false },
+// Lazy singleton — deferred until first call so `next build` doesn't
+// fail when env vars are not available in the build environment.
+let _client: SupabaseClient | null = null
+
+function getSupabaseClient(): SupabaseClient {
+    if (_client) return _client
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!url || !key) {
+        throw new Error(
+            'Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.'
+        )
     }
-)
+
+    _client = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+    })
+    return _client
+}
+
+// Module-private proxy — keeps all existing `supabase.from(...)` calls
+// working without any changes while deferring client creation to first use.
+const supabase = new Proxy({} as SupabaseClient, {
+    get(_, prop) {
+        return getSupabaseClient()[prop as keyof SupabaseClient]
+    },
+})
 
 // Validate database connection
 export async function validateConnection() {
