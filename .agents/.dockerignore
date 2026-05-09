@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment — never copy into the image
+venv/
+.venv/
+env/
+
+# Local env files — secrets are injected at runtime, not baked in
+.env
+.env.*
+*.env
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Docker itself
+Dockerfile
+.dockerignore
+
+# Railway / deployment configs (not needed at runtime)
+Procfile
+railway.json
+
+# Logs and temp files
+*.log
+*.tmp

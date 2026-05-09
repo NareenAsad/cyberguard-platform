@@ -15,7 +15,7 @@ from typing import Optional
 import asyncio
 
 from crew import CyberGuardCrew
-from agents import llm
+from agents import llm_powerful
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ app.add_middleware(
 # In-memory job store (replace with Redis in production)
 jobs: dict[str, dict] = {}
 crew = CyberGuardCrew(verbose=True)
-logger.info(f"[Config] Active Groq model: {getattr(llm, 'model', 'unknown')}")
+logger.info(f"[Config] Active Groq model (powerful): {getattr(llm_powerful, 'model', 'unknown')}")
 
 
 # ─────────────────────────────────────────────
@@ -167,10 +167,10 @@ async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict])
 
     try:
         loop = asyncio.get_event_loop()
-        # 5 minute timeout — prevents infinite hang on Windows
+        # 10 minute timeout — 70b model needs ~2-3 min for tasks 4 and 5
         result = await asyncio.wait_for(
             loop.run_in_executor(None, lambda: crew.run(indicators, assets)),
-            timeout=300,
+            timeout=600,
         )
 
         jobs[job_id]["status"] = "completed"
