@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.agents/venv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/.agents"
+    ],
+    "pyrefly.pythonInterpreter": "${workspaceFolder}/.agents/venv/Scripts/python.exe"
+}
