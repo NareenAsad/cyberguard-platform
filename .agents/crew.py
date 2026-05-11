@@ -89,15 +89,14 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
         
-        # We use Groq by default because OPENAI_API_KEY is not in .env.local
-        # This preserves the rate-limit protections we set up earlier.
+        # Using OpenAI GPT-4o-mini with OPENAI_API_KEY from environment
         self.llm = LLM(
-            model="groq/llama-3.3-70b-versatile",
+            model="openai/gpt-4o-mini",
             temperature=0.1,
             max_tokens=800,
         )
         self.llm_powerful = LLM(
-            model="groq/llama-3.3-70b-versatile",
+            model="openai/gpt-4o-mini",
             temperature=0.1,
             max_tokens=1800,
         )
@@ -180,7 +179,6 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=self.verbose,
-            max_rpm=2, # Ensures we don't hit Groq's 12k TPM / 30 RPM limits
         )
 
     def run(self, raw_indicators: list[dict], asset_inventory: list[dict]) -> dict:
