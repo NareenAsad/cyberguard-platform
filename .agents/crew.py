@@ -1,51 +1,235 @@
 import json
+import re
+import os
 import time
 import logging
 from datetime import datetime, timezone
-from crewai import Crew, Process
-from agents import (
-    threat_intelligence_agent,
-    vulnerability_assessment_agent,
-    risk_analysis_agent,
-    incident_response_agent,
-    reporting_agent,
+from dotenv import load_dotenv
+from pathlib import Path
+
+from crewai import Agent, Crew, Process, Task, LLM
+from crewai.project import CrewBase, agent, crew, task
+from crewai_tools import ScrapeWebsiteTool
+
+from tools import (
+    nvd_search_tool,
+    otx_threat_tool,
+    asset_lookup_tool,
+    mitre_lookup_tool,
 )
-from tasks import create_tasks
 
 logger = logging.getLogger(__name__)
+load_dotenv(Path(__file__).parent.parent / ".env.local")
 
 # Delay between tasks (seconds) — lets TPM window reset
-# 12,000 TPM limit: each task uses ~800-2500 tokens, so 30s gap is safe
 INTER_TASK_DELAY = 30
 
 
-class CyberGuardCrew:
+def _extract_json(text: str) -> dict | list | None:
+    """
+    Robustly extract a JSON object or array from LLM output.
+    """
+    if not text:
+        return None
+
+    # 1. Direct parse
+    try:
+        return json.loads(text.strip())
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # 2. Strip markdown fences
+    fence_match = re.search(r"```(?:json|JSON)?\s*\n([\s\S]*?)\n```", text)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1).strip())
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # 3. Find first { or [ and balance brackets
+    for start_char, end_char in [('{', '}'), ('[', ']')]:
+        start_idx = text.find(start_char)
+        if start_idx == -1:
+            continue
+        depth = 0
+        in_string = False
+        escape_next = False
+        for i, ch in enumerate(text[start_idx:], start=start_idx):
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == start_char:
+                depth += 1
+            elif ch == end_char:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start_idx:i + 1])
+                    except (json.JSONDecodeError, ValueError):
+                        break
+
+    return None
+
+
+@CrewBase
+class CyberguardThreatIntelligenceIncidentResponseCrew:
+    """CyberguardThreatIntelligenceIncidentResponse crew"""
+
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
+
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
+        
+        # We use Groq by default because OPENAI_API_KEY is not in .env.local
+        # This preserves the rate-limit protections we set up earlier.
+        self.llm = LLM(
+            model="groq/llama-3.3-70b-versatile",
+            temperature=0.1,
+            max_tokens=800,
+        )
+        self.llm_powerful = LLM(
+            model="groq/llama-3.3-70b-versatile",
+            temperature=0.1,
+            max_tokens=1800,
+        )
+
+    @agent
+    def threat_intelligence_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config["threat_intelligence_analyst"],
+            tools=[otx_threat_tool, mitre_lookup_tool, ScrapeWebsiteTool()],
+            allow_delegation=False,
+            max_iter=3,
+            llm=self.llm,
+        )
+
+    @agent
+    def vulnerability_assessment_specialist(self) -> Agent:
+        return Agent(
+            config=self.agents_config["vulnerability_assessment_specialist"],
+            tools=[nvd_search_tool, asset_lookup_tool, ScrapeWebsiteTool()],
+            allow_delegation=False,
+            max_iter=3,
+            llm=self.llm,
+        )
+
+    @agent
+    def risk_analysis_engineer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["risk_analysis_engineer"],
+            tools=[],
+            allow_delegation=False,
+            max_iter=2,
+            llm=self.llm,
+        )
+
+    @agent
+    def senior_incident_response_manager(self) -> Agent:
+        return Agent(
+            config=self.agents_config["senior_incident_response_manager"],
+            tools=[],
+            allow_delegation=False,
+            max_iter=2,
+            llm=self.llm_powerful,
+        )
+
+    @agent
+    def security_reporting_specialist(self) -> Agent:
+        return Agent(
+            config=self.agents_config["security_reporting_specialist"],
+            tools=[],
+            allow_delegation=False,
+            max_iter=3,
+            llm=self.llm_powerful,
+        )
+
+    @task
+    def threat_intelligence_analysis(self) -> Task:
+        return Task(config=self.tasks_config["threat_intelligence_analysis"])
+
+    @task
+    def vulnerability_assessment(self) -> Task:
+        return Task(config=self.tasks_config["vulnerability_assessment"])
+
+    @task
+    def risk_score_calculation(self) -> Task:
+        return Task(config=self.tasks_config["risk_score_calculation"])
+
+    @task
+    def incident_response_playbook_generation(self) -> Task:
+        return Task(config=self.tasks_config["incident_response_playbook_generation"])
+
+    @task
+    def comprehensive_security_reporting(self) -> Task:
+        return Task(config=self.tasks_config["comprehensive_security_reporting"])
+
+    @crew
+    def crew(self) -> Crew:
+        """Creates the CyberguardThreatIntelligenceIncidentResponse crew"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=self.verbose,
+            max_rpm=2, # Ensures we don't hit Groq's 12k TPM / 30 RPM limits
+        )
 
     def run(self, raw_indicators: list[dict], asset_inventory: list[dict]) -> dict:
+        """
+        Custom wrapper for FastAPI to bridge JSON inputs to the YAML template inputs.
+        """
         now = datetime.now(timezone.utc).isoformat()
         logger.info(f"[CyberGuard] Starting pipeline at {now}")
         logger.info(f"[CyberGuard] {len(raw_indicators)} indicators | {len(asset_inventory)} assets")
 
-        result = self._run_with_delays(raw_indicators, asset_inventory)
+        inputs = {
+            'target_organization': 'CyberGuard Platform',
+            'threat_indicators': json.dumps(raw_indicators),
+            'asset_inventory': json.dumps(asset_inventory)
+        }
 
-        # Parse output — handle all backtick fence variants the LLM might produce
-        try:
-            raw = result.raw if hasattr(result, 'raw') else str(result)
-            clean = raw.strip()
+        max_retries = 4
+        result = None
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    wait = 60 * attempt
+                    logger.warning(f"[CyberGuard] Rate limit retry {attempt}/{max_retries - 1} — waiting {wait}s")
+                    time.sleep(wait)
 
-            # Strip any opening fence: ```json, ```JSON, ``` etc.
-            if clean.startswith("```"):
-                lines = clean.split("\n")
-                lines = lines[1:]  # drop first line (```json or ```)
-                if lines and lines[-1].strip() == "```":
-                    lines = lines[:-1]
-                clean = "\n".join(lines).strip()
+                c = self.crew()
+                result = c.kickoff(inputs=inputs)
+                logger.info("[CyberGuard] Pipeline completed successfully")
+                break
 
-            parsed = json.loads(clean)
-        except (json.JSONDecodeError, AttributeError, ValueError):
-            parsed = {"raw_output": str(result)}
+            except Exception as e:
+                err = str(e).lower()
+                is_rate_limit = "rate_limit" in err or "429" in err or "ratelimit" in err
+                if is_rate_limit and attempt < max_retries - 1:
+                    logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
+                    continue
+                raise
+        
+        if result is None:
+            return {"error": "Pipeline failed after maximum retries"}
+
+        # Parse output
+        raw = result.raw if hasattr(result, 'raw') else str(result)
+        parsed = _extract_json(raw)
+        
+        if parsed is None:
+            logger.warning("[CyberGuard] Could not parse JSON — storing raw_output")
+            logger.debug("[CyberGuard] Raw output (first 500 chars): %s", raw[:500])
+            parsed = {"raw_output": raw}
 
         return {
             "metadata": {
@@ -57,75 +241,19 @@ class CyberGuardCrew:
             **parsed,
         }
 
-    def _run_with_delays(self, raw_indicators, asset_inventory):
-        """
-        Run the crew pipeline with rate-limit protection.
-        max_rpm=2 enforces 1 LLM call every 30s inside CrewAI.
-        At 2,500 tokens/call × 2 calls/min = 5,000 TPM — well under 12k even
-        if two agents fire back-to-back.
-        On rate limit errors, exponential back-off: 60s / 120s / 180s.
-        """
-        tasks = create_tasks(raw_indicators, asset_inventory)
-
-        crew = Crew(
-            agents=[
-                threat_intelligence_agent,
-                vulnerability_assessment_agent,
-                risk_analysis_agent,
-                incident_response_agent,
-                reporting_agent,
-            ],
-            tasks=tasks,
-            process=Process.sequential,
-            verbose=self.verbose,
-            memory=False,   # disable memory — saves tokens on every call
-            max_rpm=2,      # 2 requests/min = 1 call every 30s = safe for 12k TPM
-        )
-
-        max_retries = 4
-        for attempt in range(max_retries):
-            try:
-                # Pre-flight delay on retries — let the TPM window fully reset
-                if attempt > 0:
-                    wait = 60 * attempt   # 60s, 120s, 180s
-                    logger.warning(
-                        f"[CyberGuard] Rate limit retry {attempt}/{max_retries - 1} — waiting {wait}s"
-                    )
-                    time.sleep(wait)
-
-                result = crew.kickoff()
-                logger.info("[CyberGuard] Pipeline completed successfully")
-                return result
-
-            except Exception as e:
-                err = str(e).lower()
-                is_rate_limit = "rate_limit" in err or "429" in err or "ratelimit" in err
-                if is_rate_limit and attempt < max_retries - 1:
-                    logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
-                    continue
-                raise
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
     sample_indicators = [
         {"type": "cve", "value": "CVE-2021-44228", "source": "NVD", "confidence": 100},
-        {"type": "ip",  "value": "45.33.32.156",   "source": "OTX", "confidence": 85},
     ]
-
     sample_assets = [
         {
             "id": "asset-001",
             "name": "Production Web Server",
             "ip_address": "10.0.1.10",
-            "os": "Ubuntu 22.04",
-            "software": [{"name": "Apache Log4j", "version": "2.14.0"}],
             "criticality": "CRITICAL",
-            "network_exposure": "internet-facing",
         },
     ]
-
-    crew_runner = CyberGuardCrew(verbose=True)
+    crew_runner = CyberguardThreatIntelligenceIncidentResponseCrew(verbose=True)
     output = crew_runner.run(sample_indicators, sample_assets)
     print(json.dumps(output, indent=2))

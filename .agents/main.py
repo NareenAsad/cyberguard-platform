@@ -14,8 +14,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import asyncio
 
-from crew import CyberGuardCrew
-from agents import llm_powerful
+from crew import CyberguardThreatIntelligenceIncidentResponseCrew as CyberGuardCrew
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,7 +50,6 @@ app.add_middleware(
 # In-memory job store (replace with Redis in production)
 jobs: dict[str, dict] = {}
 crew = CyberGuardCrew(verbose=True)
-logger.info(f"[Config] Active Groq model (powerful): {getattr(llm_powerful, 'model', 'unknown')}")
 
 
 # ─────────────────────────────────────────────
