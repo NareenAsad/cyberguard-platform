@@ -1,0 +1,191 @@
+threat_intelligence_analysis:
+  description: |-
+    Analyze the provided threat indicators: {threat_indicators}
+
+    For each indicator with confidence ≥ 60%, provide:
+    1. Indicator type and value
+    2. Source and confidence score (0-100)
+    3. MITRE ATT&CK tactic and technique mapping
+    4. Associated threat actors or campaigns
+    5. Active exploitation status
+    6. Threat context and attribution
+    7. Priority score (0-100) based on relevance to {target_organization}
+
+    Include detailed analysis of:
+    - CVE indicators: Check NVD database for CVSS scores, affected products
+    - IP indicators: Geolocation, reputation, associated malware families
+    - Domain indicators: Registration data, hosting infrastructure, malware campaigns
+    - Hash indicators: Malware family, capabilities, distribution methods
+
+    Output comprehensive threat intelligence report with actionable insights.
+  expected_output: Detailed threat intelligence report containing enriched indicators
+    with MITRE ATT&CK mappings, confidence scores, threat actor attribution, and prioritization
+    for incident response teams. Include specific IOCs, TTPs, and recommended detection
+    rules.
+  agent: threat_intelligence_analyst
+vulnerability_assessment:
+  description: |-
+    Using the enriched threat intelligence and asset inventory {asset_inventory}, perform comprehensive vulnerability assessment:
+
+    1. Correlate CVE indicators with asset software/versions
+    2. Calculate CVSS base scores and temporal metrics
+    3. Assess exploitability and patch availability
+    4. Determine asset exposure (internet-facing vs internal)
+    5. Evaluate business criticality impact
+
+    For each vulnerability-asset pair:
+    - Asset details: ID, name, IP, OS, software versions
+    - CVE details: ID, CVSS score, severity, description
+    - Exploitability: Public exploits, PoC availability, weaponization
+    - Patch status: Available patches, vendor advisories, workarounds
+    - Business impact: Asset criticality, data sensitivity, operational impact
+    - Network exposure: External attack surface analysis
+
+    Calculate match confidence (70%+ required for inclusion).
+    Provide specific remediation commands and patch procedures.
+  expected_output: Comprehensive vulnerability assessment report mapping CVEs to specific
+    assets with CVSS scores, exploitability analysis, patch availability, and detailed
+    remediation procedures. Include prioritized vulnerability list with business impact
+    assessment.
+  agent: vulnerability_assessment_specialist
+  context:
+  - threat_intelligence_analysis
+risk_score_calculation:
+  description: |-
+    Calculate comprehensive risk scores for all identified vulnerabilities using the CyberGuard risk formula:
+
+    Risk Score = ((0.30 × CVSS) + (0.25 × Exploitability) + (0.25 × Asset Criticality) + (0.20 × Threat Intel)) × 10
+
+    Components:
+    - CVSS Score (0-10): Use base score from vulnerability assessment
+    - Exploitability (0-10): 10=public exploit, 6=PoC available, 2=theoretical, 0=none
+    - Asset Criticality (0-10): CRITICAL=10, HIGH=7, MEDIUM=5, LOW=2
+    - Threat Intel (0-10): 10=active exploitation, 6=targeted campaigns, 2=generic threat
+
+    Apply network exposure multipliers:
+    - Internet-facing: 1.15x
+    - Internal: 1.0x
+    - Air-gapped: 0.7x
+
+    Classify final scores:
+    - CRITICAL: 70-100 (immediate response required)
+    - HIGH: 50-69 (24-hour response window)
+    - MEDIUM: 30-49 (2-week response window)
+    - LOW: 0-29 (next maintenance window)
+
+    Provide detailed risk register with business justification for each score.
+  expected_output: Complete risk register with calculated risk scores, severity classifications,
+    and detailed risk analysis. Include risk score breakdown showing how each component
+    contributes to the final score, plus business impact justification for prioritization
+    decisions.
+  agent: risk_analysis_engineer
+  context:
+  - vulnerability_assessment
+incident_response_playbook_generation:
+  description: |-
+    Generate detailed NIST SP 800-61 incident response playbooks for ALL findings with risk score ≥ 50 (CRITICAL and HIGH).
+
+    For each incident, create comprehensive playbook including:
+
+    **1. PREPARATION PHASE (2-3 detailed steps):**
+    - Team notification procedures
+    - Tool and resource preparation
+    - Evidence preservation setup
+    - Communication protocols
+
+    **2. IDENTIFICATION PHASE (3-4 detailed steps):**
+    - Detection and analysis procedures
+    - IOC collection and validation
+    - Scope and impact determination
+    - Initial classification
+
+    **3. CONTAINMENT PHASE (4-5 detailed steps):**
+    - Short-term containment actions
+    - Long-term containment strategy
+    - System isolation procedures
+    - Evidence preservation
+
+    **4. ERADICATION PHASE (3-4 detailed steps):**
+    - Root cause elimination
+    - Vulnerability remediation
+    - System hardening
+    - Malware removal
+
+    **5. RECOVERY PHASE (3-4 detailed steps):**
+    - System restoration procedures
+    - Monitoring and validation
+    - Return to operations
+    - Documentation updates
+
+    **6. LESSONS LEARNED PHASE (2-3 detailed steps):**
+    - Post-incident analysis
+    - Process improvements
+    - Documentation updates
+    - Training recommendations
+
+    Each step must include:
+    - Specific commands and procedures
+    - Tools required
+    - Responsible personnel
+    - Time estimates
+    - Success criteria
+    - Escalation triggers
+
+    Include MITRE ATT&CK technique mapping, SLA requirements, and compliance considerations for {target_organization}.
+  expected_output: Comprehensive incident response playbooks following NIST SP 800-61
+    framework with detailed step-by-step procedures for each phase. Include specific
+    commands, tools, timelines, responsible parties, and decision trees. Each playbook
+    must be immediately actionable by the incident response team.
+  agent: senior_incident_response_manager
+  context:
+  - risk_score_calculation
+comprehensive_security_reporting:
+  description: |-
+    Generate three comprehensive security reports using all previous analysis:
+
+    **EXECUTIVE SUMMARY REPORT:**
+    - Security posture score (0-100) and trend analysis
+    - Risk distribution: Critical/High/Medium/Low counts
+    - Top 3 business risks with potential impact ($)
+    - Key findings in business language
+    - Recommended actions with priorities and deadlines
+    - Resource requirements and budget implications
+    - Regulatory compliance status
+    - Board-ready metrics and KPIs
+
+    **TECHNICAL ANALYSIS REPORT:**
+    - Detailed vulnerability findings with CVE mappings
+    - Asset-specific remediation procedures
+    - Patch management priorities with commands
+    - IOC detection rules and signatures
+    - Network segmentation recommendations
+    - Configuration hardening guidelines
+    - Monitoring and detection improvements
+    - Technical architecture recommendations
+
+    **COMPLIANCE MAPPING REPORT:**
+    - ISO 27001 control mapping and gaps
+    - NIST Cybersecurity Framework alignment
+    - SOC 2 Type II implications
+    - Regulatory compliance status (GDPR, HIPAA, etc.)
+    - Control effectiveness assessment
+    - Audit trail and evidence collection
+    - Remediation timeline for compliance
+    - Third-party risk assessment
+
+    Each report must be:
+    - Actionable with specific next steps
+    - Tailored to the intended audience
+    - Supported by data from the analysis
+    - Formatted for immediate use by {target_organization}
+  expected_output: 'Three comprehensive security reports: (1) Executive Summary for
+    leadership with business metrics and strategic recommendations, (2) Technical
+    Analysis for security teams with detailed remediation procedures, and (3) Compliance
+    Mapping for audit and regulatory requirements. Each report must be audience-appropriate
+    and immediately actionable.'
+  agent: security_reporting_specialist
+  context:
+  - threat_intelligence_analysis
+  - vulnerability_assessment
+  - risk_score_calculation
+  - incident_response_playbook_generation

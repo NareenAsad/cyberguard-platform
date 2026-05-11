@@ -20,8 +20,8 @@ const PIPELINE_STEPS = [
 
 // Sample indicators & assets sent to the pipeline
 const SAMPLE_INDICATORS = [
-    { type: 'cve',    value: 'CVE-2021-44228', source: 'NVD',      confidence: 100 },
-    { type: 'ip',     value: '45.33.32.156',   source: 'OTX',      confidence: 85  },
+    { type: 'cve', value: 'CVE-2021-44228', source: 'NVD', confidence: 100 },
+    { type: 'ip', value: '45.33.32.156', source: 'OTX', confidence: 85 },
     { type: 'domain', value: 'malicious-c2-server.com', source: 'ThreatFox', confidence: 75 },
 ]
 
@@ -47,16 +47,16 @@ const SAMPLE_ASSETS = [
 ]
 
 export function RunAnalysisButton() {
-    const [phase, setPhase]           = useState<Phase>('idle')
-    const [jobId, setJobId]           = useState<string | null>(null)
-    const [steps, setSteps]           = useState<StepStatus[]>(
+    const [phase, setPhase] = useState<Phase>('idle')
+    const [jobId, setJobId] = useState<string | null>(null)
+    const [steps, setSteps] = useState<StepStatus[]>(
         PIPELINE_STEPS.map(label => ({ label, status: 'waiting' }))
     )
-    const [result, setResult]         = useState<any>(null)
-    const [errorMsg, setErrorMsg]     = useState<string>('')
-    const [expanded, setExpanded]     = useState(false)
-    const [elapsed, setElapsed]       = useState(0)
-    const pollRef  = useRef<NodeJS.Timeout | null>(null)
+    const [result, setResult] = useState<any>(null)
+    const [errorMsg, setErrorMsg] = useState<string>('')
+    const [expanded, setExpanded] = useState(false)
+    const [elapsed, setElapsed] = useState(0)
+    const pollRef = useRef<NodeJS.Timeout | null>(null)
     const timerRef = useRef<NodeJS.Timeout | null>(null)
 
     // Elapsed timer
@@ -95,7 +95,7 @@ export function RunAnalysisButton() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     indicators: SAMPLE_INDICATORS,
-                    assets:     SAMPLE_ASSETS,
+                    assets: SAMPLE_ASSETS,
                 }),
             })
 
@@ -112,8 +112,8 @@ export function RunAnalysisButton() {
             pollRef.current = setInterval(async () => {
                 try {
                     const pollRes = await fetch(`/api/threats/job?jobId=${job_id}`)
-                    const data    = await pollRes.json()
-                    const job     = data.job
+                    const data = await pollRes.json()
+                    const job = data.job
 
                     if (job?.status === 'completed') {
                         clearInterval(pollRef.current!)
@@ -162,10 +162,10 @@ export function RunAnalysisButton() {
                         ${isRunning
                             ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 cursor-not-allowed'
                             : phase === 'done'
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer'
-                            : phase === 'error'
-                            ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer'
-                            : 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 cursor-pointer'
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer'
+                                : phase === 'error'
+                                    ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer'
+                                    : 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 cursor-pointer'
                         }
                     `}
                 >
@@ -200,7 +200,7 @@ export function RunAnalysisButton() {
                         <div className="flex items-center gap-2">
                             <Shield className="w-4 h-4 text-blue-400" />
                             <span className="text-sm font-medium text-slate-200">
-                                CyberGuard AI Pipeline
+                                AI Pipeline
                             </span>
                         </div>
                         {jobId && (
@@ -213,15 +213,14 @@ export function RunAnalysisButton() {
                         {steps.map((step, i) => (
                             <div
                                 key={step.label}
-                                className={`rounded-lg border px-3 py-2 ${
-                                    step.status === 'done'
-                                        ? 'border-emerald-500/30 bg-emerald-500/5'
-                                        : step.status === 'running'
+                                className={`rounded-lg border px-3 py-2 ${step.status === 'done'
+                                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                                    : step.status === 'running'
                                         ? 'border-blue-500/30 bg-blue-500/5'
                                         : step.status === 'error'
-                                        ? 'border-red-500/30 bg-red-500/5'
-                                        : 'border-slate-700/60 bg-slate-800/40'
-                                }`}
+                                            ? 'border-red-500/30 bg-red-500/5'
+                                            : 'border-slate-700/60 bg-slate-800/40'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-[11px] font-mono text-slate-400">Agent {i + 1}</span>
@@ -254,11 +253,10 @@ export function RunAnalysisButton() {
                                 <>
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs text-slate-400">Posture Score</span>
-                                        <span className={`text-sm font-bold ${
-                                            result.executive_report.posture_score >= 70 ? 'text-emerald-400' :
+                                        <span className={`text-sm font-bold ${result.executive_report.posture_score >= 70 ? 'text-emerald-400' :
                                             result.executive_report.posture_score >= 40 ? 'text-yellow-400' :
-                                            'text-red-400'
-                                        }`}>
+                                                'text-red-400'
+                                            }`}>
                                             {result.executive_report.posture_score}/100
                                         </span>
                                     </div>
@@ -266,9 +264,9 @@ export function RunAnalysisButton() {
                                         {Object.entries(result.executive_report.severity_summary || {}).map(([k, v]) => (
                                             <span key={k} className={`
                                                 ${k === 'critical' ? 'text-red-400' :
-                                                  k === 'high'     ? 'text-orange-400' :
-                                                  k === 'medium'   ? 'text-yellow-400' :
-                                                  'text-green-400'}
+                                                    k === 'high' ? 'text-orange-400' :
+                                                        k === 'medium' ? 'text-yellow-400' :
+                                                            'text-green-400'}
                                             `}>
                                                 {String(v)} {k}
                                             </span>
@@ -295,8 +293,8 @@ export function RunAnalysisButton() {
                             <Zap className="w-3 h-3 text-slate-500" />
                             <span className="text-xs text-slate-500">
                                 {phase === 'done' ? `Completed in ${elapsed}s` :
-                                 phase === 'error' ? `Failed after ${elapsed}s` :
-                                 `Running for ${elapsed}s`}
+                                    phase === 'error' ? `Failed after ${elapsed}s` :
+                                        `Running for ${elapsed}s`}
                             </span>
                         </div>
                         <span className="text-xs text-slate-600">
