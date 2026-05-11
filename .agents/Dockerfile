@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # ── Copy application code ─────────────────────────────────────────
-COPY agents.py crew.py tasks.py tools.py main.py risk_engine_py.py ./
+COPY crew.py tools.py main.py risk_engine_py.py ./
+COPY config/ ./config/
 
 # ── Runtime config ────────────────────────────────────────────────
 # All secrets are injected at runtime via --env-file or -e flags.
