@@ -20,7 +20,7 @@ export function IncidentsList({
             case 'high':
                 return 'bg-yellow-500/20 text-yellow-400'
             default:
-                return 'bg-blue-500/20 text-blue-400'
+                return 'bg-emerald-500/20 text-emerald-400'
         }
     }
 
@@ -55,3 +55,4 @@ export function IncidentsList({
         </div>
     )
 }
+

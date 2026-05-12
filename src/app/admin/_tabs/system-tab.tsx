@@ -12,7 +12,7 @@ const ACTION_COLORS: Record<string, string> = {
     ROLE_CHANGED:        'text-amber-400 bg-amber-500/10 border-amber-500/30',
     USER_DEACTIVATED:    'text-red-400 bg-red-500/10 border-red-500/30',
     USER_ACTIVATED:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-    DATA_SOURCE_UPDATED: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    DATA_SOURCE_UPDATED: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
     ASSET_CREATED:       'text-purple-400 bg-purple-500/10 border-purple-500/30',
     ASSET_DELETED:       'text-red-400 bg-red-500/10 border-red-500/30',
 }
@@ -131,3 +131,4 @@ export default function SystemTab() {
         </div>
     )
 }
+

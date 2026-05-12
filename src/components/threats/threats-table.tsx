@@ -17,7 +17,7 @@ interface ThreatsTableProps {
 const severityColors = {
     critical: 'bg-destructive/20 text-destructive',
     high: 'bg-yellow-500/20 text-yellow-400',
-    medium: 'bg-blue-500/20 text-blue-400',
+    medium: 'bg-emerald-500/20 text-emerald-400',
     low: 'bg-green-500/20 text-green-400',
 }
 
@@ -75,3 +75,4 @@ export function ThreatsTable({ threats }: ThreatsTableProps) {
         </div>
     )
 }
+

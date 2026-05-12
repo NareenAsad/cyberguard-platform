@@ -13,7 +13,7 @@ interface AdminUser {
 const ROLE_COLORS: Record<UserRole, string> = {
     admin:   'text-red-400 bg-red-500/10 border-red-500/30',
     manager: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    analyst: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    analyst: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
 }
 
 export default function UsersTab() {
@@ -55,13 +55,13 @@ export default function UsersTab() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input value={search} onChange={e => setSearch(e.target.value)}
                         placeholder="Search users…"
-                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-blue-500/60" />
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/60" />
                 </div>
                 <div className="flex gap-2">
                     <button onClick={load} className="p-2 rounded-xl border border-slate-700/50 bg-slate-800/40 text-slate-400 hover:text-slate-200 transition-colors">
                         <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
                         <Plus className="w-4 h-4" /> Invite User
                     </button>
                 </div>
@@ -73,7 +73,7 @@ export default function UsersTab() {
                     { label: 'Total',    value: users.length, color: 'text-slate-200' },
                     { label: 'Active',   value: users.filter(u => u.is_active).length,  color: 'text-emerald-400' },
                     { label: 'Admins',   value: users.filter(u => u.role === 'admin').length,   color: 'text-red-400' },
-                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-blue-400' },
+                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-emerald-400' },
                 ].map(s => (
                     <div key={s.label} className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4 text-center">
                         <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -105,7 +105,7 @@ export default function UsersTab() {
                                     {/* User */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                                 {(u.full_name || u.email).slice(0, 2).toUpperCase()}
                                             </div>
                                             <div className="min-w-0">
@@ -177,3 +177,4 @@ export default function UsersTab() {
         </div>
     )
 }
+

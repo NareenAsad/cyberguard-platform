@@ -18,21 +18,21 @@ export function RiskPrioritization({ risks }: RiskPrioritizationProps) {
     const getRiskColor = (level: number) => {
         if (level >= 70) return 'text-destructive'
         if (level >= 50) return 'text-yellow-400'
-        if (level >= 30) return 'text-blue-400'
+        if (level >= 30) return 'text-emerald-400'
         return 'text-green-400'
     }
 
     const getRiskBgColor = (level: number) => {
         if (level >= 70) return 'bg-destructive/20'
         if (level >= 50) return 'bg-yellow-500/20'
-        if (level >= 30) return 'bg-blue-500/20'
+        if (level >= 30) return 'bg-emerald-500/20'
         return 'bg-green-500/20'
     }
 
     const getRiskBarColor = (level: number) => {
         if (level >= 70) return 'bg-destructive'
         if (level >= 50) return 'bg-yellow-500'
-        if (level >= 30) return 'bg-blue-500'
+        if (level >= 30) return 'bg-emerald-500'
         return 'bg-green-500'
     }
 
@@ -84,7 +84,7 @@ export function RiskPrioritization({ risks }: RiskPrioritizationProps) {
                                             ? 'text-destructive'
                                             : risk.riskLevel >= 50
                                                 ? 'text-yellow-400'
-                                                : 'text-blue-400'
+                                                : 'text-emerald-400'
                                         }`}
                                 >
                                     {risk.riskLevel >= 70 ? 'Critical' : risk.riskLevel >= 50 ? 'High' : 'Medium'}
@@ -102,3 +102,4 @@ export function RiskPrioritization({ risks }: RiskPrioritizationProps) {
         </div>
     )
 }
+

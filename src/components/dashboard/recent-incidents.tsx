@@ -38,7 +38,7 @@ export function RecentIncidents({ incidents = [], loading }: RecentIncidentsProp
                                         ? 'bg-destructive/20 text-destructive'
                                         : incident.severity === 'high'
                                             ? 'bg-yellow-500/20 text-yellow-400'
-                                            : 'bg-blue-500/20 text-blue-400'
+                                            : 'bg-emerald-500/20 text-emerald-400'
                                     }`}>
                                     {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
                                 </span>
@@ -62,3 +62,4 @@ export function RecentIncidents({ incidents = [], loading }: RecentIncidentsProp
         </div>
     )
 }
+

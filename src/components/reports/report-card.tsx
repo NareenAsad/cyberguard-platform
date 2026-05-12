@@ -13,7 +13,7 @@ export function ReportCard({ report, onSelect }: ReportCardProps) {
     const getStatusColor = (status: string) => {
         return status === 'completed'
             ? 'bg-green-500/20 text-green-400'
-            : 'bg-blue-500/20 text-blue-400'
+            : 'bg-emerald-500/20 text-emerald-400'
     }
 
     const handleDownload = (e: React.MouseEvent) => {
@@ -75,3 +75,4 @@ export function ReportCard({ report, onSelect }: ReportCardProps) {
         </div>
     )
 }
+

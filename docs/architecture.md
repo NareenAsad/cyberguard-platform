@@ -1,531 +1,184 @@
-# CyberGuard Backend Architecture
+# 🏗️ CyberGuard — Architecture Overview
 
-## System Architecture (with Real-Time WebSocket)
+## System Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                         USER BROWSER                                    │
-└────────────────────────────────────────────────────────────────────────┘
-          ↓ WebSocket                                    ↓ HTTP
-          │                                              │
-    ┌─────┴──────┐                              ┌────────┴──────┐
-    │             │                              │                │
-┌───────────────────────────────┐    ┌────────────────────────────────┐
-│  Socket.io Client             │    │  Frontend Components            │
-│  (lib/socket.ts)              │    │  Pages & Components             │
-│  • metrics:update             │    └────────────────────────────────┘
-│  • threats:new                │                   ↓
-│  • incidents:update           │    ┌────────────────────────────────┐
-│  • chart:update               │    │  USE FETCH DATA HOOK           │
-└───────────────────────────────┘    │  (lib/use-fetch-data.ts)       │
-          ↓                           │  Fallback API fetching         │
-     WebSocket                        └────────────────────────────────┘
-  ws://localhost:3000/api/socket              ↓
-                                    ┌────────────────────────────────┐
-                                    │  API SERVICE LAYER             │
-                                    │  (lib/api-service.ts)          │
-                                    └────────────────────────────────┘
-                                              ↓ HTTP
-                                    ┌────────────────────────────────┐
-                                    │  NEXT.JS API ROUTES            │
-                                    │  /api/dashboard/*              │
-                                    │  /api/threats                  │
-                                    │  /api/incident-response        │
-                                    └────────────────────────────────┘
-```
-
-## Real-Time Data Flow (WebSocket)
+CyberGuard follows a **monolithic Next.js architecture** with clear separation of concerns — a modern full-stack approach ideal for a security operations platform that needs real-time updates, server-side rendering, and a unified deployment target.
 
 ```
-┌─────────────────────────────────────────┐
-│  server.js (Custom HTTP + Socket.io)    │
-├─────────────────────────────────────────┤
-│  • Serves Next.js                       │
-│  • Manages WebSocket connections        │
-│  • Broadcasts events every 10 seconds   │
-└─────────────────────────────────────────┘
-          ↓
-┌─────────────────────────────────────────┐
-│  Mock Data Generator                    │
-│  (lib/mock-data-generator.ts)           │
-├─────────────────────────────────────────┤
-│  generateMetrics()      → metrics:update│
-│  generateThreat()       → threats:new   │
-│  generateIncidentUpdate() → incidents:  │
-│  generateChartPoint()   → chart:update  │
-└─────────────────────────────────────────┘
-          ↓ Broadcast to all connected clients
-┌─────────────────────────────────────────┐
-│  Browser WebSocket Client               │
-│  (hooks/use-socket-events.ts)           │
-├─────────────────────────────────────────┤
-│  useSocketMetrics()                     │
-│  useSocketThreats()                     │
-│  useSocketIncidents()                   │
-│  useSocketChartData()                   │
-└─────────────────────────────────────────┘
-          ↓
-┌─────────────────────────────────────────┐
-│  Component Updates                      │
-│  MetricsGrid (real-time indicator ⚡)  │
-│  ThreatChart (live points)              │
-│  RecentIncidents (status changes)       │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        BROWSER CLIENT                           │
+│   React 19 + Next.js App Router + TailwindCSS + shadcn/ui       │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ HTTP / WebSocket (Socket.io)
+┌────────────────────────▼────────────────────────────────────────┐
+│                     NEXT.JS SERVER                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │  App Router  │  │  API Routes  │  │  Socket.io Server    │  │
+│  │  (SSR/SSG)   │  │  /api/**     │  │  Real-time events    │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│                  EXTERNAL SERVICES                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │  Supabase    │  │  Groq API    │  │  CrewAI Pipeline     │  │
+│  │  (Postgres)  │  │  (LLM)       │  │  (AI Agents)         │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## System Architecture (REST API - Fallback)
+---
+
+## Frontend Architecture
+
+### UI Design System
+
+The platform uses a **unified dark cybersecurity aesthetic** across all pages, established through:
+
+- **Global CSS variables** in `globals.css` — all colors defined as HSL tokens (`--primary`, `--background`, `--card`, etc.)
+- **Emerald primary palette** — replaced all legacy blue/cyan colours with a consistent emerald green theme (`#10b981`)
+- **`BackgroundEffects` component** — ambient glowing orbs rendered exclusively on the landing page (`src/components/layout/background-effects.tsx`)
+- **Glassmorphism** — sidebar and header use `backdrop-blur` where appropriate
+
+### Layout Structure
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                         USER BROWSER                                    │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                      FRONTEND COMPONENTS                                │
-│   Dashboard │ Threats │ Risk Analysis │ Incidents │ Playbooks │ Reports │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                   USE FETCH DATA HOOK                                   │
-│  • Loading state management                                            │
-│  • Error handling                                                      │
-│  • Auto-refetch intervals                                             │
-│  • Type safety                                                        │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                    API SERVICE LAYER                                    │
-│  dashboardAPI │ threatsAPI │ riskAPI │ incidentAPI │ playbooksAPI     │
-│  reportsAPI                                                            │
-│  (lib/api-service.ts)                                                 │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-                      HTTP GET/POST Requests
-                     (with query parameters)
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                      NEXT.JS API ROUTES                                │
-│  /api/dashboard/*     /api/threats         /api/risk-analysis         │
-│  /api/incident-response  /api/playbooks   /api/reports               │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                      BUSINESS LOGIC LAYER                              │
-│  • Query parameter validation                                         │
-│  • Filtering & sorting logic                                         │
-│  • Pagination                                                         │
-│  • Error handling                                                     │
-│  • Response formatting                                               │
-└────────────────────────────────────────────────────────────────────────┘
-                                  ↓
-┌────────────────────────────────────────────────────────────────────────┐
-│                       DATA SOURCES                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
-│  │ Mock Data    │  │  Real DB     │  │  Cache       │                │
-│  │ (Currently) │  │ (PostgreSQL) │  │ (Redis)      │                │
-│  └──────────────┘  └──────────────┘  └──────────────┘                │
-│  Set via USE_API flag in api-service.ts                              │
-└────────────────────────────────────────────────────────────────────────┘
+Root Layout (layout.tsx)
+└── ThemeProvider + AuthProvider
+    ├── Landing Page  →  BackgroundEffects + Navigation + Sections + Footer
+    └── Dashboard/Settings/Admin Pages
+        └── Full-Width Header (CyberGuard logo + system status + notifications + user menu)
+            └── Sidebar (nav links + last update timestamp)
+                └── <main> page content
 ```
 
-## API Routes Organization
+> **Key change:** All authenticated pages (Dashboard, Settings, Admin) use a **top-first layout** — the `Header` spans 100% width at the top, with the `Sidebar` sitting below it on the left. This was achieved by restructuring the flex direction in each layout file.
+
+### Page Structure
+
+| Route | Layout File | Description |
+|---|---|---|
+| `/` | `app/layout.tsx` | Landing page with background effects |
+| `/dashboard` | `app/(dashboard)/layout.tsx` | Main ops dashboard |
+| `/threats` | `app/(dashboard)/layout.tsx` | Threat intelligence table |
+| `/risk-analysis` | `app/(dashboard)/layout.tsx` | Risk prioritization |
+| `/incident-response` | `app/(dashboard)/layout.tsx` | Incident management |
+| `/playbooks` | `app/(dashboard)/layout.tsx` | Response playbooks |
+| `/reports` | `app/(dashboard)/layout.tsx` | Report generation |
+| `/settings/**` | `app/settings/layout.tsx` | User settings |
+| `/admin` | `app/admin/layout.tsx` | Admin panel |
+
+---
+
+## Backend Architecture
+
+### API Routes (`/src/app/api/`)
+
+All API routes follow a **DB-first with mock fallback** pattern:
+
+```typescript
+try {
+  const data = await querySupabase(...)
+  return NextResponse.json(data)
+} catch {
+  return NextResponse.json(MOCK_DATA, { headers: { 'X-Data-Source': 'mock' } })
+}
+```
+
+| Endpoint | Methods | Description |
+|---|---|---|
+| `/api/dashboard/metrics` | GET | Aggregated security metrics |
+| `/api/dashboard/chart-data` | GET | Time-series threat data |
+| `/api/threats` | GET, POST | Threat indicators & AI analysis trigger |
+| `/api/threats/job` | GET | AI pipeline job polling status |
+| `/api/risk-analysis` | GET | Asset risk assessments |
+| `/api/incident-response` | GET, POST | Incident CRUD (validated) |
+| `/api/playbooks` | GET | Response playbooks with search |
+| `/api/reports` | GET, POST | Security report generation |
+
+### Error Handling & Validation
+- **Input Validation**: All `POST` endpoints validate required fields and return `400 Bad Request` on failure.
+- **Resilience**: Every API call is wrapped in `try/catch`. On database failure, the system falls back to built-in **mock data** and sets the `X-Data-Source: mock` header.
+- **SQL Security**: All queries use parameterized statements to prevent SQL injection.
+
+
+### Real-Time Layer (Socket.io)
+
+Events emitted by the server and consumed by client components:
+
+| Event | Payload | Consumer |
+|---|---|---|
+| `metrics:update` | `{ updatedAt }` | Sidebar last-update timestamp |
+| `chart:update` | — | ThreatChart re-fetch data |
+| `threats:new` | `{ indicator_value }` | Header notification bell |
+| `incidents:update` | `{ cve_id, id }` | Header notification bell |
+| `agent:complete` | `{ job_id }` | Header notifications + RunAnalysisButton |
+
+### Real-Time Workflow
+1. **Trigger**: An API request (e.g., `POST /api/incident-response`) modifies the database.
+2. **Emit**: The Next.js server emits a Socket.io event to all connected clients.
+3. **Listen**: Client-side hooks in `Header` or `Sidebar` receive the event and update the UI state or trigger a data re-fetch.
+
+
+---
+
+## AI Pipeline
+
+The **Run AI Analysis** button triggers a 5-stage CrewAI pipeline:
+
+1. **Threat Intelligence** — enriches indicators via external feeds
+2. **Vulnerability Assessment** — maps CVEs to assets
+3. **Risk Scoring** — computes criticality weights
+4. **Incident Response** — generates recommended actions
+5. **Reporting** — produces an executive summary with posture score
+
+The pipeline is powered by **Groq API** (`llama-3.3-70b-versatile`) for fast LLM inference.
+
+---
+
+## Database Schema (Supabase / Postgres)
+
+```sql
+threats          (id, title, severity, status, source, indicator_value, created_at)
+risk_analyses    (id, asset, risk_level, vulnerabilities, exposure_time, created_at)
+incidents        (id, title, description, severity, status, assignee, created_at)
+playbooks        (id, title, category, description, steps jsonb, created_at)
+reports          (id, title, type, status, threats_count, resolved_count, created_at)
+dashboard_metrics(id, threats_detected, risk_score, incidents_active, systems_monitored)
+profiles         (id, full_name, role, avatar_url, created_at)  -- extends auth.users
+```
+
+---
+
+## Component Map
 
 ```
-/app/api/
-│
+src/components/
+├── layout/
+│   ├── header.tsx              Full-width top navbar (logo, status, notifications, user)
+│   ├── sidebar.tsx             Left nav (links + last-update footer)
+│   └── background-effects.tsx  Landing page ambient glow orbs
 ├── dashboard/
-│   ├── metrics/
-│   │   └── route.ts
-│   │       GET /api/dashboard/metrics
-│   │       Returns: { dashboardMetrics }
-│   │
-│   └── chart-data/
-│       └── route.ts
-│           GET /api/dashboard/chart-data?timeRange=6m
-│           Returns: { chartData, timeRange }
-│
+│   ├── run-analysis-button.tsx AI pipeline trigger + progress panel
+│   └── recent-incidents.tsx
 ├── threats/
-│   └── route.ts
-│       GET /api/threats?severity=critical&status=blocked&page=1&limit=10
-│       Returns: { threatData[], total, page, pages, limit }
-│
+│   ├── threat-chart.tsx        Emerald area chart (Recharts)
+│   └── threats-table.tsx
 ├── risk-analysis/
-│   └── route.ts
-│       GET /api/risk-analysis?minRisk=50&maxRisk=100&sortBy=riskLevel
-│       Returns: { riskData[], total, filters }
-│
+│   └── risk-prioritization.tsx
 ├── incident-response/
-│   └── route.ts
-│       GET /api/incident-response?status=in-progress&severity=critical
-│       Returns: { incidentData[], total, page, pages, limit }
-│       
-│       POST /api/incident-response
-│       Body: { title, severity, description, ... }
-│       Returns: { newIncident }
-│
+│   └── incidents-list.tsx
 ├── playbooks/
-│   └── route.ts
-│       GET /api/playbooks?category=Incident%20Response&search=ransomware
-│       Returns: { playbookData[], total, page, pages, limit }
-│
-└── reports/
-    └── route.ts
-        GET /api/reports?type=Monthly%20Summary&status=completed
-        Returns: { reportData[], total, page, pages, limit }
-        
-        POST /api/reports
-        Body: { title, type, filters, ... }
-        Returns: { newReport }
+│   └── playbook-detail-panel.tsx
+├── reports/
+│   ├── report-card.tsx
+│   └── report-detail-panel.tsx
+├── landing/
+│   ├── navigation.tsx
+│   ├── hero-section.tsx
+│   ├── features-section.tsx
+│   └── footer.tsx
+├── auth/
+│   └── user-menu.tsx
+└── ui/                         shadcn/ui primitives
 ```
-
-## Data Flow Example: Fetching Threats
-
-```
-User clicks "Threats" page
-        ↓
-React Component renders (<ThreatsPage>)
-        ↓
-useCallback creates fetch function
-        ↓
-useFetchData hook called
-        ↓
-threatsAPI.getThreats({ severity: 'critical' })
-        ↓
-Builds URL: /api/threats?severity=critical
-        ↓
-fetch() sends HTTP GET request
-        ↓
-Next.js Route Handler (/api/threats/route.ts)
-        ↓
-Receives query parameters
-        ↓
-Filters mock data (or queries database)
-        ↓
-Formats response { success: true, data: [...], total: X, page: 1 }
-        ↓
-HTTP response returned
-        ↓
-useFetchData parses JSON
-        ↓
-Updates component state (data, loading, error)
-        ↓
-Component re-renders with threats data
-        ↓
-User sees filtered threats list
-```
-
-## Component Integration Pattern
-
-```typescript
-// 1. Import API service and hook
-import { useFetchData } from '@/hooks/use-fetch-data'
-import { threatsAPI } from '@/lib/api-service'
-
-// 2. Create fetch callback with useCallback
-const threatsCallback = useCallback(
-  () => threatsAPI.getThreats({ severity: selectedSeverity }),
-  [selectedSeverity]  // Dependencies
-)
-
-// 3. Use fetch hook to get data
-const { data: threats, loading, error } = useFetchData(threatsCallback, {
-  refetchInterval: 30000  // Optional: auto-refresh every 30s
-})
-
-// 4. Render based on state
-return (
-  <>
-    {loading && <Skeleton />}
-    {error && <Error message={error.message} />}
-    {threats && <ThreatsList threats={threats} />}
-  </>
-)
-```
-
-## Response Format Standard
-
-All API responses follow this structure:
-
-```typescript
-interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  timestamp?: string
-}
-
-interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  total?: number
-  page?: number
-  pages?: number
-  limit?: number
-}
-```
-
-### Success Response Example
-```json
-{
-  "success": true,
-  "data": {
-    "threatsDetected": 2847,
-    "threatsDetectedChange": 12.5,
-    "riskScore": 42,
-    "riskScoreChange": -3.2,
-    "incidentsActive": 8,
-    "incidentsActiveChange": 2,
-    "systemsMonitored": 156,
-    "systemsMonitoredChange": 0
-  },
-  "timestamp": "2024-03-24T14:32:00.000Z"
-}
-```
-
-### Paginated Response Example
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "THR-001",
-      "type": "Malware",
-      "severity": "critical",
-      "source": "192.168.1.105",
-      "target": "Database Server",
-      "detected": "2024-03-24 14:32:00",
-      "status": "blocked"
-    }
-  ],
-  "total": 247,
-  "page": 1,
-  "pages": 25,
-  "limit": 10,
-  "timestamp": "2024-03-24T14:32:00.000Z"
-}
-```
-
-### Error Response Example
-```json
-{
-  "success": false,
-  "error": "Failed to fetch threats",
-  "timestamp": "2024-03-24T14:32:00.000Z"
-}
-```
-
-## API Service Layer Methods
-
-```typescript
-dashboardAPI
-  ├── getMetrics()
-  └── getChartData(timeRange)
-
-threatsAPI
-  └── getThreats(filters: { severity, status, page, limit })
-
-riskAPI
-  └── getRisks(filters: { minRisk, maxRisk, sortBy, order })
-
-incidentAPI
-  ├── getIncidents(filters: { status, severity, page, limit })
-  └── createIncident(data)
-
-playbooksAPI
-  └── getPlaybooks(filters: { category, search, page, limit })
-
-reportsAPI
-  ├── getReports(filters: { type, status, page, limit })
-  └── createReport(data)
-```
-
-## Database Integration Path
-
-Current (Development):
-```
-API Routes → Mock Data (lib/mock-data.ts)
-```
-
-After Database Integration:
-```
-API Routes → ORM/Query Builder → PostgreSQL/MongoDB
-```
-
-Example with Neon:
-```typescript
-import { neon } from '@neondatabase/serverless'
-
-const sql = neon(process.env.DATABASE_URL!)
-
-export async function GET(request: NextRequest) {
-  try {
-    const threats = await sql('SELECT * FROM threats WHERE severity = $1', ['critical'])
-    return NextResponse.json({ success: true, data: threats })
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Database error' },
-      { status: 500 }
-    )
-  }
-}
-```
-
-## Caching Strategy
-
-### Current Implementation
-- Dashboard metrics: Refresh every 30 seconds
-- Chart data: Refresh every 60 seconds
-- Incidents: Refresh every 45 seconds
-- Default: No cache (fresh data on each request)
-
-### Recommended for Production
-```
-User Request
-     ↓
-Check Cache (Redis)
-     ↓
-If Found → Return cached data
-If Not Found → Query database
-     ↓
-Store in Cache with TTL
-     ↓
-Return to user
-```
-
-## Error Handling Flow
-
-```
-Try to fetch data
-     ↓
-┌─ Success? ─┐
-│            │
-Yes          No
-│            │
-✓ Return    → Catch error
-  data         │
-              Format error
-                │
-              Return error
-                │
-            Component shows
-            error message
-```
-
-## Authentication & Authorization (Future)
-
-```
-Client sends request
-        ↓
-API Middleware checks JWT token
-        ↓
-┌─ Valid? ──┐
-│           │
-Yes         No
-│           │
-Get user   → Return 401
-roles      │ Unauthorized
-│
-Check endpoint permissions
-│
-┌─ Allowed? ┐
-│           │
-Yes         No
-│           │
-Process   → Return 403
-request    │ Forbidden
-│
-Execute logic
-│
-Return response
-```
-
-## Performance Optimization Points
-
-1. **Request Level**
-   - Pagination (limit results)
-   - Filtering (reduce data)
-   - Compression (gzip)
-   - Caching headers
-
-2. **Database Level**
-   - Indexes on frequently filtered columns
-   - Query optimization
-   - Connection pooling
-   - Read replicas
-
-3. **Application Level**
-   - Redis cache layer
-   - Request deduplication
-   - Lazy loading
-   - Code splitting
-
-4. **Network Level**
-   - CDN for static assets
-   - API compression
-   - HTTP/2
-   - Optimal refetch intervals
-
-## Security Architecture
-
-```
-Client Request
-     ↓
-Validate HTTPS
-     ↓
-Validate CORS origin
-     ↓
-Check authentication (JWT)
-     ↓
-Check authorization (roles)
-     ↓
-Validate input parameters
-     ↓
-Rate limiting check
-     ↓
-Execute query with parameterized statements
-     ↓
-Sanitize output
-     ↓
-Log request (audit trail)
-     ↓
-Return response
-```
-
-## Deployment Architecture
-
-```
-┌─────────────────────────────┐
-│   Vercel (Frontend + API)   │
-│                             │
-│  ┌───────────────────────┐  │
-│  │  Next.js App          │  │
-│  │  - UI Components      │  │
-│  │  - API Routes (/api)  │  │
-│  │  - Auth Middleware    │  │
-│  └───────────────────────┘  │
-└─────────────────────────────┘
-           ↓ (Optional)
-┌─────────────────────────────┐
-│   External Services         │
-│                             │
-│  - PostgreSQL (Neon)        │
-│  - Redis (Upstash)          │
-│  - Monitoring (Sentry)      │
-└─────────────────────────────┘
-```
-
-## Type Safety Flow
-
-```typescript
-API Service Layer (type-safe)
-        ↓
-threatData: Threat[]
-risksData: Risk[]
-incidents: Incident[]
-        ↓
-useFetchData Hook (generic <T>)
-        ↓
-Component Props (typed)
-        ↓
-JSX Rendering (compile-time checked)
-```
-
-All data flows are fully typed with TypeScript!

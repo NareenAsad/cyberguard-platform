@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, Shield } from 'lucide-react'
 import { UserMenu } from '../auth/user-menu'
 import { checkAgentHealth } from '@/lib/agent-client'
 import { initSocket } from '@/lib/socket/socket'
@@ -86,7 +86,17 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-end z-20 sticky top-0">
+    <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between z-20 sticky top-0">
+      {/* Logo */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <Shield className="w-5 h-5 text-emerald-400" />
+        </div>
+        <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent hidden md:block">
+          CyberGuard
+        </span>
+      </div>
+
       <div className="flex items-center gap-6">
         {/* Status Indicator */}
         <div className="flex items-center gap-2">
@@ -149,3 +159,4 @@ export function Header() {
     </header>
   )
 }
+

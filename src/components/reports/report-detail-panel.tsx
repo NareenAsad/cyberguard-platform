@@ -62,7 +62,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1.5">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                         {report?.status}
                                     </span>
                                     <span className="text-xs text-muted-foreground/50">{report?.type}</span>
@@ -115,9 +115,9 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                                 <div className="flex items-center gap-1.5">
                                     {isCompleted
                                         ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                                        : <Clock className="w-3.5 h-3.5 text-blue-400" />
+                                        : <Clock className="w-3.5 h-3.5 text-emerald-400" />
                                     }
-                                    <p className={`text-sm font-semibold capitalize ${isCompleted ? 'text-green-400' : 'text-blue-400'}`}>
+                                    <p className={`text-sm font-semibold capitalize ${isCompleted ? 'text-green-400' : 'text-emerald-400'}`}>
                                         {report?.status ?? '—'}
                                     </p>
                                 </div>
@@ -152,3 +152,4 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
         </>
     )
 }
+

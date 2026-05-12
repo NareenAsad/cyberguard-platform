@@ -19,7 +19,7 @@ const TABS = [
 type Tab = typeof TABS[number]['id']
 
 const accentMap = {
-    blue:    { active: 'border-blue-500/50 bg-blue-600/10 text-blue-300',   icon: 'text-blue-400',    dot: 'bg-blue-500'    },
+    blue:    { active: 'border-emerald-500/50 bg-emerald-600/10 text-emerald-300',   icon: 'text-emerald-400',    dot: 'bg-emerald-500'    },
     emerald: { active: 'border-emerald-500/50 bg-emerald-600/10 text-emerald-300', icon: 'text-emerald-400', dot: 'bg-emerald-500' },
     amber:   { active: 'border-amber-500/50 bg-amber-600/10 text-amber-300',   icon: 'text-amber-400',   dot: 'bg-amber-500'   },
     purple:  { active: 'border-purple-500/50 bg-purple-600/10 text-purple-300', icon: 'text-purple-400',  dot: 'bg-purple-500'  },
@@ -37,7 +37,7 @@ export default function AdminPage() {
     if (loading || profile?.role !== 'admin') {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="animate-spin w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent" />
+                <div className="animate-spin w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent" />
             </div>
         )
     }
@@ -48,7 +48,7 @@ export default function AdminPage() {
             <div className="relative h-36 overflow-hidden bg-gradient-to-br from-slate-900 via-[#0d1628] to-[#080c14]">
                 <div className="absolute inset-0 opacity-10"
                     style={{ backgroundImage: 'linear-gradient(rgba(148,163,184,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.3) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
-                <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full bg-blue-600/10 blur-3xl" />
+                <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full bg-emerald-600/10 blur-3xl" />
                 <div className="absolute -top-16 right-16 w-56 h-56 rounded-full bg-red-600/10 blur-3xl" />
                 <div className="relative z-10 px-8 pt-8">
                     <p className="text-xs text-slate-400/60 uppercase tracking-widest font-medium">Account / Admin Panel</p>
@@ -85,3 +85,4 @@ export default function AdminPage() {
         </div>
     )
 }
+

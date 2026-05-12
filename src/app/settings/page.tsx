@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 ]
 
 const accentMap = {
-    blue:   { icon: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   active: 'bg-blue-600/15 border-blue-500/40' },
+    blue:   { icon: 'text-emerald-400',   bg: 'bg-emerald-500/10',   border: 'border-emerald-500/30',   active: 'bg-emerald-600/15 border-emerald-500/40' },
     amber:  { icon: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  active: 'bg-amber-600/15 border-amber-500/40' },
     purple: { icon: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30', active: 'bg-purple-600/15 border-purple-500/40' },
 }
@@ -43,7 +43,7 @@ export default function SettingsPage() {
                         backgroundSize: '40px 40px',
                     }}
                 />
-                <div className="absolute -top-24 left-1/3 w-80 h-80 rounded-full bg-blue-600/10 blur-3xl" />
+                <div className="absolute -top-24 left-1/3 w-80 h-80 rounded-full bg-emerald-600/10 blur-3xl" />
                 <div className="absolute -top-16 right-10 w-60 h-60 rounded-full bg-purple-600/10 blur-3xl" />
                 <div className="relative z-10 px-8 pt-8">
                     <p className="text-xs text-slate-400/60 uppercase tracking-widest font-medium">
@@ -197,7 +197,7 @@ function SecuritySection({ email }: { email: string }) {
                             <p className="text-xs text-slate-500 mt-0.5">TOTP-based two-factor authentication</p>
                         </div>
                     </div>
-                    <button className="text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-2 rounded-xl transition-all">
+                    <button className="text-sm font-medium text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/50 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 rounded-xl transition-all">
                         Enable
                     </button>
                 </div>
@@ -466,7 +466,7 @@ function ActionButton({ onClick, disabled, loading, accent, icon: Icon, label, l
     accent: 'blue' | 'amber' | 'purple'; icon: any; label: string; loadingLabel?: string
 }) {
     const colors = {
-        blue:   'bg-blue-600 hover:bg-blue-500 hover:shadow-blue-500/25',
+        blue:   'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/25',
         amber:  'bg-amber-600 hover:bg-amber-500 hover:shadow-amber-500/25',
         purple: 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/25',
     }
@@ -495,7 +495,7 @@ function PwField({ label, value, show, onToggle, onChange }: {
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pr-10 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                    className="w-full pr-10 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/30 transition-all"
                 />
                 <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -521,3 +521,4 @@ function PasswordStrength({ password }: { password: string }) {
         </div>
     )
 }
+

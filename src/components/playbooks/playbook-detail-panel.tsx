@@ -140,7 +140,7 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
 
                         {totalSteps > 0 ? (
                             <div className="space-y-5">
-                                <StepList icon={Shield} label="Containment" color="text-blue-400" bg="bg-blue-500/15" steps={containment} />
+                                <StepList icon={Shield} label="Containment" color="text-emerald-400" bg="bg-emerald-500/15" steps={containment} />
                                 <StepList icon={AlertTriangle} label="Eradication" color="text-orange-400" bg="bg-orange-500/15" steps={eradication} />
                                 <StepList icon={RefreshCw} label="Recovery" color="text-green-400" bg="bg-green-500/15" steps={recovery} />
                             </div>
@@ -156,3 +156,4 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
         </>
     )
 }
+

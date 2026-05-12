@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 
   // Define public routes that don't require authentication
   const publicRoutes = ['/auth/login', '/auth/signup', '/auth/callback', '/auth/error']
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  const isPublicRoute = pathname === '/' || publicRoutes.some(route => pathname.startsWith(route))
 
   // If user is not logged in and trying to access protected route
   if (!user && !isPublicRoute) {
@@ -77,10 +77,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect root to dashboard if logged in, otherwise to login
-  if (pathname === '/') {
+  // If logged-in user visits '/', send them straight to the dashboard
+  if (user && pathname === '/') {
     const url = request.nextUrl.clone()
-    url.pathname = user ? '/dashboard' : '/auth/login'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

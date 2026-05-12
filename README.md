@@ -1,442 +1,266 @@
-# 🛡️ CyberGuard: AI-Driven Threat Intelligence and Incident Response System
+# 🛡️ CyberGuard — AI-Driven Threat Intelligence & Incident Response
 
-An enterprise-grade, AI-powered cybersecurity platform that revolutionizes security operations through intelligent automation, contextual risk assessment, and real-time threat monitoring — built as a Final Year Project at Lahore University for Women University.
+An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Project. CyberGuard unifies real-time threat monitoring, AI-assisted analysis, and automated incident response into a single, professional security operations interface.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E)](https://supabase.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-10b981)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ---
 
-## ✨ Project Status
+## ✨ Platform Status
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **Frontend** | ✅ Complete | Next.js 16, React 19, responsive design |
-| **Component Architecture** | ✅ Refactored | 20+ reusable components across 5 pages |
-| **Database Integration** | ✅ Complete | Supabase Postgres with 6 tables |
-| **API Layer** | ✅ Complete | 7 endpoints with DB-first approach + fallback |
-| **Validation & Error Handling** | ✅ Complete | Input validation, parameterized queries, graceful degradation |
-| **Documentation** | ✅ Complete | Setup guides, implementation summaries, checklists |
-| **AI Agents** | 🚧 In Progress | CrewAI integration, LangChain, Groq API |
-| **Real-time Updates** | 🚧 In Progress | WebSocket integration, Socket.io |
+| Area | Status | Details |
+|---|---|---|
+| **UI / Design System** | ✅ Complete | Unified emerald cybersecurity theme across all pages |
+| **Layout Architecture** | ✅ Complete | Full-width navbar + sidebar on all authenticated pages |
+| **Landing Page** | ✅ Complete | Animated background effects, hero, features, footer |
+| **Dashboard** | ✅ Complete | Real-time metrics, threat chart, incidents, AI analysis |
+| **Authentication** | ✅ Complete | Supabase Auth — login, register, session, role-based access |
+| **Admin Panel** | ✅ Complete | User management, system health, data sources, assets |
+| **Settings / Profile** | ✅ Complete | Profile editing, role display, account details |
+| **Database Integration** | ✅ Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
+| **API Layer** | ✅ Complete | 8 endpoints with validation and graceful degradation |
+| **Real-time (WebSocket)** | ✅ Complete | Socket.io — live metrics, notifications, agent events |
+| **AI Pipeline** | ✅ Complete | 5-stage CrewAI pipeline via Groq LLM |
+| **Documentation** | ✅ Complete | 5 clean docs (README, Architecture, Setup, API, Changelog) |
 
 ---
 
-## 🎯 Key Features
+## 🎨 Design System
 
-### Dashboard
-- Real-time metrics (threats detected, risk score, incidents, systems monitored)
-- Threat activity trend chart with historical data
-- Recent incidents list with status tracking
-- Quick statistics overview
-- Database-backed metrics with auto-refresh
+CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/app/globals.css`:
 
-### Risk Analysis
-- Asset risk distribution visualization
-- Prioritized risk ranking by severity
-- Vulnerability counts and exposure time tracking
-- Risk score breakdown and recommendations
-- Sortable and filterable asset list
+- **Primary colour** — Emerald (`#10b981`) used for all interactive elements, buttons, chart lines, active states, and glowing accents
+- **Background** — Deep navy-black (`hsl(224 71% 4%)`) for a clean ops feel
+- **Typography** — Inter (Google Fonts)
+- **Glassmorphism** — Sidebar and header use `backdrop-blur` where appropriate
+- **Ambient effects** — Glowing orb background rendered on the landing page only (`BackgroundEffects` component)
 
-### Incident Response
-- Active incident management with timeline
-- Incident severity and status tracking
-- Assignee and priority management
-- Incident creation with validation
-- Response playbook execution
+### Layout Structure (all authenticated pages)
 
-### Playbooks
-- Pre-built response procedures by category
-- Full-text search across playbooks
+```
+┌──────────────────── Full-Width Header ────────────────────────┐
+│  🛡 CyberGuard    [System Status]  [🔔 Notifications]  [User] │
+├──────────┬────────────────────────────────────────────────────┤
+│          │                                                     │
+│ Sidebar  │              Page Content                          │
+│  (nav)   │                                                     │
+│          │                                                     │
+└──────────┴────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Features
+
+### 🏠 Landing Page
+- Animated glowing ambient background (fixed emerald/teal orbs)
+- Hero section with live security stats
+- Features grid showcasing platform capabilities
+- Full footer with navigation and social links
+
+### 📊 Dashboard
+- Real-time metrics (threats detected, risk score, active incidents, systems monitored)
+- Emerald area chart for threat activity with 24h / 7d / 30d time range picker
+- Recent incidents list with severity badges
+- **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel
+
+### 🔍 Threats
+- Full threat indicator table with severity filtering
+- Source, confidence, and status tracking
+
+### 📈 Risk Analysis
+- Asset risk prioritization ranked by severity
+- Vulnerability count and exposure time tracking
+- Risk score breakdown with recommendations
+
+### 🚨 Incident Response
+- Active incident list with detail panel
+- Timeline view, assignee, status management
+- Playbook integration
+
+### 📖 Playbooks
+- Pre-built response procedures by category (Malware, Ransomware, Phishing…)
+- Full-text search
 - Step-by-step execution guidance
-- Integration with incident response
-- Execution history tracking
 
-### Reports
-- Security report generation and tracking
-- Report type filtering (Security, Compliance, Threat)
-- Status tracking (Completed, In Progress)
-- Threat and resolution statistics
-- Downloadable report management
+### 📄 Reports
+- Security, compliance, and threat report tracking
+- Status tracking (Completed / In Progress)
+- Statistics summary per report
 
-### Enterprise Features
-- Input validation on all forms
-- Error handling with user-friendly messages
-- Graceful fallback to mock data
-- Responsive mobile design
-- Dark theme optimized for security operations
+### ⚙️ Admin Panel
+- User management (roles: admin, manager, analyst, viewer)
+- System health monitoring
+- Data source configuration with toggles
+- Asset inventory
 
 ---
 
 ## 🚀 Tech Stack
 
-### Frontend
-- **Next.js 16** - App Router, SSR, static generation
-- **React 19+** - Component composition with hooks
-- **TypeScript 5.0** - Type-safe development
-- **Tailwind CSS 4.x** - Utility-first styling with design tokens
-- **shadcn/ui** - High-quality reusable components
-- **Recharts** - Interactive data visualization
-- **Lucide React** - Consistent icon system
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4.x + shadcn/ui |
+| Charts | Recharts |
+| Icons | Lucide React |
+| Database | Supabase (Postgres) |
+| Auth | Supabase Auth |
+| Real-time | Socket.io |
+| AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
+| Deployment | Vercel |
 
-### Backend & Database
-- **Next.js API Routes** - REST endpoints with validation
-- **Supabase Postgres** - Managed PostgreSQL database
-- **@supabase/supabase-js** - DB and auth client
+---
 
-### Database Tables
-- `threats` - Threat indicators with severity/status
-- `risk_analyses` - Asset risk assessments
-- `incidents` - Security incidents with timeline
-- `playbooks` - Incident response procedures
-- `reports` - Generated security reports
-- `dashboard_metrics` - Aggregated statistics
+## 🖥️ Backend
+
+CyberGuard's backend runs entirely within **Next.js API Routes**. It follows a **DB-first with mock fallback** pattern to ensure high availability and resilience.
+
+> For implementation details, AI pipeline breakdown, and validation rules, see the [Backend Documentation](./docs/BACKEND.md).
+
+---
+
+## 🗄️ Database
+
+The platform uses **Supabase** (managed PostgreSQL) with Row Level Security (RLS) to manage security-critical data.
+
+> Detailed table schemas, user roles, and access control policies are documented in the [Database Documentation](./docs/DATABASE.md).
+
+---
+
+## 🔌 WebSocket (Real-Time)
+
+Real-time updates are powered by **Socket.io**, providing instant visibility into threats and system events across the dashboard.
+
+> Real-time architecture, event mapping, and client-side usage examples are described in the [WebSocket Documentation](./docs/WEBSOCKET.md).
 
 ---
 
 ## 📂 Project Structure
 
 ```
-cyberguard/
-├── docs/                          # Documentation files
-├── prisma/                        # Database schema
-│   └── schema.prisma              # Prisma schema (6 tables)
-├── public/                        # Static assets
-├── scripts/                       # Database scripts
-│   ├── init-db.ts                 # Initialize database
-│   └── seed-db.ts                 # Seed initial data
-├── src/                           # Source directory
-│   ├── app/                       # Next.js App Router
-│   │   ├── layout.tsx             # Root layout with sidebar/header
-│   │   ├── page.tsx               # Dashboard (refactored)
-│   │   ├── risk-analysis/         # Risk analysis pages
-│   │   ├── incident-response/     # Incident response pages
-│   │   ├── playbooks/             # Playbooks pages
-│   │   ├── reports/               # Reports pages
-│   │   └── api/                   # Next.js API routes
+cyberguard-platform/
+├── docs/
+│   ├── ARCHITECTURE.md       System & component architecture
+│   ├── SETUP.md              Installation & database setup
+│   ├── API.md                Full API & WebSocket reference
+│   └── CHANGELOG.md          Version history & change log
+├── public/                   Static assets
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx        Root layout (ThemeProvider, AuthProvider)
+│   │   ├── page.tsx          Landing page
+│   │   ├── globals.css       Design system tokens (CSS variables)
+│   │   ├── (dashboard)/      Dashboard route group
+│   │   │   ├── layout.tsx    Full-width header + sidebar layout
+│   │   │   ├── dashboard/
+│   │   │   ├── threats/
+│   │   │   ├── risk-analysis/
+│   │   │   ├── incident-response/
+│   │   │   ├── playbooks/
+│   │   │   └── reports/
+│   │   ├── settings/
+│   │   │   ├── layout.tsx    Settings layout (same structure)
+│   │   │   ├── page.tsx      Settings main page
+│   │   │   └── profile/      Profile settings
+│   │   ├── admin/
+│   │   │   ├── layout.tsx    Admin layout (same structure)
+│   │   │   ├── page.tsx      Admin panel
+│   │   │   └── _tabs/        User, System, DataSources, Assets tabs
+│   │   └── api/              Next.js API routes
 │   │       ├── dashboard/
 │   │       ├── threats/
 │   │       ├── risk-analysis/
 │   │       ├── incident-response/
 │   │       ├── playbooks/
 │   │       └── reports/
-│   ├── components/                # Reusable React components
+│   ├── components/
 │   │   ├── layout/
+│   │   │   ├── header.tsx              Full-width top navbar
+│   │   │   ├── sidebar.tsx             Left navigation
+│   │   │   └── background-effects.tsx  Landing page ambient glow
 │   │   ├── dashboard/
+│   │   ├── threats/
 │   │   ├── risk-analysis/
 │   │   ├── incident-response/
 │   │   ├── playbooks/
 │   │   ├── reports/
-│   │   ├── shared/
-│   │   └── ui/                    # shadcn/ui components
-│   ├── hooks/                     # React hooks
-│   │   ├── use-mobile.ts
-│   │   └── use-toast.ts
-│   ├── lib/                       # Utilities & services
-│   │   ├── db.ts                  # Database query functions (8)
-│   │   ├── mock-data.ts           # Fallback mock data
-│   │   ├── utils.ts               # Common utilities
-│   │   └── constants.ts           # App constants
-│   └── styles/                    # Global styles and design tokens
-├── LICENSE                        # MIT License
-└── README.md                      # Project documentation
+│   │   ├── landing/
+│   │   ├── auth/
+│   │   └── ui/                         shadcn/ui primitives
+│   ├── lib/
+│   │   ├── auth/             Auth context, types, helpers
+│   │   ├── socket/           Socket.io client initializer
+│   │   ├── supabase/         Client & server Supabase instances
+│   │   └── agent-client.ts   AI pipeline health check
+│   └── proxy.ts              Next.js route matcher (public routes)
+└── README.md
 ```
 
 ---
 
-## 🚦 Quick Start
-
-### Prerequisites
-- Node.js 20.x or higher
-- Supabase project (free tier available)
-- Git
-
-### 1. Install & Setup
+## ⚡ Quick Start
 
 ```bash
-# Clone repository
+# 1. Clone & install
 git clone https://github.com/YOUR_USERNAME/cyberguard-platform.git
 cd cyberguard-platform
-
-# Install dependencies
 npm install
 
-# Copy environment template
+# 2. Set up environment variables
 cp .env.example .env.local
+# Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+# SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY
 
-# Add Supabase variables to .env.local
-# NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
-```
+# 3. Run database migrations (SQL in docs/SETUP.md)
 
-### 2. Initialize Database
-
-```bash
-# Create tables and schema
-npm run db:init
-
-# Seed with sample data
-npm run db:seed
-
-# Or do both at once
-npm run db:setup
-```
-
-### 3. Start Development Server
-
-```bash
+# 4. Start dev server
 npm run dev
-# Open http://localhost:3000
+# → http://localhost:3000
 ```
 
-The app now uses real PostgreSQL database! All endpoints query the database with automatic fallback to mock data if unavailable.
-
-### Test API Endpoints
-
-```bash
-# Get dashboard metrics
-curl http://localhost:3000/api/dashboard/metrics
-
-# Get threats
-curl "http://localhost:3000/api/threats?severity=high"
-
-# Get risk analysis
-curl "http://localhost:3000/api/risk-analysis?sortBy=riskLevel"
-
-# Get incidents
-curl http://localhost:3000/api/incident-response
-```
-
----
-
-## 🗄️ Database Configuration
-
-### Environment Variables
-
-```env
-# .env.local
-NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-```
-
-### Get Supabase Credentials
-
-1. Sign up at [supabase.com](https://supabase.com) (free tier)
-2. Create a new project
-3. Copy project URL + service role key
-4. Set `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
-
-### Database Tables
-
-| Table | Columns | Purpose |
-|-------|---------|---------|
-| `threats` | id, title, severity, status, source, created_at | Threat tracking |
-| `risk_analyses` | id, asset, risk_level, vulnerabilities, exposure_time | Risk assessment |
-| `incidents` | id, title, description, severity, status, created_at | Incident management |
-| `playbooks` | id, title, category, description, steps | Response procedures |
-| `reports` | id, title, type, status, threats, resolved | Report generation |
-| `dashboard_metrics` | id, threats_detected, risk_score, incidents_active | Dashboard stats |
-
----
-
-## 📡 API Reference
-
-### Database-Backed Endpoints
-
-All endpoints use database-first approach with graceful fallback to mock data.
-
-```bash
-# Dashboard Metrics
-GET /api/dashboard/metrics          # Real-time metrics (DB-backed)
-GET /api/dashboard/chart-data       # Chart data aggregation
-
-# Threats
-GET /api/threats                    # List all threats
-GET /api/threats?severity=high      # Filter by severity
-GET /api/threats?status=active      # Filter by status
-GET /api/threats?page=1&limit=10   # Pagination
-
-# Risk Analysis
-GET /api/risk-analysis              # List all risks
-GET /api/risk-analysis?minRisk=50   # Filter by risk range
-GET /api/risk-analysis?sortBy=riskLevel  # Sort options
-
-# Incident Response
-GET /api/incident-response          # List incidents
-GET /api/incident-response?status=active
-POST /api/incident-response         # Create incident (validated)
-
-# Playbooks
-GET /api/playbooks                  # List playbooks
-GET /api/playbooks?category=malware # Filter by category
-GET /api/playbooks?search=ransomware # Search playbooks
-
-# Reports
-GET /api/reports                    # List reports
-GET /api/reports?type=security      # Filter by type
-POST /api/reports                   # Generate report (validated)
-```
-
----
-
-## 🧪 Database Integration Features
-
-### Input Validation
-- POST endpoints validate required fields
-- Return 400 Bad Request with error messages
-- Prevents invalid data in database
-
-### Error Handling
-- Parameterized SQL queries (SQL injection prevention)
-- Try-catch blocks on all database calls
-- Graceful fallback to mock data on errors
-- Warning headers in API responses indicate fallback mode
-
-### Graceful Degradation
-- If database unavailable, app still works with mock data
-- Warning flag in API response: `_warning: "Using mock data - database unavailable"`
-- No user-facing errors, seamless experience
-
-### Database Queries (lib/db.ts)
-
-```typescript
-// 8 database query functions:
-1. getDashboardMetrics()      # Aggregated metrics
-2. getThreats()               # Threats with filters
-3. getRisks()                 # Risk data with sorting
-4. getIncidents()             # Incidents CRUD
-5. createIncident()           # Create with validation
-6. getPlaybooks()             # Playbooks with search
-7. getReports()               # Reports with filters
-```
-
----
-
-## 🎨 Component Architecture
-
-### Refactored Pages (20+ Components)
-
-**Dashboard Page**
-- `MetricsGrid` - 4-column metrics display
-- `ThreatChart` - Line chart with trend data
-- `RecentIncidents` - Table with status badges
-- `QuickStats` - Statistics panels
-
-**Risk Analysis Page**
-- `RiskDistribution` - Bar chart visualization
-- `RiskPrioritization` - Ranked asset list
-- `RiskStatistics` - Summary cards
-
-**Incident Response Page**
-- `IncidentsList` - Sidebar selector
-- `IncidentDetails` - Timeline and details
-
-**Playbooks Page**
-- `PlaybookCategories` - Category filter
-- `PlaybooksGrid` - Grid layout
-
-**Reports Page**
-- `ReportFilters` - Filter sidebar
-- `ReportsList` - Report list
-
-### Shared Components
-- `PageHeader` - Title and description
-- `LoadingSkeleton` - Loading states
-- `Sidebar` - Navigation
-- `Header` - Top bar
+> 📖 Full setup instructions: [docs/SETUP.md](./docs/SETUP.md)
 
 ---
 
 ## 📚 Documentation
 
-| Document | Purpose |
-|----------|---------|
-| [DATABASE_SETUP.md](./DATABASE_SETUP.md) | Database setup guide |
-| [INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md) | Step-by-step integration checklist |
-| [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical implementation details |
-| [COMPLETION_REPORT.md](./COMPLETION_REPORT.md) | Project completion status |
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-```
-
----
-
-## 🌐 Deployment
-
-### Vercel Deployment (Recommended)
-
-1. Push to GitHub
-2. Connect repo to Vercel
-3. Add Supabase environment variables
-4. Deploy with one click
-
-### Environment Variables (Production)
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-NODE_ENV=production
-```
+| File | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, layout structure, component map |
+| [docs/SETUP.md](./docs/SETUP.md) | Installation, env vars, DB setup, deployment |
+| [docs/API.md](./docs/API.md) | REST endpoints + WebSocket events reference |
+| [docs/CHANGELOG.md](./docs/CHANGELOG.md) | Full version history and change log |
 
 ---
 
 ## ⚠️ Important Notes
 
-### Educational Purpose
-This system is designed for educational and research purposes. While it implements real cybersecurity concepts, it should be:
-- ✅ Used as a learning tool
-- ✅ Evaluated in controlled environments
-- ✅ Validated by security professionals before production
-- ❌ NOT relied upon as sole security solution
-
-### Data Privacy
-- Implements proper access controls
-- Encrypts data in transit (HTTPS)
-- Secure database credentials management
-- Regular security audits recommended
+- **Educational purpose** — Built as a Final Year Project. Validate with security professionals before any production use.
+- **Data privacy** — Uses Supabase Row Level Security (RLS). Keep your `SUPABASE_SERVICE_ROLE_KEY` secret.
+- **AI pipeline** — Requires Groq API key. Without it, the Run AI Analysis button will return an error.
 
 ---
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'feat: add your feature'`
+4. Push: `git push origin feature/your-feature`
 5. Open a Pull Request
-
----
-
-## 🙏 Acknowledgments
-
-- **Supabase** - Managed PostgreSQL + platform services
-- **Vercel** - Next.js and deployment platform
-- **shadcn/ui** - React component library
-- **MITRE** - ATT&CK framework
-- **Open-source community** - Tools and libraries
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by the CyberGuard Team**
+**Built with ❤️ by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 1.1.0 | **Status:** In Active Development | **Last Updated:** April 2026
-
-**Database Integrated ✓** | **Components Refactored ✓** | **Validation & Error Handling ✓**
+**Version:** 1.3.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** May 2026
 
 </div>

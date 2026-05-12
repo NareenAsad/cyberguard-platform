@@ -160,12 +160,12 @@ export function RunAnalysisButton() {
                         inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                         transition-all duration-200 border
                         ${isRunning
-                            ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 cursor-not-allowed'
+                            ? 'bg-primary/10 border-primary/30 text-primary cursor-not-allowed'
                             : phase === 'done'
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer'
                                 : phase === 'error'
                                     ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer'
-                                    : 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 cursor-pointer'
+                                    : 'bg-primary border-primary/80 text-primary-foreground hover:bg-primary/90 cursor-pointer'
                         }
                     `}
                 >
@@ -198,7 +198,7 @@ export function RunAnalysisButton() {
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
                         <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-blue-400" />
+                            <Shield className="w-4 h-4 text-emerald-400" />
                             <span className="text-sm font-medium text-slate-200">
                                 AI Pipeline
                             </span>
@@ -216,7 +216,7 @@ export function RunAnalysisButton() {
                                 className={`rounded-lg border px-3 py-2 ${step.status === 'done'
                                     ? 'border-emerald-500/30 bg-emerald-500/5'
                                     : step.status === 'running'
-                                        ? 'border-blue-500/30 bg-blue-500/5'
+                                        ? 'border-emerald-500/30 bg-emerald-500/5'
                                         : step.status === 'error'
                                             ? 'border-red-500/30 bg-red-500/5'
                                             : 'border-slate-700/60 bg-slate-800/40'
@@ -227,7 +227,7 @@ export function RunAnalysisButton() {
                                     {step.status === 'done' ? (
                                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                     ) : step.status === 'running' ? (
-                                        <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                                        <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
                                     ) : step.status === 'error' ? (
                                         <XCircle className="w-3.5 h-3.5 text-red-400" />
                                     ) : (
@@ -278,7 +278,7 @@ export function RunAnalysisButton() {
                                         </p>
                                     )}
                                     {result.executive_report.action_required && (
-                                        <p className="text-xs text-blue-300">
+                                        <p className="text-xs text-emerald-300">
                                             → {result.executive_report.action_required}
                                         </p>
                                     )}
@@ -306,3 +306,4 @@ export function RunAnalysisButton() {
         </div>
     )
 }
+

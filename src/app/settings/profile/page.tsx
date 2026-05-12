@@ -68,10 +68,10 @@ export default function ProfilePage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                         {/* Avatar with upload hover */}
                         <div className="relative group flex-shrink-0">
-                            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 opacity-60 blur group-hover:opacity-90 transition-opacity" />
+                            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-400 opacity-60 blur group-hover:opacity-90 transition-opacity" />
                             <Avatar className="relative h-24 w-24 ring-2 ring-slate-800">
                                 <AvatarImage src={profile?.avatar_url || undefined} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-700 to-blue-500 text-white text-2xl font-bold tracking-wide">
+                                <AvatarFallback className="bg-gradient-to-br from-emerald-700 to-emerald-500 text-white text-2xl font-bold tracking-wide">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
@@ -129,8 +129,8 @@ export default function ProfilePage() {
                     {/* Personal Information (2/3 width) */}
                     <div className="lg:col-span-2 rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-6 space-y-5">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                                <User className="w-4 h-4 text-blue-400" />
+                            <div className="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
+                                <User className="w-4 h-4 text-emerald-400" />
                             </div>
                             <div>
                                 <h2 className="text-sm font-semibold text-slate-100">Personal Information</h2>
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                                         value={form.full_name}
                                         onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
                                         placeholder="Your full name"
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/30 transition-all"
                                     />
                                 </div>
                             </div>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95"
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/25 active:scale-95"
                         >
                             <Save className="w-4 h-4" />
                             {saving ? 'Saving…' : 'Save Changes'}
@@ -250,7 +250,7 @@ function DetailItem({ icon: Icon, label, value, accent }: {
     icon: any; label: string; value: string; accent: 'blue' | 'cyan' | 'emerald' | 'slate'
 }) {
     const colors = {
-        blue:    'text-blue-400 bg-blue-500/10',
+        blue:    'text-emerald-400 bg-emerald-500/10',
         cyan:    'text-cyan-400 bg-cyan-500/10',
         emerald: 'text-emerald-400 bg-emerald-500/10',
         slate:   'text-slate-400 bg-slate-700/40',
@@ -267,3 +267,4 @@ function DetailItem({ icon: Icon, label, value, accent }: {
         </div>
     )
 }
+

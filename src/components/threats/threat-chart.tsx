@@ -30,16 +30,10 @@ const TIME_RANGES = [
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-        <div style={{
-            background: 'rgba(6, 18, 46, 0.95)',
-            border: '1px solid rgba(6, 182, 212, 0.2)',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-        }}>
-            <p style={{ color: 'rgba(148,163,184,0.7)', fontSize: 11, marginBottom: 4 }}>{label}</p>
-            <p style={{ color: '#06b6d4', fontSize: 15, fontWeight: 700 }}>
-                {payload[0]?.value} <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(148,163,184,0.6)' }}>threats</span>
+        <div className="bg-popover/95 border border-emerald-500/20 rounded-lg px-3.5 py-2.5 shadow-xl">
+            <p className="text-muted-foreground text-xs mb-1">{label}</p>
+            <p className="text-emerald-500 text-sm font-bold">
+                {payload[0]?.value} <span className="text-xs font-normal text-muted-foreground">threats</span>
             </p>
         </div>
     )
@@ -60,41 +54,25 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
     }))
 
     return (
-        <div style={{
-            background: 'linear-gradient(180deg, #0a1628 0%, #060e1e 100%)',
-            borderRadius: '16px',
-            border: '1px solid rgba(255,255,255,0.07)',
-            padding: '24px',
-            height: '100%',
-            minHeight: 320,
-        }}>
+        <div className="bg-card rounded-2xl border border-border p-6 h-full min-h-[320px]">
             {/* Header row */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div className="flex items-start justify-between mb-6">
                 <div>
-                    <h3 style={{ color: '#e8eaf6', fontSize: 18, fontWeight: 700, margin: 0 }}>Threat Activity</h3>
-                    <p style={{ color: 'rgba(148,163,184,0.6)', fontSize: 12, marginTop: 4 }}>Real-time attack monitoring</p>
+                    <h3 className="text-foreground text-lg font-bold m-0">Threat Activity</h3>
+                    <p className="text-muted-foreground text-xs mt-1">Real-time attack monitoring</p>
                 </div>
 
                 {/* Time range pills */}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div className="flex gap-1.5">
                     {TIME_RANGES.map(r => (
                         <button
                             key={r.value}
                             onClick={() => handleRangeChange(r.value)}
-                            style={{
-                                padding: '5px 14px',
-                                borderRadius: 999,
-                                fontSize: 13,
-                                fontWeight: 600,
-                                border: activeRange === r.value ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                                background: activeRange === r.value
-                                    ? 'linear-gradient(135deg, #0891b2, #06b6d4)'
-                                    : 'transparent',
-                                color: activeRange === r.value ? '#fff' : 'rgba(148,163,184,0.6)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: activeRange === r.value ? '0 0 12px rgba(6,182,212,0.4)' : 'none',
-                            }}
+                            className={`px-3.5 py-1 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
+                                activeRange === r.value
+                                    ? 'border-transparent bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                                    : 'border border-border bg-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                         >
                             {r.label}
                         </button>
@@ -107,9 +85,9 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
                 <AreaChart data={chartData} margin={{ top: 10, right: 4, left: -10, bottom: 0 }}>
                     <defs>
                         <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%"   stopColor="#06b6d4" stopOpacity={0.45} />
-                            <stop offset="60%"  stopColor="#06b6d4" stopOpacity={0.08} />
-                            <stop offset="100%" stopColor="#06b6d4" stopOpacity={0}    />
+                            <stop offset="0%"   stopColor="#10b981" stopOpacity={0.45} />
+                            <stop offset="60%"  stopColor="#10b981" stopOpacity={0.08} />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity={0}    />
                         </linearGradient>
                     </defs>
 
@@ -139,20 +117,20 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
 
                     <Tooltip
                         content={<CustomTooltip />}
-                        cursor={{ stroke: 'rgba(6,182,212,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        cursor={{ stroke: 'rgba(16,185,129,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     />
 
                     <Area
                         type="monotoneX"
                         dataKey="threats"
-                        stroke="#06b6d4"
+                        stroke="#10b981"
                         strokeWidth={2.5}
                         fill="url(#cyanGrad)"
                         dot={false}
                         activeDot={{
                             r: 5,
-                            fill: '#06b6d4',
-                            stroke: 'rgba(6,182,212,0.3)',
+                            fill: '#10b981',
+                            stroke: 'rgba(16,185,129,0.3)',
                             strokeWidth: 6,
                         }}
                     />

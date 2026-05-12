@@ -92,20 +92,9 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed md:relative w-64 h-full bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
       >
-        {/* Logo */}
-        <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-sidebar-primary shrink-0" />
-            <div className="min-w-0">
-              <div className="font-bold text-lg text-sidebar-foreground truncate">CyberGuard</div>
-              <div className="text-xs text-sidebar-accent truncate">Security Platform</div>
-            </div>
-          </div>
-        </div>
-
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
           {navigation.map((item) => {
@@ -117,8 +106,8 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/20'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/20'
                   }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
@@ -134,20 +123,22 @@ export function Sidebar() {
             <p className="text-xs text-sidebar-foreground/80">
               Last Update
             </p>
-            <p className="text-xs text-sidebar-accent font-medium">
+            <p className="text-xs text-emerald-400 font-medium mt-1">
               {lastUpdatedLabel}
             </p>
           </div>
         </div>
-      </aside>
+      </aside >
 
       {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {
+        isOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-20 md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )
+      }
     </>
   )
 }

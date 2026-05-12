@@ -10,7 +10,7 @@ export function Badge({ variant = 'default', children, className = '' }: BadgePr
     destructive: 'bg-destructive/20 text-destructive',
     success: 'bg-green-500/20 text-green-400',
     warning: 'bg-yellow-500/20 text-yellow-400',
-    info: 'bg-blue-500/20 text-blue-400',
+    info: 'bg-emerald-500/20 text-emerald-400',
     outline: 'border border-current bg-transparent',
   }
 
@@ -22,3 +22,4 @@ export function Badge({ variant = 'default', children, className = '' }: BadgePr
     </span>
   )
 }
+
