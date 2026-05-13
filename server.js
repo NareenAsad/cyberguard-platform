@@ -25,52 +25,39 @@ app.prepare().then(() => {
                 req.on('end', () => {
                     try {
                         const payload = JSON.parse(body)
+                        const { event, data } = payload
 
-                        if (payload.event === 'agent:complete') {
-                            const result = payload.data?.result || {}
+                        if (event === 'agent:complete') {
+                            // Legacy handler
+                            const result = data?.result || {}
+                            if (result.threats?.length)     io.emit('threats:new',   result.threats)
+                            if (result.risk_scores?.length) io.emit('metrics:update', result.risk_scores)
+                            if (result.metrics)             io.emit('metrics:update', { ...lastMetrics, ...result.metrics })
 
-                            // 1. Push new threats to live feed
-                            if (result.threats?.length) {
-                                io.emit('threats:new', result.threats)
-                            }
+                        } else if (event === 'metrics:update') {
+                            // Dashboard metric cards update
+                            lastMetrics = { ...lastMetrics, ...data }
+                            io.emit('metrics:update', lastMetrics)
 
-                            // 2. Push updated risk scores
-                            if (result.risk_scores?.length) {
-                                io.emit('metrics:update', result.risk_scores)
-                            }
+                        } else if (event === 'page:refresh') {
+                            // Tell the specific page to refetch its data from the DB
+                            // Frontend listens for this and calls router.refresh()
+                            io.emit('page:refresh', data)
+                            console.log(`[Socket] Page refresh triggered: ${data?.page}`)
 
-                            // 3. Push dashboard metric numbers
-                            if (result.metrics) {
-                                io.emit('metrics:update', {
-                                    ...lastMetrics,
-                                    riskScore:      result.metrics.postureScore    ?? lastMetrics.riskScore,
-                                    incidentsActive: result.metrics.criticalCount  ?? lastMetrics.incidentsActive,
-                                    // Append change indicators
-                                    riskScoreChange:     result.metrics.postureScore - lastMetrics.riskScore,
-                                    incidentsActiveChange: result.metrics.criticalCount - lastMetrics.incidentsActive,
-                                })
-                            }
-
-                            // 4. Push a notification for the alert banner
-                            io.emit('alert:new', {
-                                id:       `alert-${Date.now()}`,
-                                type:     'agent_complete',
-                                title:    'AI Analysis Complete',
-                                message:  result.metrics?.topRisk || 'Threat analysis pipeline finished.',
-                                action:   result.metrics?.actionRequired || '',
-                                severity: result.metrics?.criticalCount > 0 ? 'critical' : 'info',
-                                timestamp: new Date().toISOString(),
-                            })
+                        } else if (event === 'alert:new') {
+                            // Notification banner on dashboard
+                            io.emit('alert:new', data)
 
                         } else {
-                            // Generic event passthrough
-                            io.emit(payload.event, payload.data)
+                            // Generic passthrough
+                            io.emit(event, data)
                         }
 
                         res.statusCode = 200
                         res.end('ok')
                     } catch (e) {
-                        console.error('[Socket] Failed to parse emit payload:', e)
+                        console.error('[Socket] Parse error:', e)
                         res.statusCode = 500
                         res.end('error')
                     }

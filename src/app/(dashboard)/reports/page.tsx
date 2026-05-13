@@ -6,8 +6,10 @@ import { ReportFilters } from '@/components/reports/report-filters'
 import { ReportsList } from '@/components/reports/reports-list'
 import { ReportDetailPanel } from '@/components/reports/report-detail-panel'
 import { reportsAPI } from '@/lib/api-service'
+import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function ReportsPage() {
+    usePageRefresh('reports')
     const [selectedType, setSelectedType] = useState<string | null>(null)
     const [reports, setReports] = useState<Report[]>([])
     const [loading, setLoading] = useState(true)

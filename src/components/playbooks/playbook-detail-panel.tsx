@@ -24,6 +24,13 @@ interface PlaybookDetailPanelProps {
     onClose: () => void
 }
 
+interface PlaybookStep {
+    step: number
+    action: string
+    reasoning?: string
+    command?: string
+}
+
 function StepList({
     icon: Icon,
     label,
@@ -35,7 +42,7 @@ function StepList({
     label: string
     color: string
     bg: string
-    steps: string[]
+    steps: (string | PlaybookStep)[]
 }) {
     if (!steps || steps.length === 0) return null
     return (
@@ -44,15 +51,35 @@ function StepList({
                 <Icon className="w-3.5 h-3.5" />
                 {label}
             </div>
-            <ol className="space-y-2">
-                {steps.map((step, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-muted-foreground">
-                        <span className={`flex-shrink-0 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center mt-0.5 ${bg} ${color}`}>
-                            {i + 1}
-                        </span>
-                        <span className="leading-relaxed">{step}</span>
-                    </li>
-                ))}
+            <ol className="space-y-3">
+                {steps.map((step, i) => {
+                    const isObject = typeof step === 'object' && step !== null
+                    const action = isObject ? (step as PlaybookStep).action : (step as string)
+                    const reasoning = isObject ? (step as PlaybookStep).reasoning : null
+                    const command = isObject ? (step as PlaybookStep).command : null
+                    const stepNumber = isObject ? (step as PlaybookStep).step : i + 1
+
+                    return (
+                        <li key={i} className="flex gap-3 text-sm">
+                            <span className={`flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5 ${bg} ${color}`}>
+                                {stepNumber}
+                            </span>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-foreground font-medium leading-relaxed">{action}</span>
+                                {reasoning && (
+                                    <span className="text-xs text-muted-foreground/70 italic">
+                                        Reasoning: {reasoning}
+                                    </span>
+                                )}
+                                {command && (
+                                    <code className="text-[10px] bg-secondary/50 px-2 py-1 rounded mt-1 border border-border/50 text-accent font-mono break-all">
+                                        {command}
+                                    </code>
+                                )}
+                            </div>
+                        </li>
+                    )
+                })}
             </ol>
         </div>
     )
@@ -76,10 +103,14 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
         ? new Date(playbook.lastUpdated).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : '—'
 
+    const preparation = playbook?.content?.preparation ?? []
+    const identification = playbook?.content?.identification ?? []
     const containment = playbook?.content?.containment ?? []
     const eradication = playbook?.content?.eradication ?? []
     const recovery = playbook?.content?.recovery ?? []
-    const totalSteps = containment.length + eradication.length + recovery.length
+    const postIncident = playbook?.content?.post_incident ?? []
+
+    const totalSteps = preparation.length + identification.length + containment.length + eradication.length + recovery.length + postIncident.length
 
     return (
         <>
@@ -133,16 +164,19 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
                     </div>
 
                     {/* Scrollable body */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                         {playbook?.description && (
                             <p className="text-sm text-muted-foreground leading-relaxed">{playbook.description}</p>
                         )}
 
                         {totalSteps > 0 ? (
-                            <div className="space-y-5">
+                            <div className="space-y-7">
+                                <StepList icon={BookOpen} label="Preparation" color="text-blue-400" bg="bg-blue-500/15" steps={preparation} />
+                                <StepList icon={AlertTriangle} label="Identification" color="text-amber-400" bg="bg-amber-500/15" steps={identification} />
                                 <StepList icon={Shield} label="Containment" color="text-emerald-400" bg="bg-emerald-500/15" steps={containment} />
                                 <StepList icon={AlertTriangle} label="Eradication" color="text-orange-400" bg="bg-orange-500/15" steps={eradication} />
                                 <StepList icon={RefreshCw} label="Recovery" color="text-green-400" bg="bg-green-500/15" steps={recovery} />
+                                <StepList icon={CheckCircle} label="Post-Incident" color="text-purple-400" bg="bg-purple-500/15" steps={postIncident} />
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">

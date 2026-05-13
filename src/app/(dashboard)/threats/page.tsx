@@ -8,8 +8,10 @@ import { ThreatsSummary } from '@/components/threats/threats-summary'
 import { threatsAPI } from '@/lib/api-service'
 import { Download } from 'lucide-react'
 import { exportToCSV } from '@/lib/export-utils'
+import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function ThreatsPage() {
+    usePageRefresh('threats')
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null)
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null)

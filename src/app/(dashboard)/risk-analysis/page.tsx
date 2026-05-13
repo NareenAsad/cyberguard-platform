@@ -8,8 +8,10 @@ import { RiskStatistics } from '@/components/risk-analysis/risk-statistics'
 import { riskAPI } from '@/lib/api-service'
 import { Download } from 'lucide-react'
 import { exportToCSV } from '@/lib/export-utils'
+import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function RiskAnalysisPage() {
+    usePageRefresh('risk-analysis')
     const [riskAnalysis, setRiskAnalysis] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 

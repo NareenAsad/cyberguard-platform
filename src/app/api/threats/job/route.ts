@@ -1,7 +1,6 @@
 /**
  * GET /api/threats/job?jobId=cg-xxx
- * Polls the Python agent pipeline, then saves ALL results to Supabase
- * tables that other pages (Threats, Risk, Incidents, Playbooks, Reports) read from.
+ * Polls pipeline, auto-saves to Supabase, emits socket events to refresh pages.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,193 +9,181 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Track which jobs we've already saved to avoid duplicate DB writes on every poll
 const savedJobs = new Set<string>()
 
 export async function GET(request: NextRequest) {
     const jobId = request.nextUrl.searchParams.get('jobId')
-
-    if (!jobId) {
-        return NextResponse.json(
-            { success: false, error: 'jobId query param required' },
-            { status: 400 }
-        )
-    }
+    if (!jobId) return NextResponse.json({ success: false, error: 'jobId required' }, { status: 400 })
 
     try {
         const job = await getAgentJob(jobId)
 
-        // Only save once — polling hits this endpoint every 4s
         if (job.status === 'completed' && job.result && !savedJobs.has(jobId)) {
             savedJobs.add(jobId)
-            console.log(`[Job ${jobId}] Pipeline complete — saving to Supabase...`)
 
-            const saveResult = await saveResultsToSupabase(jobId, job.result)
-            console.log(`[Job ${jobId}] Save complete:`, saveResult)
-
-            await pushToSocket(job.result)
+            // Save and emit — fire and forget so polling stays fast
+            saveAndNotify(jobId, job.result).catch(err => {
+                console.error(`[Job ${jobId}] Save failed:`, err.message)
+                savedJobs.delete(jobId) // allow retry
+            })
         }
 
         return NextResponse.json({ success: true, job })
-
     } catch (error: any) {
-        console.error('[API] Error polling job:', error)
-        return NextResponse.json(
-            { success: false, error: error.message },
-            { status: 500 }
-        )
+        console.error('[API] Poll error:', error)
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
 
 
-async function saveResultsToSupabase(jobId: string, result: any) {
+async function saveAndNotify(jobId: string, result: any) {
     const now = new Date().toISOString()
     const summary = { threats: 0, risks: 0, incidents: 0, playbooks: 0, reports: 0 }
 
-    // ── 1. Save Threats ───────────────────────────────────────────────────
-    const threats: any[] = result.threats ?? []
-    for (const t of threats) {
+    console.log(`[Save ${jobId}] Keys:`, Object.keys(result))
+
+    // ── 1. Threats ────────────────────────────────────────────────────────
+    for (const t of result.threats ?? []) {
         const { error } = await supabase.from('Threat').insert({
-            id:          `thr-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            title:       `[AI] ${t.indicator_value ?? 'Unknown Indicator'}`,
-            description: `MITRE: ${t.mitre_tactic ?? 'Unknown'} (${t.mitre_technique_id ?? 'N/A'}) — detected by AI pipeline`,
+            id:          `thr-${jobId}-${rand()}`,
+            threatId:    `THR-AI-${rand().toUpperCase()}`,
+            type:        t.indicator_type  ?? 'malware',
             severity:    priorityToSeverity(t.priority_score ?? 50),
-            status:      'active',
-            source:      'AI Agent',
-            cveId:       t.indicator_type === 'cve' ? t.indicator_value : null,
-            ipAddress:   t.indicator_type === 'ip'  ? t.indicator_value : null,
+            source:      t.threat_actor    ?? 'AI Agent',
+            target:      t.indicator_value ?? 'Unknown',
             detected:    now,
-            updated:     now,
+            status:      'mitigating',
         })
-        if (!error) summary.threats++
-        else console.error('[Supabase] Threat insert error:', error.message)
+        if (error) console.error('[Save] Threat:', error.message)
+        else summary.threats++
     }
 
-    // ── 2. Save Risk Analysis ─────────────────────────────────────────────
-    const riskRegister: any[] = result.risk_register ?? []
-    for (const r of riskRegister) {
+    // ── 2. Risk Analysis ──────────────────────────────────────────────────
+    for (const r of result.risk_register ?? []) {
         const { error } = await supabase.from('RiskAnalysis').insert({
-            id:             `risk-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            assetId:        r.asset_id    ?? 'unknown',
-            assetName:      r.asset_name  ?? 'Unknown Asset',
-            riskLevel:      Math.round(Math.min(100, r.risk_score ?? 0)),
-            cvssScore:      r.cvss_score  ?? null,
-            exploitability: exploitabilityLabel(r.exploitability_score ?? 0),
-            patchAvailable: r.patch_available ?? false,
-            scoreBreakdown: `CVSS:${r.cvss_score} | Exploit:${r.exploitability_score} | Asset:${r.asset_criticality_score} | ThreatIntel:${r.threat_intel_score}`,
-            mitreAttack:    r.mitre_tactic ?? null,
-            created:        now,
-            updated:        now,
+            id:             `risk-${jobId}-${rand()}`,
+            asset:          r.asset_name      ?? 'Unknown Asset',
+            riskLevel:      Math.min(100, Math.round(r.risk_score ?? 0)),
+            vulnerabilities: 1,
+            exposureTime:   'Active',
+            recommendation: r.score_breakdown ?? `Risk score: ${r.risk_score}`,
         })
-        if (!error) summary.risks++
-        else console.error('[Supabase] RiskAnalysis insert error:', error.message)
+        if (error) console.error('[Save] Risk:', error.message)
+        else summary.risks++
     }
 
-    // ── 3. Save Incidents for CRITICAL + HIGH findings (risk >= 50) ───────
-    const highPlusFindings = riskRegister.filter(r => (r.risk_score ?? 0) >= 50)
-    for (const r of highPlusFindings) {
+    // ── 3. Incidents for risk >= 50 ───────────────────────────────────────
+    for (const r of (result.risk_register ?? []).filter((r: any) => (r.risk_score ?? 0) >= 50)) {
         const { error } = await supabase.from('Incident').insert({
-            id:          `inc-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            id:          `inc-${jobId}-${rand()}`,
             incidentId:  `INC-AI-${Date.now()}`,
             title:       `[AI] ${r.cve_id ?? 'Vulnerability'} on ${r.asset_name ?? 'Unknown Asset'}`,
-            description: `Risk score ${r.risk_score}/100 (${r.severity_label}). MITRE: ${r.mitre_tactic ?? 'N/A'}. Auto-created by AI agent pipeline. Patch available: ${r.patch_available ? 'Yes' : 'No'}.`,
-            severity:    r.severity_label?.toLowerCase() ?? 'high',
+            description: `Risk ${r.risk_score}/100. MITRE: ${r.mitre_tactic ?? 'N/A'}.`,
+            severity:    (r.severity_label ?? 'high').toLowerCase(),
             status:      'open',
             assignee:    'Unassigned',
             created:     now,
             updated:     now,
         })
-        if (!error) summary.incidents++
-        else console.error('[Supabase] Incident insert error:', error.message)
+        if (error) console.error('[Save] Incident:', error.message)
+        else summary.incidents++
     }
 
-    // ── 4. Save Playbooks ─────────────────────────────────────────────────
-    const playbooks: any[] = result.playbooks ?? []
-    for (const p of playbooks) {
+    // ── 4. Playbooks ──────────────────────────────────────────────────────
+    for (const p of result.playbooks ?? []) {
         const { error } = await supabase.from('Playbook').insert({
-            id:          `pb-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            title:       p.incident_title ?? `[AI] ${p.cve_id ?? 'Threat'} Response Playbook`,
-            description: p.incident_summary ?? 'Auto-generated by CyberGuard AI Incident Response Agent',
+            id:          `pb-${jobId}-${rand()}`,
+            playbookId:  `PB-${rand().toUpperCase()}`,
+            title:       p.incident_title   ?? `[AI] ${p.cve_id ?? 'Threat'} Response Playbook`,
+            description: p.incident_summary ?? 'Auto-generated by CyberGuard AI IR Agent',
             category:    'AI Generated',
-            content:     p.playbook ?? {},
-            cveId:       p.cve_id ?? null,
+            steps:       (p.playbook?.containment?.length ?? 0) + (p.playbook?.eradication?.length ?? 0),
+            updatedBy:   'CyberGuard AI',
             lastUpdated: now,
-            created:     now,
         })
-        if (!error) summary.playbooks++
-        else console.error('[Supabase] Playbook insert error:', error.message)
+        if (error) console.error('[Save] Playbook:', error.message)
+        else summary.playbooks++
     }
 
-    // ── 5. Save Reports ───────────────────────────────────────────────────
-    const execReport = result.executive_report ?? {}
-    const techReport = result.technical_report ?? {}
-    const compReport = result.compliance_report ?? {}
+    // ── 5. Report ─────────────────────────────────────────────────────────
+    const exec = result.executive_report ?? {}
+    const tech = result.technical_report ?? {}
+    const comp = result.compliance_report ?? {}
 
-    if (execReport.top_risk || techReport.total_findings) {
+    if (exec.top_risk || tech.total_findings) {
         const { error } = await supabase.from('Report').insert({
-            id:        `rep-agent-${jobId}`,
+            id:        `rep-${jobId}`,
             title:     `AI Analysis Report — ${new Date().toLocaleDateString('en-US', { dateStyle: 'medium' })}`,
             type:      'executive',
             status:    'final',
-            content:   {
-                executive_report:  execReport,
-                technical_report:  techReport,
-                compliance_report: compReport,
-            },
+            description: exec.top_risk ?? 'Full security posture and remediation analysis.',
+            content:   { executive_report: exec, technical_report: tech, compliance_report: comp },
             jobId:     jobId,
             generated: now,
         })
-        if (!error) summary.reports++
-        else console.error('[Supabase] Report insert error:', error.message)
+        if (error) console.error('[Save] Report:', error.message)
+        else summary.reports++
     }
 
-    // ── 6. Mark job done in agent_jobs ────────────────────────────────────
-    await supabase
-        .from('agent_jobs')
+    // ── 6. Mark job done ──────────────────────────────────────────────────
+    await supabase.from('agent_jobs')
         .update({ status: 'completed', completed_at: now })
         .eq('job_id', jobId)
 
-    return summary
+    console.log(`[Save ${jobId}] Complete:`, summary)
+
+    // ── 7. Emit socket events to refresh all affected pages ───────────────
+    await emitRefreshEvents(result, summary, exec)
 }
 
 
-async function pushToSocket(result: any) {
+async function emitRefreshEvents(result: any, summary: any, exec: any) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const execReport = result.executive_report ?? {}
 
-    try {
-        await fetch(`${appUrl}/api/internal/socket-emit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                event: 'agent:complete',
-                data: {
-                    result: {
-                        threats:     result.threats       ?? [],
-                        risk_scores: result.risk_register ?? [],
-                        metrics: {
-                            postureScore:   execReport.posture_score                ?? 0,
-                            criticalCount:  execReport.severity_summary?.critical   ?? 0,
-                            highCount:      execReport.severity_summary?.high       ?? 0,
-                            totalFindings:  result.technical_report?.total_findings ?? 0,
-                            topRisk:        execReport.top_risk                     ?? '',
-                            actionRequired: execReport.action_required              ?? '',
-                        },
-                    },
-                },
-            }),
-        })
-    } catch (e) {
-        console.warn('[API] Socket push failed (non-critical):', e)
+    const emit = async (event: string, data: any) => {
+        try {
+            await fetch(`${appUrl}/api/internal/socket-emit`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ event, data }),
+            })
+        } catch (e) {
+            console.warn(`[Socket] ${event} failed`)
+        }
     }
+
+    // Dashboard metrics update
+    await emit('metrics:update', {
+        postureScore:   exec.posture_score                ?? 0,
+        criticalCount:  exec.severity_summary?.critical   ?? 0,
+        highCount:      exec.severity_summary?.high       ?? 0,
+        totalFindings:  result.technical_report?.total_findings ?? 0,
+        topRisk:        exec.top_risk                     ?? '',
+        actionRequired: exec.action_required              ?? '',
+    })
+
+    // Tell each page to refetch its data
+    if (summary.threats   > 0) await emit('page:refresh', { page: 'threats' })
+    if (summary.risks     > 0) await emit('page:refresh', { page: 'risk-analysis' })
+    if (summary.incidents > 0) await emit('page:refresh', { page: 'incident-response' })
+    if (summary.playbooks > 0) await emit('page:refresh', { page: 'playbooks' })
+    if (summary.reports   > 0) await emit('page:refresh', { page: 'reports' })
+
+    // Alert banner for dashboard
+    await emit('alert:new', {
+        id:        `alert-${Date.now()}`,
+        type:      'analysis_complete',
+        title:     'AI Analysis Saved',
+        message:   `${summary.threats} threats · ${summary.risks} risks · ${summary.incidents} incidents · ${summary.playbooks} playbooks`,
+        severity:  (exec.severity_summary?.critical ?? 0) > 0 ? 'critical' : 'info',
+        timestamp: new Date().toISOString(),
+    })
 }
 
-
-// ── Helpers ───────────────────────────────────────────────────────────────
+const rand = () => Math.random().toString(36).slice(2, 7)
 
 function priorityToSeverity(score: number): string {
     if (score >= 80) return 'critical'

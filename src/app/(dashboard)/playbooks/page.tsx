@@ -5,8 +5,10 @@ import { PlaybookCategories } from '@/components/playbooks/playbook-categories'
 import { PlaybooksGrid } from '@/components/playbooks/playbooks-grid'
 import { PlaybookDetailPanel } from '@/components/playbooks/playbook-detail-panel'
 import { playbooksAPI } from '@/lib/api-service'
+import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function PlaybooksPage() {
+    usePageRefresh('playbooks')
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     const [playbooks, setPlaybooks] = useState<any[]>([])
     const [loading, setLoading] = useState(true)

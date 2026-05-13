@@ -8,8 +8,10 @@ import { IncidentDetails } from '@/components/incident-response/incident-details
 import { incidentAPI } from '@/lib/api-service'
 import { Download } from 'lucide-react'
 import { exportToCSV } from '@/lib/export-utils'
+import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function IncidentResponsePage() {
+    usePageRefresh('incident-response')
     const [incidents, setIncidents] = useState<Incident[]>([])
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
     const [loading, setLoading] = useState(true)
