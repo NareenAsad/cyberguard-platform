@@ -1,191 +1,171 @@
 threat_intelligence_analysis:
-  description: |-
-    Analyze the provided threat indicators: {threat_indicators}
+  description: >
+    Analyze these threat indicators for {target_organization}:
+    {threat_indicators}
 
-    For each indicator with confidence ≥ 60%, provide:
-    1. Indicator type and value
-    2. Source and confidence score (0-100)
-    3. MITRE ATT&CK tactic and technique mapping
-    4. Associated threat actors or campaigns
-    5. Active exploitation status
-    6. Threat context and attribution
-    7. Priority score (0-100) based on relevance to {target_organization}
+    Steps:
+    1. Discard any indicator with confidence < 60
+    2. For each surviving indicator call otx_search tool, then mitre_lookup tool
+    3. For CVE indicators also call nvd_search tool
+    4. Return a JSON array. Each object must have:
+       indicator_value, indicator_type, confidence_score (0-100),
+       mitre_tactic, mitre_technique_id, threat_actor (or "Unknown"),
+       active_exploitation (bool), priority_score (0-100)
 
-    Include detailed analysis of:
-    - CVE indicators: Check NVD database for CVSS scores, affected products
-    - IP indicators: Geolocation, reputation, associated malware families
-    - Domain indicators: Registration data, hosting infrastructure, malware campaigns
-    - Hash indicators: Malware family, capabilities, distribution methods
-
-    Output comprehensive threat intelligence report with actionable insights.
-  expected_output: Detailed threat intelligence report containing enriched indicators
-    with MITRE ATT&CK mappings, confidence scores, threat actor attribution, and prioritization
-    for incident response teams. Include specific IOCs, TTPs, and recommended detection
-    rules.
+    JSON only. No prose.
+  expected_output: >
+    JSON array of enriched threat indicators with MITRE ATT&CK mappings,
+    confidence scores, threat actor attribution, and priority scores.
   agent: threat_intelligence_analyst
+
 vulnerability_assessment:
-  description: |-
-    Using the enriched threat intelligence and asset inventory {asset_inventory}, perform comprehensive vulnerability assessment:
+  description: >
+    Using the enriched threat intelligence and this asset inventory:
+    {asset_inventory}
 
-    1. Correlate CVE indicators with asset software/versions
-    2. Calculate CVSS base scores and temporal metrics
-    3. Assess exploitability and patch availability
-    4. Determine asset exposure (internet-facing vs internal)
-    5. Evaluate business criticality impact
+    Steps:
+    1. For each CVE indicator from previous task, call nvd_search to get CVSS score
+    2. Call asset_lookup with query "ALL" to get full asset list
+    3. Match CVEs to assets where the asset runs affected software version
+    4. Only include matches with confidence >= 70%
 
-    For each vulnerability-asset pair:
-    - Asset details: ID, name, IP, OS, software versions
-    - CVE details: ID, CVSS score, severity, description
-    - Exploitability: Public exploits, PoC availability, weaponization
-    - Patch status: Available patches, vendor advisories, workarounds
-    - Business impact: Asset criticality, data sensitivity, operational impact
-    - Network exposure: External attack surface analysis
+    Return JSON array. Each object must have:
+    asset_id, asset_name, asset_criticality, cve_id, cvss_base_score,
+    patch_available (bool), match_confidence (0-100), affected_component,
+    network_exposure, remediation_command
 
-    Calculate match confidence (70%+ required for inclusion).
-    Provide specific remediation commands and patch procedures.
-  expected_output: Comprehensive vulnerability assessment report mapping CVEs to specific
-    assets with CVSS scores, exploitability analysis, patch availability, and detailed
-    remediation procedures. Include prioritized vulnerability list with business impact
-    assessment.
+    JSON only. No prose.
+  expected_output: >
+    JSON array mapping CVEs to specific assets with CVSS scores,
+    exploitability, patch availability, and remediation commands.
   agent: vulnerability_assessment_specialist
   context:
-  - threat_intelligence_analysis
+    - threat_intelligence_analysis
+
 risk_score_calculation:
-  description: |-
-    Calculate comprehensive risk scores for all identified vulnerabilities using the CyberGuard risk formula:
+  description: >
+    Calculate risk scores for all vulnerability-asset pairs from the previous task.
 
-    Risk Score = ((0.30 × CVSS) + (0.25 × Exploitability) + (0.25 × Asset Criticality) + (0.20 × Threat Intel)) × 10
+    Formula (apply exactly, show breakdown):
+      S_v = cvss_base_score (0-10)
+      E_x = 10 if public exploit, 6 if PoC only, 2 if theoretical, 0 if none
+      A_c = CRITICAL=10, HIGH=7, MEDIUM=5, LOW=2
+      T_i = 10 if active_exploitation=true, 6 if targeted campaign, 2 if generic
+      Base = (0.30×S_v) + (0.25×E_x) + (0.25×A_c) + (0.20×T_i)
+      Multiplier: internet-facing=1.15, internal=1.0, air-gapped=0.7
+      Final = min(100, round(Base × 10 × Multiplier))
 
-    Components:
-    - CVSS Score (0-10): Use base score from vulnerability assessment
-    - Exploitability (0-10): 10=public exploit, 6=PoC available, 2=theoretical, 0=none
-    - Asset Criticality (0-10): CRITICAL=10, HIGH=7, MEDIUM=5, LOW=2
-    - Threat Intel (0-10): 10=active exploitation, 6=targeted campaigns, 2=generic threat
+    Classify: CRITICAL>=70, HIGH>=50, MEDIUM>=30, LOW<30
 
-    Apply network exposure multipliers:
-    - Internet-facing: 1.15x
-    - Internal: 1.0x
-    - Air-gapped: 0.7x
+    Return JSON array sorted by risk_score descending. Each object must have:
+    asset_id, asset_name, cve_id, risk_score, severity_label,
+    cvss_score, exploitability_score, asset_criticality_score,
+    threat_intel_score, score_breakdown (string showing calculation),
+    mitre_tactic, patch_available, network_exposure
 
-    Classify final scores:
-    - CRITICAL: 70-100 (immediate response required)
-    - HIGH: 50-69 (24-hour response window)
-    - MEDIUM: 30-49 (2-week response window)
-    - LOW: 0-29 (next maintenance window)
-
-    Provide detailed risk register with business justification for each score.
-  expected_output: Complete risk register with calculated risk scores, severity classifications,
-    and detailed risk analysis. Include risk score breakdown showing how each component
-    contributes to the final score, plus business impact justification for prioritization
-    decisions.
+    JSON only.
+  expected_output: >
+    Complete risk register with calculated scores, severity classifications,
+    and detailed score breakdowns for each vulnerability-asset pair.
   agent: risk_analysis_engineer
   context:
-  - vulnerability_assessment
+    - vulnerability_assessment
+
 incident_response_playbook_generation:
-  description: |-
-    Generate detailed NIST SP 800-61 incident response playbooks for ALL findings with risk score ≥ 50 (CRITICAL and HIGH).
+  description: >
+    Generate NIST SP 800-61 incident response playbooks for ALL findings
+    with risk_score >= 50 from the risk register.
 
-    For each incident, create comprehensive playbook including:
+    For each finding produce a JSON object with:
+    {
+      "cve_id": "...",
+      "asset_id": "...",
+      "asset_name": "...",
+      "risk_score": 0,
+      "severity_label": "...",
+      "incident_title": "concise title",
+      "incident_summary": "2-3 sentences describing what happened and why it is urgent",
+      "iocs": [{"type": "ip/domain/hash/cve", "value": "...", "description": "..."}],
+      "playbook": {
+        "preparation": [{"step": 1, "action": "...", "reasoning": "why needed", "tool": "optional"}],
+        "identification": [{"step": 1, "action": "...", "reasoning": "...", "command": "optional"}],
+        "containment": [{"step": 1, "action": "...", "reasoning": "...", "command": "optional"}],
+        "eradication": [{"step": 1, "action": "...", "reasoning": "...", "command": "optional"}],
+        "recovery": [{"step": 1, "action": "...", "reasoning": "...", "verification": "how to confirm"}],
+        "lessons_learned": [{"finding": "...", "improvement": "...", "control": "ISO/NIST ref"}]
+      },
+      "mitre_attack_chain": [{"tactic": "...", "technique_id": "...", "description": "..."}],
+      "sla": {"response_time": "e.g. 4 hours", "resolution_time": "e.g. 24 hours"},
+      "compliance_impact": {"controls_violated": ["..."], "breach_notification_required": true}
+    }
 
-    **1. PREPARATION PHASE (2-3 detailed steps):**
-    - Team notification procedures
-    - Tool and resource preparation
-    - Evidence preservation setup
-    - Communication protocols
-
-    **2. IDENTIFICATION PHASE (3-4 detailed steps):**
-    - Detection and analysis procedures
-    - IOC collection and validation
-    - Scope and impact determination
-    - Initial classification
-
-    **3. CONTAINMENT PHASE (4-5 detailed steps):**
-    - Short-term containment actions
-    - Long-term containment strategy
-    - System isolation procedures
-    - Evidence preservation
-
-    **4. ERADICATION PHASE (3-4 detailed steps):**
-    - Root cause elimination
-    - Vulnerability remediation
-    - System hardening
-    - Malware removal
-
-    **5. RECOVERY PHASE (3-4 detailed steps):**
-    - System restoration procedures
-    - Monitoring and validation
-    - Return to operations
-    - Documentation updates
-
-    **6. LESSONS LEARNED PHASE (2-3 detailed steps):**
-    - Post-incident analysis
-    - Process improvements
-    - Documentation updates
-    - Training recommendations
-
-    Each step must include:
-    - Specific commands and procedures
-    - Tools required
-    - Responsible personnel
-    - Time estimates
-    - Success criteria
-    - Escalation triggers
-
-    Include MITRE ATT&CK technique mapping, SLA requirements, and compliance considerations for {target_organization}.
-  expected_output: Comprehensive incident response playbooks following NIST SP 800-61
-    framework with detailed step-by-step procedures for each phase. Include specific
-    commands, tools, timelines, responsible parties, and decision trees. Each playbook
-    must be immediately actionable by the incident response team.
+    Each phase needs 3-5 steps. Include real commands where applicable.
+    Return a JSON array of these objects.
+    JSON only.
+  expected_output: >
+    JSON array of detailed NIST SP 800-61 playbooks with IoCs, MITRE ATT&CK
+    chain, specific commands, SLA targets, and compliance impact for each
+    CRITICAL and HIGH finding.
   agent: senior_incident_response_manager
   context:
-  - risk_score_calculation
+    - risk_score_calculation
+
 comprehensive_security_reporting:
-  description: |-
-    Generate three comprehensive security reports using all previous analysis:
+  description: >
+    Using all previous analysis results, generate a comprehensive security report.
 
-    **EXECUTIVE SUMMARY REPORT:**
-    - Security posture score (0-100) and trend analysis
-    - Risk distribution: Critical/High/Medium/Low counts
-    - Top 3 business risks with potential impact ($)
-    - Key findings in business language
-    - Recommended actions with priorities and deadlines
-    - Resource requirements and budget implications
-    - Regulatory compliance status
-    - Board-ready metrics and KPIs
+    Return a single JSON object with exactly these three keys:
 
-    **TECHNICAL ANALYSIS REPORT:**
-    - Detailed vulnerability findings with CVE mappings
-    - Asset-specific remediation procedures
-    - Patch management priorities with commands
-    - IOC detection rules and signatures
-    - Network segmentation recommendations
-    - Configuration hardening guidelines
-    - Monitoring and detection improvements
-    - Technical architecture recommendations
+    "executive_report": {
+      "posture_score": 0-100,
+      "posture_label": "Critical/Poor/Fair/Good",
+      "severity_summary": {"critical": N, "high": N, "medium": N, "low": N},
+      "top_risk": "single sentence — biggest threat right now",
+      "action_required": "single sentence — most important immediate action",
+      "business_impact": "2-3 sentences for CISO — revenue/compliance/reputation risk",
+      "key_findings": ["finding 1 in plain English", "finding 2", "finding 3"],
+      "recommended_priorities": [
+        {"priority": 1, "action": "...", "owner": "Security Team/DevOps/Management", "deadline": "Immediate/24h/1 week"}
+      ]
+    },
 
-    **COMPLIANCE MAPPING REPORT:**
-    - ISO 27001 control mapping and gaps
-    - NIST Cybersecurity Framework alignment
-    - SOC 2 Type II implications
-    - Regulatory compliance status (GDPR, HIPAA, etc.)
-    - Control effectiveness assessment
-    - Audit trail and evidence collection
-    - Remediation timeline for compliance
-    - Third-party risk assessment
+    "technical_report": {
+      "total_findings": N,
+      "cves_detected": ["CVE-..."],
+      "assets_at_risk": ["asset name"],
+      "immediate_patches": [
+        {"cve_id": "...", "asset": "...", "patch_command": "apt-get / yum / pip command", "patch_url": "https://..."}
+      ],
+      "detection_rules": [
+        {"rule_name": "...", "description": "SIEM detection rule", "log_source": "..."}
+      ],
+      "ioc_summary": [{"type": "ip/domain/hash", "value": "...", "threat": "what this indicates"}]
+    },
 
-    Each report must be:
-    - Actionable with specific next steps
-    - Tailored to the intended audience
-    - Supported by data from the analysis
-    - Formatted for immediate use by {target_organization}
-  expected_output: 'Three comprehensive security reports: (1) Executive Summary for
-    leadership with business metrics and strategic recommendations, (2) Technical
-    Analysis for security teams with detailed remediation procedures, and (3) Compliance
-    Mapping for audit and regulatory requirements. Each report must be audience-appropriate
-    and immediately actionable.'
+    "compliance_report": {
+      "frameworks_assessed": ["ISO 27001", "NIST CSF", "SOC 2"],
+      "overall_compliance_score": 0-100,
+      "controls_violated": [
+        {"control_id": "...", "control_name": "...", "finding": "...", "remediation": "..."}
+      ],
+      "nist_csf_mapping": {
+        "identify": "score 0-100",
+        "protect": "score 0-100",
+        "detect": "score 0-100",
+        "respond": "score 0-100",
+        "recover": "score 0-100"
+      }
+    }
+
+    Use real CVE IDs, asset names, and patch commands from the findings.
+    JSON only.
+  expected_output: >
+    JSON object with executive_report (CISO-ready with business metrics),
+    technical_report (detailed remediation with patch commands), and
+    compliance_report (ISO 27001, NIST CSF, SOC 2 control mappings).
   agent: security_reporting_specialist
   context:
-  - threat_intelligence_analysis
-  - vulnerability_assessment
-  - risk_score_calculation
-  - incident_response_playbook_generation
+    - threat_intelligence_analysis
+    - vulnerability_assessment
+    - risk_score_calculation
+    - incident_response_playbook_generation

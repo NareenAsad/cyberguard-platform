@@ -9,7 +9,6 @@ from pathlib import Path
 
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
-from crewai_tools import ScrapeWebsiteTool
 
 from tools import (
     nvd_search_tool,
@@ -89,23 +88,19 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
         
-        # Using OpenAI GPT-4o-mini with OPENAI_API_KEY from environment
+        # Using Groq models instead of OpenAI
         self.llm = LLM(
-            model="openai/gpt-4o-mini",
+            model="groq/llama-3.3-70b-versatile",
             temperature=0.1,
-            max_tokens=800,
+            max_tokens=4096,
         )
-        self.llm_powerful = LLM(
-            model="openai/gpt-4o-mini",
-            temperature=0.1,
-            max_tokens=1800,
-        )
+        self.llm_powerful = self.llm
 
     @agent
     def threat_intelligence_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config["threat_intelligence_analyst"],
-            tools=[otx_threat_tool, mitre_lookup_tool, ScrapeWebsiteTool()],
+            tools=[otx_threat_tool, mitre_lookup_tool, nvd_search_tool],
             allow_delegation=False,
             max_iter=3,
             llm=self.llm,
@@ -115,7 +110,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
     def vulnerability_assessment_specialist(self) -> Agent:
         return Agent(
             config=self.agents_config["vulnerability_assessment_specialist"],
-            tools=[nvd_search_tool, asset_lookup_tool, ScrapeWebsiteTool()],
+            tools=[nvd_search_tool, asset_lookup_tool],
             allow_delegation=False,
             max_iter=3,
             llm=self.llm,
@@ -179,7 +174,15 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=self.verbose,
+            task_callback=self.task_callback,
         )
+
+    def task_callback(self, task_output) -> None:
+        """
+        Enforce delay between tasks to prevent Groq TPM rate limits.
+        """
+        logger.info(f"[CyberGuard] Task completed. Waiting {INTER_TASK_DELAY}s for TPM bucket reset...")
+        time.sleep(INTER_TASK_DELAY)
 
     def run(self, raw_indicators: list[dict], asset_inventory: list[dict]) -> dict:
         """
@@ -220,14 +223,48 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
         if result is None:
             return {"error": "Pipeline failed after maximum retries"}
 
-        # Parse output
-        raw = result.raw if hasattr(result, 'raw') else str(result)
-        parsed = _extract_json(raw)
+        # Aggregated result structure
+        aggregated = {
+            "threats": [],
+            "risk_register": [],
+            "playbooks": [],
+            "executive_report": {},
+            "technical_report": {},
+            "compliance_report": {},
+        }
+
+        # Extract data from all tasks in the sequence
+        # Index 0: Threat Intel
+        # Index 1: Vuln Assessment (Internal)
+        # Index 2: Risk Scoring
+        # Index 3: Playbooks
+        # Index 4: Reporting
         
-        if parsed is None:
-            logger.warning("[CyberGuard] Could not parse JSON — storing raw_output")
-            logger.debug("[CyberGuard] Raw output (first 500 chars): %s", raw[:500])
-            parsed = {"raw_output": raw}
+        if hasattr(result, 'tasks_output'):
+            tasks = result.tasks_output
+            
+            if len(tasks) > 0:
+                aggregated["threats"] = _extract_json(tasks[0].raw) or []
+            
+            if len(tasks) > 2:
+                aggregated["risk_register"] = _extract_json(tasks[2].raw) or []
+                
+            if len(tasks) > 3:
+                aggregated["playbooks"] = _extract_json(tasks[3].raw) or []
+                
+            if len(tasks) > 4:
+                report_data = _extract_json(tasks[4].raw) or {}
+                aggregated["executive_report"] = report_data.get("executive_report", {})
+                aggregated["technical_report"] = report_data.get("technical_report", {})
+                aggregated["compliance_report"] = report_data.get("compliance_report", {})
+
+        # Fallback for Task 5 if aggregation failed
+        if not aggregated["executive_report"]:
+            raw = result.raw if hasattr(result, 'raw') else str(result)
+            parsed = _extract_json(raw) or {}
+            aggregated["executive_report"] = parsed.get("executive_report", {})
+            aggregated["technical_report"] = parsed.get("technical_report", {})
+            aggregated["compliance_report"] = parsed.get("compliance_report", {})
 
         return {
             "metadata": {
@@ -236,7 +273,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                 "indicators_processed": len(raw_indicators),
                 "assets_scanned": len(asset_inventory),
             },
-            **parsed,
+            **aggregated,
         }
 
 if __name__ == "__main__":
