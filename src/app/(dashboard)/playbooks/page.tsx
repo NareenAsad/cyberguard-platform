@@ -31,6 +31,18 @@ export default function PlaybooksPage() {
         fetchPlaybooks()
     }, [])
 
+    const handleDelete = async (id: string) => {
+        try {
+            const result = await playbooksAPI.deletePlaybook(id)
+            if (result.success) {
+                setPlaybooks(prev => prev.filter(p => p.id !== id))
+                if (selectedPlaybook?.id === id) setSelectedPlaybook(null)
+            }
+        } catch (error) {
+            console.error("Failed to delete playbook:", error)
+        }
+    }
+
     const categories = Array.from(new Set(playbooks.map(p => p.category)))
 
     const filteredPlaybooks = selectedCategory
@@ -57,6 +69,7 @@ export default function PlaybooksPage() {
                     <PlaybooksGrid
                         playbooks={filteredPlaybooks}
                         onSelect={setSelectedPlaybook}
+                        onDelete={handleDelete}
                     />
                 </div>
             )}

@@ -87,8 +87,8 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
 
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
-        
-        # Using Groq models instead of OpenAI
+
+        # Using Groq models
         self.llm = LLM(
             model="groq/llama-3.3-70b-versatile",
             temperature=0.1,
@@ -219,7 +219,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                     logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
                     continue
                 raise
-        
+
         if result is None:
             return {"error": "Pipeline failed after maximum retries"}
 
@@ -239,19 +239,19 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
         # Index 2: Risk Scoring
         # Index 3: Playbooks
         # Index 4: Reporting
-        
+
         if hasattr(result, 'tasks_output'):
             tasks = result.tasks_output
-            
+
             if len(tasks) > 0:
                 aggregated["threats"] = _extract_json(tasks[0].raw) or []
-            
+
             if len(tasks) > 2:
                 aggregated["risk_register"] = _extract_json(tasks[2].raw) or []
-                
+
             if len(tasks) > 3:
                 aggregated["playbooks"] = _extract_json(tasks[3].raw) or []
-                
+
             if len(tasks) > 4:
                 report_data = _extract_json(tasks[4].raw) or {}
                 aggregated["executive_report"] = report_data.get("executive_report", {})
@@ -275,6 +275,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             },
             **aggregated,
         }
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

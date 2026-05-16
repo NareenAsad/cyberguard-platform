@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getReports, createReport } from '@/lib/db'
+import { getReports, createReport, deleteReport } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
     try {
@@ -70,5 +70,27 @@ export async function POST(request: NextRequest) {
             { success: false, error: 'Failed to create report' },
             { status: 500 }
         )
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id')
+
+        if (!id) {
+            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        }
+
+        const result = await deleteReport(id)
+
+        if (result.success) {
+            return NextResponse.json({ success: true, message: 'Report deleted successfully' })
+        }
+
+        return NextResponse.json({ success: false, error: 'Failed to delete report' }, { status: 503 })
+    } catch (error) {
+        console.error('[API] Error deleting report:', error)
+        return NextResponse.json({ success: false, error: 'Failed to delete report' }, { status: 500 })
     }
 }

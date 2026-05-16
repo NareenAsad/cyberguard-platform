@@ -1,15 +1,16 @@
 'use client'
 
 import type { Report } from '@/types/report'
-import { Download } from 'lucide-react'
+import { Download, Trash2 } from 'lucide-react'
 import { exportToPDF } from '@/lib/export-utils'
 
 interface ReportCardProps {
     report: Report
     onSelect: (report: Report) => void
+    onDelete: (id: string) => void
 }
 
-export function ReportCard({ report, onSelect }: ReportCardProps) {
+export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
     const getStatusColor = (status: string) => {
         return status === 'completed'
             ? 'bg-green-500/20 text-green-400'
@@ -54,6 +55,18 @@ export function ReportCard({ report, onSelect }: ReportCardProps) {
                         title="Download PDF"
                     >
                         <Download className="w-4 h-4" />
+                    </div>
+                    <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete(report.id)
+                        }}
+                        className="p-1.5 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                        title="Delete Report"
+                    >
+                        <Trash2 className="w-4 h-4" />
                     </div>
                 </div>
             </div>

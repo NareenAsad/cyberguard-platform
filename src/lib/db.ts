@@ -410,3 +410,37 @@ export async function createReport(report: {
         return { success: false, error }
     }
 }
+
+// Delete functions
+export async function deleteIncident(id: string) {
+    try {
+        const { error } = await supabase.from('Incident').delete().eq('id', id)
+        if (error) return { success: false, error }
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting incident:', error)
+        return { success: false, error }
+    }
+}
+
+export async function deletePlaybook(id: string) {
+    try {
+        const { error } = await supabase.from('Playbook').delete().eq('id', id)
+        if (error) return { success: false, error }
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting playbook:', error)
+        return { success: false, error }
+    }
+}
+
+export async function deleteReport(id: string) {
+    try {
+        const { error } = await supabase.from('Report').delete().eq('id', id)
+        if (error) return { success: false, error }
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting report:', error)
+        return { success: false, error }
+    }
+}

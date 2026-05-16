@@ -32,6 +32,18 @@ export default function ReportsPage() {
         fetchReports()
     }, [])
 
+    const handleDelete = async (id: string) => {
+        try {
+            const result = await reportsAPI.deleteReport(id)
+            if (result.success) {
+                setReports(prev => prev.filter(r => r.id !== id))
+                if (selectedReport?.id === id) setSelectedReport(null)
+            }
+        } catch (error) {
+            console.error("Failed to delete report:", error)
+        }
+    }
+
     const reportTypes = Array.from(new Set(reports.map(r => r.type)))
 
     const filteredReports = selectedType
@@ -58,6 +70,7 @@ export default function ReportsPage() {
                     <ReportsList
                         reports={filteredReports}
                         onSelect={setSelectedReport}
+                        onDelete={handleDelete}
                     />
                 </div>
             )}

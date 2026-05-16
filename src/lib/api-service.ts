@@ -121,6 +121,13 @@ export const incidentAPI = {
         const json = await response.json()
         return json.data
     },
+
+    deleteIncident: async (id: string) => {
+        const response = await fetch(`/api/incident-response?id=${id}`, {
+            method: 'DELETE',
+        })
+        return await response.json()
+    },
 }
 
 // Playbooks APIs
@@ -159,6 +166,13 @@ export const playbooksAPI = {
         const json = await response.json()
         return json
     },
+
+    deletePlaybook: async (id: string) => {
+        const response = await fetch(`/api/playbooks?id=${id}`, {
+            method: 'DELETE',
+        })
+        return await response.json()
+    },
 }
 
 // Reports APIs
@@ -191,5 +205,12 @@ export const reportsAPI = {
         })
         const json = await response.json()
         return json  // return full { success, data, error } so caller can inspect
+    },
+
+    deleteReport: async (id: string) => {
+        const response = await fetch(`/api/reports?id=${id}`, {
+            method: 'DELETE',
+        })
+        return await response.json()
     },
 }

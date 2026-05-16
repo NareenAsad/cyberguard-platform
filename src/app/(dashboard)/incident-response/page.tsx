@@ -34,6 +34,20 @@ export default function IncidentResponsePage() {
         fetchIncidents()
     }, [])
 
+    const handleDelete = async (id: string) => {
+        try {
+            const result = await incidentAPI.deleteIncident(id)
+            if (result.success) {
+                setIncidents(prev => prev.filter(i => i.id !== id))
+                if (selectedIncident?.id === id) {
+                    setSelectedIncident(incidents.find(i => i.id !== id) ?? null)
+                }
+            }
+        } catch (error) {
+            console.error("Failed to delete incident:", error)
+        }
+    }
+
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
             <div className="flex items-center justify-between">
@@ -59,6 +73,7 @@ export default function IncidentResponsePage() {
                             incidents={incidents}
                             selectedIncident={selectedIncident}
                             onSelect={setSelectedIncident}
+                            onDelete={handleDelete}
                         />
                     </div>
 

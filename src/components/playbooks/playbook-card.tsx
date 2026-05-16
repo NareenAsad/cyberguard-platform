@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, CheckCircle } from 'lucide-react'
+import { BookOpen, CheckCircle, Trash2 } from 'lucide-react'
 
 interface Playbook {
     id: string
@@ -16,9 +16,10 @@ interface Playbook {
 interface PlaybookCardProps {
     playbook: Playbook
     onSelect: (playbook: Playbook) => void
+    onDelete: (id: string) => void
 }
 
-export function PlaybookCard({ playbook, onSelect }: PlaybookCardProps) {
+export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps) {
     // steps lives in content.steps (new) or top-level steps (seeded data)
     const steps = playbook.content?.steps ?? playbook.steps ?? null
 
@@ -39,7 +40,21 @@ export function PlaybookCard({ playbook, onSelect }: PlaybookCardProps) {
                         {playbook.category ?? 'General'}
                     </span>
                 </div>
-                <span className="text-xs text-muted-foreground">{playbook.id}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{playbook.id}</span>
+                    <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete(playbook.id)
+                        }}
+                        className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                        title="Delete Playbook"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </div>
+                </div>
             </div>
 
             <h3 className="font-bold text-foreground mb-2 text-base">{playbook.title}</h3>

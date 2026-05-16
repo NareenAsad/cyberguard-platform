@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getIncidents, createIncident } from '@/lib/db'
+import { getIncidents, createIncident, deleteIncident } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
     try {
@@ -83,5 +83,27 @@ export async function POST(request: NextRequest) {
             },
             { status: 500 }
         )
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id')
+
+        if (!id) {
+            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        }
+
+        const result = await deleteIncident(id)
+
+        if (result.success) {
+            return NextResponse.json({ success: true, message: 'Incident deleted successfully' })
+        }
+
+        return NextResponse.json({ success: false, error: 'Failed to delete incident' }, { status: 503 })
+    } catch (error) {
+        console.error('[API] Error deleting incident:', error)
+        return NextResponse.json({ success: false, error: 'Failed to delete incident' }, { status: 500 })
     }
 }
