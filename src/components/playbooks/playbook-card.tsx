@@ -31,11 +31,11 @@ export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps
     return (
         <div
             onClick={() => onSelect(playbook)}
-            className="text-left p-6 border rounded-lg bg-card border-border cursor-pointer hover:border-accent hover:bg-secondary/30 transition-all"
+            className="text-left p-6 border rounded-lg bg-card border-border cursor-pointer hover:border-primary/50 hover:bg-secondary/30 transition-all"
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-accent" />
+                    <BookOpen className="w-5 h-5 text-primary" />
                     <span className="text-xs bg-secondary/50 text-muted-foreground px-2 py-1 rounded">
                         {playbook.category ?? 'General'}
                     </span>

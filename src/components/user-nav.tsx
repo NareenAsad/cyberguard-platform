@@ -26,7 +26,7 @@ interface UserNavProps {
 
 const roleColors: Record<string, string> = {
   admin: "bg-red-500/10 text-red-500 border-red-500/20",
-  manager: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  manager: "bg-primary/10 text-primary border-primary/20",
   analyst: "bg-green-500/10 text-green-500 border-green-500/20",
 }
 

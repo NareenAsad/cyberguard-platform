@@ -46,7 +46,7 @@ export default function DataSourcesTab() {
     }
 
     const colorsMap: Record<string, string> = {
-        blue: 'border-emerald-500/40 bg-emerald-600/8', emerald: 'border-emerald-500/40 bg-emerald-600/8',
+        blue: 'border-primary/40 bg-primary/8', cyan: 'border-primary/40 bg-primary/8',
         amber: 'border-amber-500/40 bg-amber-600/8', red: 'border-red-500/40 bg-red-600/8',
     }
 
@@ -83,7 +83,7 @@ export default function DataSourcesTab() {
                                     {/* Toggle */}
                                     <button onClick={() => save(src.key, { enabled: !src.enabled })}
                                         disabled={saving === src.key}
-                                        className={`relative w-11 h-6 rounded-full transition-all duration-300 ${src.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                                        className={`relative w-11 h-6 rounded-full transition-all duration-300 ${src.enabled ? 'bg-primary' : 'bg-slate-700'}`}>
                                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ${src.enabled ? 'translate-x-5' : ''}`} />
                                     </button>
                                 </div>
@@ -97,7 +97,7 @@ export default function DataSourcesTab() {
                                             placeholder="Enter API key…"
                                             value={apiKeys[src.key] || ''}
                                             onChange={e => setApiKeys(k => ({ ...k, [src.key]: e.target.value }))}
-                                            className="w-full pr-10 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/60 transition-all"
+                                            className="w-full pr-10 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-primary/60 transition-all"
                                         />
                                         <button type="button"
                                             onClick={() => setShowKey(s => ({ ...s, [src.key]: !s[src.key] }))}
@@ -112,10 +112,10 @@ export default function DataSourcesTab() {
                                     <button
                                         onClick={() => save(src.key, { api_key: apiKeys[src.key] })}
                                         disabled={saving === src.key || !apiKeys[src.key]}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-medium transition-colors">
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary disabled:opacity-40 text-white text-xs font-medium transition-colors">
                                         <Save className="w-3.5 h-3.5" /> Save Key
                                     </button>
-                                    {feedback[src.key] === 'ok'  && <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> Saved</span>}
+                                    {feedback[src.key] === 'ok'  && <span className="flex items-center gap-1 text-xs text-primary"><CheckCircle2 className="w-3.5 h-3.5" /> Saved</span>}
                                     {feedback[src.key] === 'err' && <span className="flex items-center gap-1 text-xs text-red-400"><AlertCircle className="w-3.5 h-3.5" /> Failed</span>}
                                 </div>
                             </div>

@@ -411,6 +411,26 @@ export async function createReport(report: {
     }
 }
 
+// Update incident (assignee, status)
+export async function updateIncident(id: string, updates: {
+    assignee?: string
+    status?: string
+}) {
+    try {
+        const { data, error } = await supabase
+            .from('Incident')
+            .update({ ...updates, updated: new Date().toISOString() })
+            .eq('id', id)
+            .select('*')
+            .single()
+        if (error) return { success: false, error }
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error updating incident:', error)
+        return { success: false, error }
+    }
+}
+
 // Delete functions
 export async function deleteIncident(id: string) {
     try {

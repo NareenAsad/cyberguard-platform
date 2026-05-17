@@ -105,10 +105,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/20'
-                  }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                  ? 'text-primary bg-primary/5'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground'
+                }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 <span className="text-sm font-medium">{item.name}</span>
@@ -123,7 +123,7 @@ export function Sidebar() {
             <p className="text-xs text-sidebar-foreground/80">
               Last Update
             </p>
-            <p className="text-xs text-emerald-400 font-medium mt-1">
+            <p className="text-xs text-primary font-medium mt-1">
               {lastUpdatedLabel}
             </p>
           </div>

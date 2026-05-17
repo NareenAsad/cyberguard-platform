@@ -9,8 +9,10 @@ import { incidentAPI } from '@/lib/api-service'
 import { Download } from 'lucide-react'
 import { exportToCSV } from '@/lib/export-utils'
 import { usePageRefresh } from '@/hooks/use-page-refresh'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function IncidentResponsePage() {
+    const { can } = useAuth()
     usePageRefresh('incident-response')
     const [incidents, setIncidents] = useState<Incident[]>([])
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
@@ -48,6 +50,11 @@ export default function IncidentResponsePage() {
         }
     }
 
+    const handleUpdate = (updated: Incident) => {
+        setIncidents(prev => prev.map(i => i.id === updated.id ? updated : i))
+        setSelectedIncident(updated)
+    }
+
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
             <div className="flex items-center justify-between">
@@ -55,17 +62,22 @@ export default function IncidentResponsePage() {
                     title="Incident Response"
                     description="Manage active incidents and playbook execution"
                 />
-                <button 
-                    onClick={() => exportToCSV(incidents, 'incidents-export')}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-                >
-                    <Download className="w-4 h-4" />
-                    Export CSV
-                </button>
+                {can('canExportData') && (
+                    <button 
+                        onClick={() => exportToCSV(incidents, 'incidents-export')}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                    </button>
+                )}
             </div>
 
             {loading ? (
-                <div>Loading incidents...</div>
+                <div className="flex items-center gap-3 text-muted-foreground p-8">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Loading incidents...
+                </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1">
@@ -73,12 +85,11 @@ export default function IncidentResponsePage() {
                             incidents={incidents}
                             selectedIncident={selectedIncident}
                             onSelect={setSelectedIncident}
-                            onDelete={handleDelete}
                         />
                     </div>
 
                     <div className="lg:col-span-2">
-                        <IncidentDetails incident={selectedIncident} />
+                        <IncidentDetails incident={selectedIncident} onUpdate={handleUpdate} onDelete={handleDelete} />
                     </div>
                 </div>
             )}

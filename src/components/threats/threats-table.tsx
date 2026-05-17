@@ -17,12 +17,12 @@ interface ThreatsTableProps {
 const severityColors = {
     critical: 'bg-destructive/20 text-destructive',
     high: 'bg-yellow-500/20 text-yellow-400',
-    medium: 'bg-emerald-500/20 text-emerald-400',
-    low: 'bg-green-500/20 text-green-400',
+    medium: 'bg-primary/20 text-primary',
+    low: 'bg-accent/20 text-accent',
 }
 
 const statusColors = {
-    blocked: 'bg-green-500/20 text-green-400',
+    blocked: 'bg-accent/20 text-accent',
     mitigating: 'bg-yellow-500/20 text-yellow-400',
     quarantined: 'bg-orange-500/20 text-orange-400',
     isolated: 'bg-destructive/20 text-destructive',

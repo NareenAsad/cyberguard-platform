@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getIncidents, createIncident, deleteIncident } from '@/lib/db'
+import { getIncidents, createIncident, deleteIncident, updateIncident } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
     try {
@@ -105,5 +105,41 @@ export async function DELETE(request: NextRequest) {
     } catch (error) {
         console.error('[API] Error deleting incident:', error)
         return NextResponse.json({ success: false, error: 'Failed to delete incident' }, { status: 500 })
+    }
+}
+
+export async function PATCH(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id')
+
+        if (!id) {
+            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        }
+
+        const body = await request.json()
+        const { assignee, status } = body
+
+        if (!assignee && !status) {
+            return NextResponse.json(
+                { success: false, error: 'At least one of assignee or status is required' },
+                { status: 400 }
+            )
+        }
+
+        const updates: { assignee?: string; status?: string } = {}
+        if (assignee !== undefined) updates.assignee = assignee
+        if (status !== undefined) updates.status = status
+
+        const result = await updateIncident(id, updates)
+
+        if (result.success) {
+            return NextResponse.json({ success: true, data: result.data })
+        }
+
+        return NextResponse.json({ success: false, error: 'Failed to update incident' }, { status: 503 })
+    } catch (error) {
+        console.error('[API] Error updating incident:', error)
+        return NextResponse.json({ success: false, error: 'Failed to update incident' }, { status: 500 })
     }
 }

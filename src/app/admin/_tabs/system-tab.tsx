@@ -11,8 +11,8 @@ interface AuditLog {
 const ACTION_COLORS: Record<string, string> = {
     ROLE_CHANGED:        'text-amber-400 bg-amber-500/10 border-amber-500/30',
     USER_DEACTIVATED:    'text-red-400 bg-red-500/10 border-red-500/30',
-    USER_ACTIVATED:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-    DATA_SOURCE_UPDATED: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    USER_ACTIVATED:      'text-primary bg-primary/10 border-primary/30',
+    DATA_SOURCE_UPDATED: 'text-primary bg-primary/10 border-primary/30',
     ASSET_CREATED:       'text-purple-400 bg-purple-500/10 border-purple-500/30',
     ASSET_DELETED:       'text-red-400 bg-red-500/10 border-red-500/30',
 }
@@ -54,7 +54,7 @@ export default function SystemTab() {
                                     <s.icon className="w-4 h-4 text-slate-400" />
                                 </div>
                                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                                    ok ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25'
+                                    ok ? 'text-primary bg-primary/10 border-primary/25'
                                        : 'text-red-400 bg-red-500/10 border-red-500/25'
                                 }`}>
                                     {ok ? '● Healthy' : '● Down'}
@@ -73,7 +73,7 @@ export default function SystemTab() {
             <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
                     <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-emerald-400" />
+                        <Clock className="w-4 h-4 text-primary" />
                         <h2 className="text-sm font-semibold text-slate-100">Audit Log</h2>
                         <span className="text-xs text-slate-500">Last 30 entries</span>
                     </div>

@@ -30,9 +30,9 @@ const TIME_RANGES = [
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-        <div className="bg-popover/95 border border-emerald-500/20 rounded-lg px-3.5 py-2.5 shadow-xl">
+        <div className="bg-popover/95 border border-primary/20 rounded-lg px-3.5 py-2.5">
             <p className="text-muted-foreground text-xs mb-1">{label}</p>
-            <p className="text-emerald-500 text-sm font-bold">
+            <p className="text-primary text-sm font-bold">
                 {payload[0]?.value} <span className="text-xs font-normal text-muted-foreground">threats</span>
             </p>
         </div>
@@ -70,7 +70,7 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
                             onClick={() => handleRangeChange(r.value)}
                             className={`px-3.5 py-1 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                                 activeRange === r.value
-                                    ? 'border-transparent bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                                    ? 'bg-primary/10 text-primary border border-primary/20'
                                     : 'border border-border bg-transparent text-muted-foreground hover:text-foreground'
                             }`}
                         >
@@ -85,9 +85,9 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
                 <AreaChart data={chartData} margin={{ top: 10, right: 4, left: -10, bottom: 0 }}>
                     <defs>
                         <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%"   stopColor="#10b981" stopOpacity={0.45} />
-                            <stop offset="60%"  stopColor="#10b981" stopOpacity={0.08} />
-                            <stop offset="100%" stopColor="#10b981" stopOpacity={0}    />
+                            <stop offset="0%"   stopColor="#00e5ff" stopOpacity={0.25} />
+                            <stop offset="60%"  stopColor="#00e5ff" stopOpacity={0.05} />
+                            <stop offset="100%" stopColor="#00e5ff" stopOpacity={0}    />
                         </linearGradient>
                     </defs>
 
@@ -117,20 +117,20 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
 
                     <Tooltip
                         content={<CustomTooltip />}
-                        cursor={{ stroke: 'rgba(16,185,129,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        cursor={{ stroke: 'rgba(0,229,255,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     />
 
                     <Area
                         type="monotoneX"
                         dataKey="threats"
-                        stroke="#10b981"
+                        stroke="#00e5ff"
                         strokeWidth={2.5}
                         fill="url(#cyanGrad)"
                         dot={false}
                         activeDot={{
                             r: 5,
-                            fill: '#10b981',
-                            stroke: 'rgba(16,185,129,0.3)',
+                            fill: '#00e5ff',
+                            stroke: 'rgba(0,229,255,0.3)',
                             strokeWidth: 6,
                         }}
                     />

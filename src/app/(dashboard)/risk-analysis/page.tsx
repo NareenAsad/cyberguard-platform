@@ -32,10 +32,13 @@ export default function RiskAnalysisPage() {
         fetchRisks()
     }, [])
 
+    // Use full asset name for the chart — truncate only if >18 chars
     const chartData = riskAnalysis.map(item => ({
-        name: item.assetName?.substring(0, 10) || 'Unknown',
+        name: item.assetName
+            ? (item.assetName.length > 18 ? item.assetName.substring(0, 16) + '…' : item.assetName)
+            : 'Unknown',
         riskLevel: item.riskLevel,
-        vulnerabilities: Math.floor(item.riskLevel / 10), // mock stat since not in db directly
+        vulnerabilities: Math.floor(item.riskLevel / 10),
     }))
 
     const sortedByRisk = [...riskAnalysis].sort((a, b) => b.riskLevel - a.riskLevel)
@@ -47,7 +50,7 @@ export default function RiskAnalysisPage() {
                     title="Risk Analysis"
                     description="Asset vulnerabilities and exposure assessment"
                 />
-                <button 
+                <button
                     onClick={() => exportToCSV(riskAnalysis, 'risk-analysis-export')}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
                 >
@@ -57,12 +60,20 @@ export default function RiskAnalysisPage() {
             </div>
 
             {loading ? (
-                <div>Loading risk analysis...</div>
+                <div className="flex items-center gap-3 text-muted-foreground p-8">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Loading risk analysis...
+                </div>
             ) : (
                 <>
-                    <RiskDistribution data={chartData} />
-                    <RiskPrioritization risks={sortedByRisk} />
+                    {/* Stats first — gives context before the chart */}
                     <RiskStatistics risks={riskAnalysis} />
+
+                    {/* Distribution chart */}
+                    <RiskDistribution data={chartData} />
+
+                    {/* Prioritized list */}
+                    <RiskPrioritization risks={sortedByRisk} />
                 </>
             )}
         </div>

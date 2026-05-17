@@ -1,8 +1,9 @@
 'use client'
 
 import type { Report } from '@/types/report'
-import { Download, Trash2 } from 'lucide-react'
+import { Download, Trash2, FileText, Calendar, Shield, ChevronRight } from 'lucide-react'
 import { exportToPDF } from '@/lib/export-utils'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface ReportCardProps {
     report: Report
@@ -11,11 +12,46 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
-    const getStatusColor = (status: string) => {
-        return status === 'completed'
-            ? 'bg-green-500/20 text-green-400'
-            : 'bg-emerald-500/20 text-emerald-400'
+    const { can } = useAuth()
+    
+    const getStatusStyle = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'final':
+                return 'bg-accent/20 text-accent border border-accent/40'
+            case 'completed':
+                return 'bg-accent/20 text-accent border border-accent/40'
+            case 'draft':
+                return 'bg-secondary text-muted-foreground border border-border'
+            case 'pending':
+                return 'bg-primary/20 text-primary border border-primary/40'
+            default:
+                return 'bg-secondary text-muted-foreground border border-border'
+        }
     }
+
+    const getTypeIcon = (type: string) => {
+        switch (type?.toLowerCase()) {
+            case 'executive': return '📊'
+            case 'technical': return '🔧'
+            case 'compliance': return '📋'
+            default: return '📄'
+        }
+    }
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return '—'
+        try {
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            })
+        } catch {
+            return dateStr
+        }
+    }
+
+    const displayDate = report.generated || report.date
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -36,56 +72,97 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
     return (
         <div
             onClick={() => onSelect(report)}
-            className="w-full text-left p-6 border rounded-lg bg-card border-border cursor-pointer hover:border-accent hover:bg-secondary/30 transition-all"
+            className="group w-full text-left border rounded-xl bg-card border-primary/20 cursor-pointer hover:border-primary/50 transition-all duration-200 overflow-hidden"
         >
-            <div className="flex items-start justify-between mb-3">
-                <div className="pr-4">
-                    <h3 className="font-semibold text-foreground mb-1">{report.title}</h3>
-                    <p className="text-xs text-muted-foreground">{report.description ?? '—'}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(report.status)}`}>
-                        {report.status}
-                    </span>
-                    <div 
-                        role="button"
-                        tabIndex={0}
-                        onClick={handleDownload}
-                        className="p-1.5 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                        title="Download PDF"
-                    >
-                        <Download className="w-4 h-4" />
-                    </div>
-                    <div 
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(report.id)
-                        }}
-                        className="p-1.5 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
-                        title="Delete Report"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </div>
-                </div>
-            </div>
+            {/* Primary gradient top bar */}
+            <div className="h-0.5 w-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
 
-            <div className="grid grid-cols-3 gap-4 text-xs">
-                <div>
-                    <p className="text-muted-foreground">Type</p>
-                    <p className="text-foreground font-medium">{report.type}</p>
+            <div className="p-5">
+                {/* Header Row */}
+                <div className="flex items-start justify-between gap-4 mb-4">
+                    {/* Icon + Title */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-lg">
+                            {getTypeIcon(report.type)}
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                                {report.title}
+                            </h3>
+                            {report.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                    {report.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className={`px-2.5 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${getStatusStyle(report.status)}`}>
+                            {report.status}
+                        </span>
+                        {can('canExportData') && (
+                            <button
+                                onClick={handleDownload}
+                                className="p-1.5 hover:bg-primary/10 rounded-md text-muted-foreground hover:text-primary transition-colors"
+                                title="Download PDF"
+                            >
+                                <Download className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                        {can('canDeleteData') && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onDelete(report.id)
+                                }}
+                                className="p-1.5 hover:bg-red-500/10 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                                title="Delete Report"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <div>
-                    <p className="text-muted-foreground">Date</p>
-                    <p className="text-foreground font-medium">{report.date ?? '—'}</p>
-                </div>
-                <div>
-                    <p className="text-muted-foreground">Size</p>
-                    <p className="text-foreground font-medium">{report.size ?? '—'}</p>
+
+                {/* Divider */}
+                <div className="h-px bg-gradient-to-r from-primary/30 to-transparent mb-3" />
+
+                {/* Meta Row */}
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* Type badge */}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border capitalize bg-primary/10 text-primary border-primary/25">
+                        <Shield className="w-3 h-3" />
+                        {report.type ?? '—'}
+                    </span>
+
+                    {/* Date */}
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3 text-primary" />
+                        {formatDate(displayDate)}
+                    </span>
+
+                    {/* Threats if available */}
+                    {report.threats != null && (
+                        <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                            <FileText className="w-3 h-3" />
+                            {report.threats} threats
+                        </span>
+                    )}
+
+                    {/* Size */}
+                    {report.size && (
+                        <span className="text-xs text-muted-foreground">{report.size}</span>
+                    )}
+
+                    {/* View details */}
+                    <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                        View details
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
                 </div>
             </div>
         </div>
     )
 }
-

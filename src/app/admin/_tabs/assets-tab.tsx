@@ -9,7 +9,7 @@ const TYPE_ICONS: Record<string, any> = {
     server: Server, workstation: Monitor, database: Database, network: Globe, cloud: Cpu,
 }
 const STATUS_COLORS: Record<string, string> = {
-    active:  'text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
+    active:  'text-primary bg-primary/10 border-primary/25',
     'at-risk': 'text-amber-400 bg-amber-500/10 border-amber-500/25',
     offline: 'text-slate-400 bg-slate-700/30 border-slate-600/25',
 }
@@ -64,7 +64,7 @@ export default function AssetsTab() {
                 <div className="flex gap-3">
                     {[
                         { label: 'Total',    val: stats.total,   color: 'text-slate-200'  },
-                        { label: 'Active',   val: stats.active,  color: 'text-emerald-400'},
+                        { label: 'Active',   val: stats.active,  color: 'text-primary'},
                         { label: 'At Risk',  val: stats.atRisk,  color: 'text-amber-400'  },
                         { label: 'Offline',  val: stats.offline, color: 'text-slate-500'  },
                     ].map(s => (

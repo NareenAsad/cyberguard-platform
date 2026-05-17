@@ -2,20 +2,21 @@
 
 import type { Incident } from '@/types/incident'
 import { Trash2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface IncidentsListProps {
     incidents: Incident[]
     selectedIncident: Incident | null
     onSelect: (incident: Incident) => void
-    onDelete: (id: string) => void
 }
 
 export function IncidentsList({
     incidents,
     selectedIncident,
     onSelect,
-    onDelete,
 }: IncidentsListProps) {
+    const { can } = useAuth()
+    
     const getSeverityColor = (severity: string) => {
         switch (severity) {
             case 'critical':
@@ -48,23 +49,11 @@ export function IncidentsList({
                                 }`}
                         >
                             <div className="flex items-start justify-between mb-2">
-                                <span className="text-xs font-mono text-accent">{incident.id}</span>
+                                <span className="text-xs font-mono text-primary">{incident.id}</span>
                                 <div className="flex items-center gap-2">
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(incident.severity)}`}>
                                         {incident.severity}
                                     </span>
-                                    <div 
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            onDelete(incident.id)
-                                        }}
-                                        className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
-                                        title="Delete Incident"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </div>
                                 </div>
                             </div>
                             <p className="font-semibold text-foreground text-sm mb-1 line-clamp-1">

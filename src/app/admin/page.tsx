@@ -11,7 +11,7 @@ import AssetsTab from './_tabs/assets-tab'
 
 const TABS = [
     { id: 'users',   label: 'User Management', icon: Users,    accent: 'blue'   },
-    { id: 'system',  label: 'System Health',   icon: Activity, accent: 'emerald'},
+    { id: 'system',  label: 'System Health',   icon: Activity, accent: 'cyan'},
     { id: 'sources', label: 'Data Sources',    icon: Database, accent: 'amber'  },
     { id: 'assets',  label: 'Assets',          icon: Server,   accent: 'purple' },
 ] as const
@@ -19,25 +19,38 @@ const TABS = [
 type Tab = typeof TABS[number]['id']
 
 const accentMap = {
-    blue:    { active: 'border-emerald-500/50 bg-emerald-600/10 text-emerald-300',   icon: 'text-emerald-400',    dot: 'bg-emerald-500'    },
-    emerald: { active: 'border-emerald-500/50 bg-emerald-600/10 text-emerald-300', icon: 'text-emerald-400', dot: 'bg-emerald-500' },
+    blue:    { active: 'border-primary/50 bg-primary/10 text-primary',   icon: 'text-primary',    dot: 'bg-primary'    },
+    cyan: { active: 'border-primary/50 bg-primary/10 text-primary', icon: 'text-primary', dot: 'bg-primary' },
     amber:   { active: 'border-amber-500/50 bg-amber-600/10 text-amber-300',   icon: 'text-amber-400',   dot: 'bg-amber-500'   },
     purple:  { active: 'border-purple-500/50 bg-purple-600/10 text-purple-300', icon: 'text-purple-400',  dot: 'bg-purple-500'  },
 }
 
 export default function AdminPage() {
-    const { profile, loading } = useAuth()
+    const { profile, loading, can } = useAuth()
     const router = useRouter()
-    const [tab, setTab] = useState<Tab>('users')
+    
+    const availableTabs = TABS.filter(t => {
+        if (t.id === 'users') return can('canManageUsers')
+        if (t.id === 'sources') return can('canConfigureSources')
+        if (t.id === 'assets') return can('canManageAssets')
+        if (t.id === 'system') return can('canViewAuditLogs')
+        return false
+    })
+
+    const [tab, setTab] = useState<Tab | null>(null)
 
     useEffect(() => {
-        if (!loading && profile?.role !== 'admin') router.push('/dashboard')
-    }, [loading, profile, router])
+        if (!loading && availableTabs.length === 0) {
+            router.push('/dashboard')
+        } else if (!tab && availableTabs.length > 0) {
+            setTab(availableTabs[0].id)
+        }
+    }, [loading, availableTabs.length, router, tab])
 
-    if (loading || profile?.role !== 'admin') {
+    if (loading || availableTabs.length === 0 || !tab) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="animate-spin w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent" />
+                <div className="animate-spin w-8 h-8 rounded-full border-2 border-primary border-t-transparent" />
             </div>
         )
     }
@@ -48,7 +61,7 @@ export default function AdminPage() {
             <div className="relative h-36 overflow-hidden bg-gradient-to-br from-slate-900 via-[#0d1628] to-[#080c14]">
                 <div className="absolute inset-0 opacity-10"
                     style={{ backgroundImage: 'linear-gradient(rgba(148,163,184,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.3) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
-                <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full bg-emerald-600/10 blur-3xl" />
+                <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full bg-primary/10 blur-3xl" />
                 <div className="absolute -top-16 right-16 w-56 h-56 rounded-full bg-red-600/10 blur-3xl" />
                 <div className="relative z-10 px-8 pt-8">
                     <p className="text-xs text-slate-400/60 uppercase tracking-widest font-medium">Account / Admin Panel</p>
@@ -61,7 +74,7 @@ export default function AdminPage() {
             <div className="px-6 md:px-10 mt-5 max-w-6xl mx-auto pb-16 space-y-5">
                 {/* Tab bar */}
                 <div className="flex flex-wrap gap-2">
-                    {TABS.map(t => {
+                    {availableTabs.map(t => {
                         const a = accentMap[t.accent]
                         const isActive = tab === t.id
                         return (

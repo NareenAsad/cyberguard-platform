@@ -14,7 +14,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 | Area | Status | Details |
 |---|---|---|
-| **UI / Design System** | ✅ Complete | Unified emerald cybersecurity theme across all pages |
+| **UI / Design System** | ✅ Complete | Unified electric cyan and neon green cyber theme across all pages |
 | **Layout Architecture** | ✅ Complete | Full-width navbar + sidebar on all authenticated pages |
 | **Landing Page** | ✅ Complete | Animated background effects, hero, features, footer |
 | **Dashboard** | ✅ Complete | Real-time metrics, threat chart, incidents, AI analysis |
@@ -33,11 +33,12 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/app/globals.css`:
 
-- **Primary colour** — Emerald (`#10b981`) used for all interactive elements, buttons, chart lines, active states, and glowing accents
+- **Primary colour** — Electric Cyan (`#00e5ff`) used for all interactive elements, buttons, chart lines, and glowing accents
+- **Accent colour** — Neon Green (`#00e676`) used for online indicators, healthy states, and active highlights
 - **Background** — Deep navy-black (`hsl(224 71% 4%)`) for a clean ops feel
 - **Typography** — Inter (Google Fonts)
 - **Glassmorphism** — Sidebar and header use `backdrop-blur` where appropriate
-- **Ambient effects** — Glowing orb background rendered on the landing page only (`BackgroundEffects` component)
+- **Ambient effects** — Glowing cyan/neon green orb background rendered on the landing page only (`BackgroundEffects` component)
 
 ### Layout Structure (all authenticated pages)
 
@@ -57,14 +58,14 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 ## 🎯 Features
 
 ### 🏠 Landing Page
-- Animated glowing ambient background (fixed emerald/teal orbs)
+- Animated glowing ambient background (fixed cyan/neon green orbs)
 - Hero section with live security stats
 - Features grid showcasing platform capabilities
 - Full footer with navigation and social links
 
 ### 📊 Dashboard
 - Real-time metrics (threats detected, risk score, active incidents, systems monitored)
-- Emerald area chart for threat activity with 24h / 7d / 30d time range picker
+- Cyber cyan area chart for threat activity with 24h / 7d / 30d time range picker
 - Recent incidents list with severity badges
 - **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel
 
@@ -92,9 +93,10 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 - Status tracking (Completed / In Progress)
 - Statistics summary per report
 
-### ⚙️ Admin Panel
+### ⚙️ Admin Panel & RBAC
 - User management (roles: admin, manager, analyst, viewer)
-- System health monitoring
+- Granular Role-Based Access Control (RBAC) restricting exports, deletions, and system configuration by role
+- System health monitoring and audit logging
 - Data source configuration with toggles
 - Asset inventory
 

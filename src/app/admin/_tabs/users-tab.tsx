@@ -13,7 +13,7 @@ interface AdminUser {
 const ROLE_COLORS: Record<UserRole, string> = {
     admin:   'text-red-400 bg-red-500/10 border-red-500/30',
     manager: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    analyst: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    analyst: 'text-primary bg-primary/10 border-primary/30',
 }
 
 export default function UsersTab() {
@@ -55,13 +55,13 @@ export default function UsersTab() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input value={search} onChange={e => setSearch(e.target.value)}
                         placeholder="Search users…"
-                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/60" />
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-primary/60" />
                 </div>
                 <div className="flex gap-2">
                     <button onClick={load} className="p-2 rounded-xl border border-slate-700/50 bg-slate-800/40 text-slate-400 hover:text-slate-200 transition-colors">
                         <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary text-white text-sm font-medium transition-colors">
                         <Plus className="w-4 h-4" /> Invite User
                     </button>
                 </div>
@@ -71,9 +71,9 @@ export default function UsersTab() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                     { label: 'Total',    value: users.length, color: 'text-slate-200' },
-                    { label: 'Active',   value: users.filter(u => u.is_active).length,  color: 'text-emerald-400' },
+                    { label: 'Active',   value: users.filter(u => u.is_active).length,  color: 'text-primary' },
                     { label: 'Admins',   value: users.filter(u => u.role === 'admin').length,   color: 'text-red-400' },
-                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-emerald-400' },
+                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-primary' },
                 ].map(s => (
                     <div key={s.label} className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4 text-center">
                         <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -105,7 +105,7 @@ export default function UsersTab() {
                                     {/* User */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                                 {(u.full_name || u.email).slice(0, 2).toUpperCase()}
                                             </div>
                                             <div className="min-w-0">
@@ -134,10 +134,10 @@ export default function UsersTab() {
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
                                             u.is_active
-                                                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                                ? 'text-primary bg-primary/10 border-primary/20'
                                                 : 'text-slate-500 bg-slate-700/30 border-slate-600/30'
                                         }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-primary/80' : 'bg-slate-500'}`} />
                                             {u.is_active ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
@@ -159,7 +159,7 @@ export default function UsersTab() {
                                             className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 ${
                                                 u.is_active
                                                     ? 'text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20'
-                                                    : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20'
+                                                    : 'text-primary border-primary/20 bg-primary/10 hover:bg-primary/20'
                                             }`}
                                         >
                                             {u.is_active ? <><UserX className="w-3 h-3" /> Deactivate</> : <><UserCheck className="w-3 h-3" /> Activate</>}

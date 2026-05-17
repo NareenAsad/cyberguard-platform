@@ -21,7 +21,7 @@ export function MetricCard({ title, value, change, unit, icon }: MetricCardProps
             {unit && <span className="text-lg text-muted-foreground ml-1">{unit}</span>}
           </p>
         </div>
-        {icon && <div className="text-accent opacity-50">{icon}</div>}
+        {icon && <div className="text-primary opacity-60">{icon}</div>}
       </div>
       
       {change !== undefined && (

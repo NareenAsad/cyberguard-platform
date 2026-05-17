@@ -3,7 +3,8 @@
 import { useEffect } from 'react'
 import { X, FileText, Download, CheckCircle, Clock, Shield, AlertTriangle, List, Activity, Target } from 'lucide-react'
 import type { Report } from '@/types/report'
-import { exportToPDF } from '@/lib/export-utils'
+import { exportReportToPDF } from '@/lib/export-utils'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface ReportDetailPanelProps {
     report: Report | null
@@ -11,6 +12,7 @@ interface ReportDetailPanelProps {
 }
 
 export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
+    const { can } = useAuth()
     const isOpen = !!report
 
     useEffect(() => {
@@ -31,18 +33,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
 
     const handleDownload = () => {
         if (!report) return
-        exportToPDF(
-            report.title,
-            [report],
-            [
-                { header: 'ID', dataKey: 'id' },
-                { header: 'Type', dataKey: 'type' },
-                { header: 'Status', dataKey: 'status' },
-                { header: 'Date', dataKey: 'generated' },
-                { header: 'Title', dataKey: 'title' },
-            ],
-            `Report-${report.id}`
-        )
+        exportReportToPDF(report)
     }
 
     return (
@@ -65,7 +56,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1.5">
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isCompleted ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isCompleted ? 'bg-accent/10 text-accent border border-accent/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
                                         {report.status}
                                     </span>
                                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest bg-secondary/50 px-2 py-0.5 rounded-full border border-border">
@@ -85,7 +76,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
 
                     {/* Scrollable content body */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
-                        
+
                         {/* 1. Executive Summary */}
                         {content?.executive_report && (
                             <section className="space-y-4">
@@ -109,7 +100,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                         {content?.technical_report && (
                             <section className="space-y-4">
                                 <SectionHeader icon={Shield} title="Technical Findings" />
-                                
+
                                 {/* Patches */}
                                 {content.technical_report.immediate_patches && content.technical_report.immediate_patches.length > 0 && (
                                     <div className="space-y-3">
@@ -123,7 +114,7 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                                                         <span>{patch.cve_id}</span>
                                                         <span className="text-muted-foreground">{patch.asset}</span>
                                                     </div>
-                                                    <code className="bg-black/40 p-2 rounded text-emerald-400 font-mono text-[10px]">
+                                                    <code className="bg-black/40 p-2 rounded text-accent font-mono text-[10px]">
                                                         {patch.patch_command}
                                                     </code>
                                                 </div>
@@ -178,19 +169,15 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
 
                     {/* Footer */}
                     <div className="p-6 border-t border-border bg-background/50 flex gap-3">
-                        <button
-                            onClick={handleDownload}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
-                        >
-                            <Download className="w-4 h-4" />
-                            Export Full Analysis (PDF)
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="px-6 py-3 bg-secondary text-foreground rounded-xl font-bold text-sm hover:bg-secondary/80 transition-colors"
-                        >
-                            Close
-                        </button>
+                        {can('canExportData') && (
+                            <button
+                                onClick={handleDownload}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export Full Analysis (PDF)
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

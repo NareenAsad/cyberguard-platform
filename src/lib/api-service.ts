@@ -128,6 +128,15 @@ export const incidentAPI = {
         })
         return await response.json()
     },
+
+    updateIncident: async (id: string, updates: { assignee?: string; status?: string }) => {
+        const response = await fetch(`/api/incident-response?id=${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+        })
+        return await response.json()
+    },
 }
 
 // Playbooks APIs

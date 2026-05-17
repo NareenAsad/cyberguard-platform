@@ -22,7 +22,7 @@ export function ThreatFilters({
     return (
         <div className="bg-card border border-border rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-2 mb-4">
-                <Filter className="w-5 h-5 text-accent" />
+                <Filter className="w-5 h-5 text-primary" />
                 <h3 className="font-semibold text-foreground">Filters</h3>
             </div>
 

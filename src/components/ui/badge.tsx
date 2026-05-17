@@ -8,9 +8,9 @@ export function Badge({ variant = 'default', children, className = '' }: BadgePr
   const variants = {
     default: 'bg-secondary text-secondary-foreground',
     destructive: 'bg-destructive/20 text-destructive',
-    success: 'bg-green-500/20 text-green-400',
+    success: 'bg-accent/20 text-accent',
     warning: 'bg-yellow-500/20 text-yellow-400',
-    info: 'bg-emerald-500/20 text-emerald-400',
+    info: 'bg-primary/20 text-primary',
     outline: 'border border-current bg-transparent',
   }
 

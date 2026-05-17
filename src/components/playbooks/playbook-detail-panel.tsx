@@ -128,7 +128,7 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
                     <div className="flex items-start justify-between p-6 border-b border-border">
                         <div className="flex items-start gap-3 pr-4">
                             <div className="p-2.5 rounded-xl bg-accent/10 shrink-0">
-                                <BookOpen className="w-5 h-5 text-accent" />
+                                <BookOpen className="w-5 h-5 text-primary" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1.5">
@@ -173,9 +173,9 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
                             <div className="space-y-7">
                                 <StepList icon={BookOpen} label="Preparation" color="text-blue-400" bg="bg-blue-500/15" steps={preparation} />
                                 <StepList icon={AlertTriangle} label="Identification" color="text-amber-400" bg="bg-amber-500/15" steps={identification} />
-                                <StepList icon={Shield} label="Containment" color="text-emerald-400" bg="bg-emerald-500/15" steps={containment} />
+                                <StepList icon={Shield} label="Containment" color="text-primary" bg="bg-primary/15" steps={containment} />
                                 <StepList icon={AlertTriangle} label="Eradication" color="text-orange-400" bg="bg-orange-500/15" steps={eradication} />
-                                <StepList icon={RefreshCw} label="Recovery" color="text-green-400" bg="bg-green-500/15" steps={recovery} />
+                                <StepList icon={RefreshCw} label="Recovery" color="text-accent" bg="bg-accent/15" steps={recovery} />
                                 <StepList icon={CheckCircle} label="Post-Incident" color="text-purple-400" bg="bg-purple-500/15" steps={postIncident} />
                             </div>
                         ) : (

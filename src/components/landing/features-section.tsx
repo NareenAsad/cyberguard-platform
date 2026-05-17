@@ -13,9 +13,9 @@ export function FeaturesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Feature 1 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-emerald-500/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Network className="w-6 h-6 text-emerald-400" />
+          <div className="p-8 rounded-3xl bg-card border border-border hover:border-primary/30 transition-colors group">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Network className="w-6 h-6 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">Multi-Agent Architecture</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -24,9 +24,9 @@ export function FeaturesSection() {
           </div>
 
           {/* Feature 2 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-emerald-500/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <BrainCircuit className="w-6 h-6 text-emerald-400" />
+          <div className="p-8 rounded-3xl bg-card border border-border hover:border-primary/30 transition-colors group">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <BrainCircuit className="w-6 h-6 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">Explainable AI</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -35,9 +35,9 @@ export function FeaturesSection() {
           </div>
 
           {/* Feature 3 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-teal-500/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6 text-teal-400" />
+          <div className="p-8 rounded-3xl bg-card border border-border hover:border-accent/30 transition-colors group">
+            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Activity className="w-6 h-6 text-accent" />
             </div>
             <h3 className="text-xl font-semibold mb-3">Proactive Neutralization</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -46,7 +46,7 @@ export function FeaturesSection() {
           </div>
         </div>
 
-        <div className="mt-16 bg-gradient-to-r from-emerald-900/20 to-emerald-900/20 border border-emerald-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="mt-16 bg-card border border-primary/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <h3 className="text-2xl font-bold mb-2">Enterprise-Grade, Democratized</h3>
             <p className="text-muted-foreground max-w-xl">
@@ -56,7 +56,7 @@ export function FeaturesSection() {
           <ul className="space-y-3">
             {['Cost Effective', 'High Performance', 'Scalable Architecture'].map((item, i) => (
               <li key={i} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-primary" />
                 <span className="font-medium">{item}</span>
               </li>
             ))}

@@ -13,14 +13,13 @@ import {
 type Section = 'security' | 'notifications' | 'appearance'
 
 const NAV_ITEMS = [
-    { id: 'security'      as Section, icon: Shield,  label: 'Security',       desc: 'Password & sessions', accent: 'blue'   as const },
-    { id: 'notifications' as Section, icon: Bell,    label: 'Notifications',  desc: 'Alerts & reports',    accent: 'amber'  as const },
-    { id: 'appearance'    as Section, icon: Palette, label: 'Appearance',     desc: 'Theme & density',     accent: 'purple' as const },
-]
+    { id: 'security' as Section, icon: Shield, label: 'Security', desc: 'Password & sessions', accent: 'blue' as const },
+    { id: 'notifications' as Section, icon: Bell, label: 'Notifications', desc: 'Alerts & reports', accent: 'amber' as const },
+    ]
 
 const accentMap = {
-    blue:   { icon: 'text-emerald-400',   bg: 'bg-emerald-500/10',   border: 'border-emerald-500/30',   active: 'bg-emerald-600/15 border-emerald-500/40' },
-    amber:  { icon: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  active: 'bg-amber-600/15 border-amber-500/40' },
+    blue: { icon: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', active: 'bg-primary/15 border-primary/40' },
+    amber: { icon: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', active: 'bg-amber-600/15 border-amber-500/40' },
     purple: { icon: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30', active: 'bg-purple-600/15 border-purple-500/40' },
 }
 
@@ -43,7 +42,7 @@ export default function SettingsPage() {
                         backgroundSize: '40px 40px',
                     }}
                 />
-                <div className="absolute -top-24 left-1/3 w-80 h-80 rounded-full bg-emerald-600/10 blur-3xl" />
+                <div className="absolute -top-24 left-1/3 w-80 h-80 rounded-full bg-primary/10 blur-3xl" />
                 <div className="absolute -top-16 right-10 w-60 h-60 rounded-full bg-purple-600/10 blur-3xl" />
                 <div className="relative z-10 px-8 pt-8">
                     <p className="text-xs text-slate-400/60 uppercase tracking-widest font-medium">
@@ -68,13 +67,11 @@ export default function SettingsPage() {
                                     <button
                                         key={item.id}
                                         onClick={() => setSection(item.id)}
-                                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all duration-200 text-left group ${
-                                            isActive ? `${a.active} border shadow-sm` : 'border-transparent hover:bg-slate-800/50 hover:border-slate-700/40'
-                                        }`}
+                                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all duration-200 text-left group ${isActive ? `${a.active} border shadow-sm` : 'border-transparent hover:bg-slate-800/50 hover:border-slate-700/40'
+                                            }`}
                                     >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                                            isActive ? `${a.bg} ${a.border} border` : 'bg-slate-800/60'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isActive ? `${a.bg} ${a.border} border` : 'bg-slate-800/60'
+                                            }`}>
                                             <item.icon className={`w-4 h-4 ${isActive ? a.icon : 'text-slate-500 group-hover:text-slate-400'}`} />
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -94,10 +91,9 @@ export default function SettingsPage() {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                        {section === 'security'      && <SecuritySection email={user?.email || ''} />}
+                        {section === 'security' && <SecuritySection email={user?.email || ''} />}
                         {section === 'notifications' && <NotificationsSection />}
-                        {section === 'appearance'    && <AppearanceSection />}
-                    </div>
+                                            </div>
                 </div>
             </div>
         </div>
@@ -109,17 +105,17 @@ export default function SettingsPage() {
 
 function SecuritySection({ email }: { email: string }) {
     const [showCurrent, setShowCurrent] = useState(false)
-    const [showNew,     setShowNew]     = useState(false)
+    const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
-    const [saving,      setSaving]      = useState(false)
-    const [saved,       setSaved]       = useState(false)
-    const [error,       setError]       = useState('')
+    const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState(false)
+    const [error, setError] = useState('')
     const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' })
 
     async function handleChangePassword() {
         setError('')
         if (passwords.newPass !== passwords.confirm) { setError('New passwords do not match'); return }
-        if (passwords.newPass.length < 8)            { setError('Password must be at least 8 characters'); return }
+        if (passwords.newPass.length < 8) { setError('Password must be at least 8 characters'); return }
         setSaving(true)
         try {
             const supabase = createClient()
@@ -139,8 +135,8 @@ function SecuritySection({ email }: { email: string }) {
         <div className="space-y-4">
             <SectionCard icon={Key} title="Change Password" description="Use a strong, unique password" accent="blue">
                 <div className="space-y-4">
-                    <PwField label="Current Password"     value={passwords.current} show={showCurrent} onToggle={() => setShowCurrent(s => !s)} onChange={v => setPasswords(p => ({ ...p, current: v }))} />
-                    <PwField label="New Password"         value={passwords.newPass} show={showNew}     onToggle={() => setShowNew(s => !s)}     onChange={v => setPasswords(p => ({ ...p, newPass: v }))} />
+                    <PwField label="Current Password" value={passwords.current} show={showCurrent} onToggle={() => setShowCurrent(s => !s)} onChange={v => setPasswords(p => ({ ...p, current: v }))} />
+                    <PwField label="New Password" value={passwords.newPass} show={showNew} onToggle={() => setShowNew(s => !s)} onChange={v => setPasswords(p => ({ ...p, newPass: v }))} />
                     <PwField label="Confirm New Password" value={passwords.confirm} show={showConfirm} onToggle={() => setShowConfirm(s => !s)} onChange={v => setPasswords(p => ({ ...p, confirm: v }))} />
                 </div>
 
@@ -178,7 +174,7 @@ function SecuritySection({ email }: { email: string }) {
                                 </div>
                             </div>
                             {s.current
-                                ? <span className="text-[11px] font-medium text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">● Current</span>
+                                ? <span className="text-[11px] font-medium text-primary bg-primary/80/10 px-2.5 py-1 rounded-full border border-primary/20">● Current</span>
                                 : <button className="text-xs text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg transition-colors">Revoke</button>
                             }
                         </div>
@@ -197,7 +193,7 @@ function SecuritySection({ email }: { email: string }) {
                             <p className="text-xs text-slate-500 mt-0.5">TOTP-based two-factor authentication</p>
                         </div>
                     </div>
-                    <button className="text-sm font-medium text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/50 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 rounded-xl transition-all">
+                    <button className="text-sm font-medium text-primary hover:text-primary border border-primary/30 hover:border-primary/50 bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-xl transition-all">
                         Enable
                     </button>
                 </div>
@@ -210,11 +206,11 @@ function SecuritySection({ email }: { email: string }) {
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 const DEFAULT_PREFS = {
-    critical_alerts:   true,
-    high_alerts:       true,
-    medium_alerts:     false,
-    weekly_report:     true,
-    agent_complete:    true,
+    critical_alerts: true,
+    high_alerts: true,
+    medium_alerts: false,
+    weekly_report: true,
+    agent_complete: true,
     incident_assigned: true,
 }
 
@@ -227,7 +223,7 @@ function NotificationsSection() {
         try {
             const stored = localStorage.getItem(NOTIF_KEY)
             if (stored) setPrefs(JSON.parse(stored))
-        } catch {}
+        } catch { }
     }, [])
 
     const toggle = (key: keyof typeof prefs) => setPrefs(p => ({ ...p, [key]: !p[key] }))
@@ -242,17 +238,17 @@ function NotificationsSection() {
         {
             title: 'Threat Alerts',
             items: [
-                { key: 'critical_alerts'   as const, label: 'Critical Threats',       desc: 'Risk score ≥ 70 — immediate action required', badge: 'CRITICAL', badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30' },
-                { key: 'high_alerts'       as const, label: 'High Severity',           desc: 'Risk score 50–69',                             badge: 'HIGH',     badgeColor: 'text-orange-400 bg-orange-500/10 border-orange-500/30' },
-                { key: 'medium_alerts'     as const, label: 'Medium Severity',         desc: 'Risk score 30–49',                             badge: 'MEDIUM',   badgeColor: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' },
+                { key: 'critical_alerts' as const, label: 'Critical Threats', desc: 'Risk score ≥ 70 — immediate action required', badge: 'CRITICAL', badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30' },
+                { key: 'high_alerts' as const, label: 'High Severity', desc: 'Risk score 50–69', badge: 'HIGH', badgeColor: 'text-orange-400 bg-orange-500/10 border-orange-500/30' },
+                { key: 'medium_alerts' as const, label: 'Medium Severity', desc: 'Risk score 30–49', badge: 'MEDIUM', badgeColor: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' },
             ]
         },
         {
             title: 'Reports & Activities',
             items: [
-                { key: 'weekly_report'     as const, label: 'Weekly Security Report',  desc: 'Executive summary delivered every Monday',   badge: null, badgeColor: '' },
-                { key: 'agent_complete'    as const, label: 'AI Analysis Complete',    desc: 'Notify when the analysis pipeline finishes', badge: null, badgeColor: '' },
-                { key: 'incident_assigned' as const, label: 'Incident Assigned to Me', desc: 'Alert when an incident is assigned to you',  badge: null, badgeColor: '' },
+                { key: 'weekly_report' as const, label: 'Weekly Security Report', desc: 'Executive summary delivered every Monday', badge: null, badgeColor: '' },
+                { key: 'agent_complete' as const, label: 'AI Analysis Complete', desc: 'Notify when the analysis pipeline finishes', badge: null, badgeColor: '' },
+                { key: 'incident_assigned' as const, label: 'Incident Assigned to Me', desc: 'Alert when an incident is assigned to you', badge: null, badgeColor: '' },
             ]
         },
     ]
@@ -285,13 +281,11 @@ function NotificationsSection() {
                                     </div>
                                     {/* Toggle switch */}
                                     <div
-                                        className={`relative w-11 h-6 rounded-full flex-shrink-0 ml-4 transition-all duration-300 ${
-                                            prefs[item.key] ? 'bg-amber-500' : 'bg-slate-700'
-                                        }`}
+                                        className={`relative w-11 h-6 rounded-full flex-shrink-0 ml-4 transition-all duration-300 ${prefs[item.key] ? 'bg-amber-500' : 'bg-slate-700'
+                                            }`}
                                     >
-                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
-                                            prefs[item.key] ? 'translate-x-5' : 'translate-x-0'
-                                        }`} />
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${prefs[item.key] ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
                                     </div>
                                 </div>
                             ))}
@@ -317,7 +311,7 @@ function NotificationsSection() {
 
 function AppearanceSection() {
     const { theme, setTheme, resolvedTheme } = useTheme()
-    const [density,     setDensity]     = useState<'compact' | 'comfortable'>('comfortable')
+    const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable')
     const [densitySaved, setDensitySaved] = useState(false)
     const [mounted, setMounted] = useState(false)
 
@@ -332,7 +326,7 @@ function AppearanceSection() {
                 setDensity(stored)
                 document.documentElement.setAttribute('data-density', stored)
             }
-        } catch {}
+        } catch { }
     }, [])
 
     function handleSaveDensity() {
@@ -343,8 +337,8 @@ function AppearanceSection() {
     }
 
     const themes = [
-        { id: 'dark'   as const, icon: Moon,    label: 'Dark',   desc: 'Easy on the eyes' },
-        { id: 'light'  as const, icon: Sun,     label: 'Light',  desc: 'Bright & clean'   },
+        { id: 'dark' as const, icon: Moon, label: 'Dark', desc: 'Easy on the eyes' },
+        { id: 'light' as const, icon: Sun, label: 'Light', desc: 'Bright & clean' },
         { id: 'system' as const, icon: Monitor, label: 'System', desc: 'Follow OS setting' },
     ]
 
@@ -360,15 +354,13 @@ function AppearanceSection() {
                             <button
                                 key={t.id}
                                 onClick={() => setTheme(t.id)}
-                                className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all duration-200 ${
-                                    isActive
+                                className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all duration-200 ${isActive
                                         ? 'border-purple-500/60 bg-purple-600/10 shadow-sm shadow-purple-500/10'
                                         : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60 hover:bg-slate-800/50'
-                                }`}
+                                    }`}
                             >
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                                    isActive ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-slate-700/60'
-                                }`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isActive ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-slate-700/60'
+                                    }`}>
                                     <t.icon className={`w-5 h-5 ${isActive ? 'text-purple-300' : 'text-slate-400'}`} />
                                 </div>
                                 <div className="text-center">
@@ -393,11 +385,10 @@ function AppearanceSection() {
                         <button
                             key={d}
                             onClick={() => setDensity(d)}
-                            className={`flex flex-col gap-1.5 p-4 rounded-xl border transition-all duration-200 text-left ${
-                                density === d
+                            className={`flex flex-col gap-1.5 p-4 rounded-xl border transition-all duration-200 text-left ${density === d
                                     ? 'border-purple-500/60 bg-purple-600/10'
                                     : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60'
-                            }`}
+                                }`}
                         >
                             <p className={`text-sm font-semibold capitalize ${density === d ? 'text-purple-200' : 'text-slate-400'}`}>{d}</p>
                             <p className="text-xs text-slate-500">
@@ -447,14 +438,13 @@ function SectionCard({
 
 function Alert({ type, children }: { type: 'success' | 'error'; children: React.ReactNode }) {
     return (
-        <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${
-            type === 'success'
-                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+        <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${type === 'success'
+                ? 'text-primary bg-primary/10 border-primary/20'
                 : 'text-red-400 bg-red-500/10 border-red-500/20'
-        }`}>
+            }`}>
             {type === 'success'
                 ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                : <AlertCircle  className="w-4 h-4 flex-shrink-0" />
+                : <AlertCircle className="w-4 h-4 flex-shrink-0" />
             }
             {children}
         </div>
@@ -466,8 +456,8 @@ function ActionButton({ onClick, disabled, loading, accent, icon: Icon, label, l
     accent: 'blue' | 'amber' | 'purple'; icon: any; label: string; loadingLabel?: string
 }) {
     const colors = {
-        blue:   'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/25',
-        amber:  'bg-amber-600 hover:bg-amber-500 hover:shadow-amber-500/25',
+        blue: 'bg-primary hover:bg-primary hover:shadow-primary/25',
+        amber: 'bg-amber-600 hover:bg-amber-500 hover:shadow-amber-500/25',
         purple: 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/25',
     }
     return (
@@ -495,7 +485,7 @@ function PwField({ label, value, show, onToggle, onChange }: {
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pr-10 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/30 transition-all"
+                    className="w-full pr-10 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm placeholder:text-slate-600 focus:outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
                 <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -507,9 +497,9 @@ function PwField({ label, value, show, onToggle, onChange }: {
 
 function PasswordStrength({ password }: { password: string }) {
     const checks = [password.length >= 8, /[A-Z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)]
-    const score  = checks.filter(Boolean).length
+    const score = checks.filter(Boolean).length
     const labels = ['Too weak', 'Weak', 'Fair', 'Strong', 'Very strong']
-    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500', 'bg-emerald-400']
+    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-primary', 'bg-primary/80']
     return (
         <div className="space-y-1.5">
             <div className="flex gap-1.5">
