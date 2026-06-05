@@ -1,69 +1,159 @@
-import { BrainCircuit, Network, Activity, CheckCircle2 } from "lucide-react";
+import { BrainCircuit, Network, Activity, Database, FileText, Shield, CheckCircle2 } from "lucide-react";
+
+const PIPELINE = [
+  { step: "01", title: "Continuous Aggregation", desc: "Collect logs and threat data from real-time feeds including NVD, AlienVault OTX, ThreatFox, and AbuseIPDB." },
+  { step: "02", title: "MITRE ATT&CK Enrichment", desc: "Correlate IOCs against active CVE lists and enrich with structured MITRE tactics and techniques." },
+  { step: "03", title: "AI-Collaborative Reasoning", desc: "Coordinate 5 specialized AI agents to analyze alerts, assess severity, and audit context." },
+  { step: "04", title: "Explainable Risk Scoring", desc: "Assign custom risk levels (0-100) detailing the exact reason why an asset is flagged." },
+  { step: "05", title: "NIST Playbook Remediation", desc: "Deploy containment, isolation, and remediation steps aligned to industry-standard frameworks." },
+];
+
+const AGENTS = [
+  {
+    role: "Threat Intelligence Agent",
+    tag: "INGESTION",
+    desc: "Ingests raw indicators, filters out duplicates, and parses exploitation scores dynamically from public databases.",
+    highlight: true,
+  },
+  {
+    role: "Vulnerability Scan Agent",
+    tag: "CORRELATION",
+    desc: "Correlates newly discovered CVEs against your local asset database, assessing immediate surface vulnerability exposure.",
+    highlight: false,
+  },
+  {
+    role: "Risk Analysis Agent",
+    tag: "EVALUATION",
+    desc: "Calculates overall platform security posture scores, analyzing criticality and generating clear explanation chains.",
+    highlight: false,
+  },
+  {
+    role: "Incident Response Agent",
+    tag: "MITIGATION",
+    desc: "Formulates containment workplans, isolates suspicious addresses, and prepares recovery pipelines for authorization.",
+    highlight: false,
+  },
+  {
+    role: "Reporting & Audit Agent",
+    tag: "DOCUMENTATION",
+    desc: "Compiles complete incident summaries, generates executive, technical, and compliance reports ready for export.",
+    highlight: false,
+  },
+];
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="relative z-10 py-24 border-t border-border bg-muted/20">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">The missing link in Modern Defense</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Centralizing specialized AI agents that monitor global threat landscapes and cross-reference them against your organization's specific assets.
-          </p>
-        </div>
+    <section id="features" className="relative z-10 py-24 border-t border-border/50">
+      <div className="max-w-7xl mx-auto px-6 space-y-28">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-primary/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Network className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Multi-Agent Architecture</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Centralized AI agent activity provides human-level reasoning blended with automated response playbooks for comprehensive defense.
-            </p>
+        {/* ── Pipeline: How It Works ── */}
+        <div>
+          <div className="mb-16">
+            <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">How We Work</span>
+            <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white mt-4">
+              From raw threat data to<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">automated response.</span>
+            </h2>
           </div>
 
-          {/* Feature 2 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-primary/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <BrainCircuit className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Explainable AI</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Transparent reasoning chains ensure security teams can have complete faith in the system's automated judgments and actions.
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="p-8 rounded-3xl bg-card border border-border hover:border-accent/30 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6 text-accent" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Proactive Neutralization</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Stop reacting. Threats are automatically identified and neutralized before they can escalate, protecting your assets 24/7.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-16 bg-card border border-primary/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div>
-            <h3 className="text-2xl font-bold mb-2">Enterprise-Grade, Democratized</h3>
-            <p className="text-muted-foreground max-w-xl">
-              Get high-end security features at less than 5% of the price of conventional commercial platforms. We believe robust security should be accessible to everyone.
-            </p>
-          </div>
-          <ul className="space-y-3">
-            {['Cost Effective', 'High Performance', 'Scalable Architecture'].map((item, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary" />
-                <span className="font-medium">{item}</span>
-              </li>
+          {/* Premium step structure from the reference design */}
+          <div className="flex flex-col border-t border-border/50">
+            {PIPELINE.map((p, i) => (
+              <div 
+                key={i} 
+                className="group grid grid-cols-1 md:grid-cols-[100px_2fr_3fr] gap-6 md:gap-12 py-10 border-b border-border/50 hover:bg-card/20 transition-all duration-300 px-4 items-center"
+              >
+                <span className="font-mono text-3xl md:text-4xl font-black text-primary/40 group-hover:text-primary transition-colors">
+                  {p.step}
+                </span>
+                <h3 className="font-sans text-lg md:text-xl font-bold text-white leading-snug">
+                  {p.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed font-light">
+                  {p.desc}
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
+
+        {/* ── AI Agent Specialists Grid ── */}
+        <div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end mb-16">
+            <div>
+              <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">The Specialists</span>
+              <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white mt-4">
+                Meet the AI agents<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent font-black">behind your defense.</span>
+              </h2>
+            </div>
+            <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-light max-w-md lg:mb-2">
+              Each specialized agent performs a critical stage of the analysis lifecycle, collaborating autonomously before handing off data logs.
+            </p>
+          </div>
+
+          {/* AI Agent Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {AGENTS.map((a, i) => (
+              <div
+                key={i}
+                className={`group relative p-8 rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col justify-between min-h-[260px] ${
+                  a.highlight
+                    ? "bg-gradient-to-br from-primary/10 via-card to-card border-primary/30 hover:border-primary/50"
+                    : "bg-card border-border/70 hover:border-primary/20 hover:bg-card/80"
+                }`}
+              >
+                {/* Glow filter */}
+                <div className="absolute -top-12 -right-12 w-36 h-36 bg-primary/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/10 transition-all duration-500" />
+                
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-bold tracking-widest text-primary/60 border border-primary/25 rounded px-2 py-0.5 uppercase">
+                      {a.tag}
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                  </div>
+                  <h3 className="font-sans text-lg font-bold text-white group-hover:text-primary transition-colors pt-2">
+                    {a.role}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed font-light pt-1">
+                    {a.desc}
+                  </p>
+                </div>
+
+                <div className="relative pt-6 flex items-center gap-1.5 text-[10px] font-mono text-primary/60 group-hover:text-primary tracking-wider uppercase transition-colors">
+                  <span>Agent Online</span>
+                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Enterprise Value Banner ── */}
+        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-accent/5 p-10 md:p-14 text-center">
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative max-w-3xl mx-auto">
+            <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">Open Source · Enterprise Grade</span>
+            <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white mt-6 mb-4">
+              Less than 5% of the cost.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">100% of the capability.</span>
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed font-light">
+              Built on Llama 3 via Groq, CrewAI, Next.js, and Supabase — CyberGuard gives SMEs enterprise-level threat intelligence without the enterprise price tag.
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
+              {["Role-Based Access Control", "Real-Time WebSocket Updates", "Explainable AI Reasoning", "PDF Export", "NIST Playbooks"].map((f) => (
+                <span key={f} className="flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-muted-foreground">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   );
 }
-

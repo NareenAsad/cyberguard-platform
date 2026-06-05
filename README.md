@@ -58,10 +58,12 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 ## 🎯 Features
 
 ### 🏠 Landing Page
-- Animated glowing ambient background (fixed cyan/neon green orbs)
-- Hero section with live security stats
-- Features grid showcasing platform capabilities
-- Full footer with navigation and social links
+- **Premium Cybersecurity Aesthetic** — Structural blueprint grid-line overlays (`BackgroundEffects` component) with subtle cyan and green radial glow gradients.
+- **Custom Mouse Cursor** — Lag-interpolated Cyan dot-and-ring follower cursor (`CustomCursor` component) with active resizing micro-animations on interactive hovers.
+- **Hero & Live Threat Monitor** — Two-column split layout displaying professional bold headlines, interactive agent badges, CTA controls, and a live-scrolling animated threat monitor console backed by key SOC statistics.
+- **Seamless Integrations Marquee** — Looping horizontal scroller track (`Marquee` component) highlighting continuous integrations (NVD, OTX, ThreatFox, MITRE ATT&CK...).
+- **Before/After Incident Slider** — Interactive drag-slider (`TransformationSlider` component) showing the visual transformation between chaotic unmapped manual logs (200+ days breach gap) and automated multi-agent response (mitigated in 3s).
+- **Workflow Pipeline & Specialists Grid** — Step-by-step security pipeline with large index row cards, and a designated team grid profile section showcasing the 5 specialized AI agents with online status tracking.
 
 ### 📊 Dashboard
 - Real-time metrics (threats detected, risk score, active incidents, systems monitored)
@@ -185,7 +187,8 @@ cyberguard-platform/
 │   │   ├── layout/
 │   │   │   ├── header.tsx              Full-width top navbar
 │   │   │   ├── sidebar.tsx             Left navigation
-│   │   │   └── background-effects.tsx  Landing page ambient glow
+│   │   │   ├── background-effects.tsx  Landing page grid blueprint overlay
+│   │   │   └── custom-cursor.tsx       Mouse follow dot-and-ring follower
 │   │   ├── dashboard/
 │   │   ├── threats/
 │   │   ├── risk-analysis/
@@ -193,6 +196,8 @@ cyberguard-platform/
 │   │   ├── playbooks/
 │   │   ├── reports/
 │   │   ├── landing/
+│   │   │   ├── marquee.tsx             Looping integrations marquee
+│   │   │   └── transformation-slider.tsx Draggable before/after comparison slider
 │   │   ├── auth/
 │   │   └── ui/                         shadcn/ui primitives
 │   ├── lib/
@@ -263,6 +268,6 @@ npm run dev
 
 **Built with ❤️ by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 1.3.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** May 2026
+**Version:** 3.0.1 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
 
 </div>

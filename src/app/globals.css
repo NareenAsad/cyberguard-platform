@@ -74,8 +74,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-sans), sans-serif;
+  --font-serif: var(--font-serif), serif;
+  --font-mono: var(--font-mono), monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,6 +122,13 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  .custom-cursor-active,
+  .custom-cursor-active * {
+    @media (pointer: fine) {
+      cursor: none !important;
+    }
   }
 }
 

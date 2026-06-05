@@ -46,14 +46,43 @@ async function saveAndNotify(jobId: string, result: any) {
     console.log(`[Save ${jobId}] Keys:`, Object.keys(result))
 
     // ── 1. Threats ────────────────────────────────────────────────────────
+    // Build a set of indicator values already in the DB to avoid duplicates
+    const existingValues = new Set<string>()
+    if ((result.threats ?? []).length > 0) {
+        const indicatorValues = (result.threats ?? []).map((t: any) => t.indicator_value).filter(Boolean)
+        if (indicatorValues.length > 0) {
+            const { data: existing } = await supabase
+                .from('Threat')
+                .select('target')
+                .in('target', indicatorValues)
+            for (const row of existing ?? []) existingValues.add(row.target)
+        }
+    }
+
     for (const t of result.threats ?? []) {
+        const indicatorValue = t.indicator_value ?? 'Unknown'
+
+        // Skip if this exact indicator was already saved before (dedup)
+        if (existingValues.has(indicatorValue)) {
+            console.log(`[Save] Skipping duplicate threat: ${indicatorValue}`)
+            continue
+        }
+
+        // Derive a meaningful source: use MITRE tactic or confidence label
+        // (threat_actor does not exist on ThreatIntelResult)
+        const sourceLabel = t.mitre_tactic
+            ? `MITRE: ${t.mitre_tactic}`
+            : t.active_exploitation
+            ? 'Active Exploitation'
+            : 'Threat Intelligence Feed'
+
         const { error } = await supabase.from('Threat').insert({
             id:          `thr-${jobId}-${rand()}`,
             threatId:    `THR-AI-${rand().toUpperCase()}`,
             type:        t.indicator_type  ?? 'malware',
             severity:    priorityToSeverity(t.priority_score ?? 50),
-            source:      t.threat_actor    ?? 'AI Agent',
-            target:      t.indicator_value ?? 'Unknown',
+            source:      sourceLabel,
+            target:      indicatorValue,
             detected:    now,
             status:      'mitigating',
         })

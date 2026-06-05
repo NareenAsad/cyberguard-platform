@@ -35,47 +35,57 @@ export function Header() {
 
     // Socket Notifications
     const socket = initSocket()
-    
-    const handleNewThreat = (data: any) => {
+
+    // alert:new — fired after AI agent saves threats/risks/incidents to DB
+    const handleAlert = (data: any) => {
       if (!mounted) return
       setNotifications(prev => [{
         id: Math.random().toString(36).substr(2, 9),
-        title: `New threat detected: ${data?.indicator_value || 'Unknown indicator'}`,
-        time: new Date().toISOString(),
-        read: false
-      }, ...prev].slice(0, 50)) // Keep last 50
+        title: data?.title
+          ? `${data.title}${data.message ? ': ' + data.message : ''}`
+          : 'New security alert detected',
+        time: data?.timestamp || new Date().toISOString(),
+        read: false,
+        severity: data?.severity || 'info',
+      } as any, ...prev].slice(0, 50))
     }
 
-    const handleIncidentUpdate = (data: any) => {
+    // metrics:update — fired when posture score changes
+    const handleMetrics = (data: any) => {
       if (!mounted) return
-      setNotifications(prev => [{
-        id: Math.random().toString(36).substr(2, 9),
-        title: `Incident updated: ${data?.cve_id || data?.id || 'Unknown'}`,
-        time: new Date().toISOString(),
-        read: false
-      }, ...prev].slice(0, 50))
+      if (data?.criticalCount > 0) {
+        setNotifications(prev => [{
+          id: Math.random().toString(36).substr(2, 9),
+          title: `Security posture update: ${data.criticalCount} critical, ${data.highCount ?? 0} high issues`,
+          time: new Date().toISOString(),
+          read: false,
+        }, ...prev].slice(0, 50))
+      }
     }
 
-    const handleAgentComplete = (data: any) => {
+    // page:refresh — data was saved, tell the user
+    const handlePageRefresh = (data: any) => {
       if (!mounted) return
-      setNotifications(prev => [{
-        id: Math.random().toString(36).substr(2, 9),
-        title: `Agent analysis completed for job ${data?.job_id?.substring(0, 8) || ''}`,
-        time: new Date().toISOString(),
-        read: false
-      }, ...prev].slice(0, 50))
+      if (data?.page === 'threats') {
+        setNotifications(prev => [{
+          id: Math.random().toString(36).substr(2, 9),
+          title: 'New threats detected and saved to database',
+          time: new Date().toISOString(),
+          read: false,
+        }, ...prev].slice(0, 50))
+      }
     }
 
-    socket.on('threats:new', handleNewThreat)
-    socket.on('incidents:update', handleIncidentUpdate)
-    socket.on('agent:complete', handleAgentComplete)
+    socket.on('alert:new', handleAlert)
+    socket.on('metrics:update', handleMetrics)
+    socket.on('page:refresh', handlePageRefresh)
 
     return () => {
       mounted = false
       clearInterval(interval)
-      socket.off('threats:new', handleNewThreat)
-      socket.off('incidents:update', handleIncidentUpdate)
-      socket.off('agent:complete', handleAgentComplete)
+      socket.off('alert:new', handleAlert)
+      socket.off('metrics:update', handleMetrics)
+      socket.off('page:refresh', handlePageRefresh)
     }
   }, [])
 

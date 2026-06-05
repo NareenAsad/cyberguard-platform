@@ -29,9 +29,21 @@ const TIME_RANGES = [
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
+
+    // Add year to the tooltip label for full context (keep X-axis short)
+    const labelWithYear = (() => {
+        try {
+            const parsed = new Date(`${label} ${new Date().getFullYear()}`)
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+            }
+        } catch {}
+        return label
+    })()
+
     return (
         <div className="bg-popover/95 border border-primary/20 rounded-lg px-3.5 py-2.5">
-            <p className="text-muted-foreground text-xs mb-1">{label}</p>
+            <p className="text-muted-foreground text-xs mb-1">{labelWithYear}</p>
             <p className="text-primary text-sm font-bold">
                 {payload[0]?.value} <span className="text-xs font-normal text-muted-foreground">threats</span>
             </p>

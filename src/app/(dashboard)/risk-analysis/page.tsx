@@ -34,8 +34,10 @@ export default function RiskAnalysisPage() {
 
     // Use full asset name for the chart — truncate only if >18 chars
     const chartData = riskAnalysis.map(item => ({
-        name: item.assetName
-            ? (item.assetName.length > 18 ? item.assetName.substring(0, 16) + '…' : item.assetName)
+        name: (item.asset || item.assetName)
+            ? ((item.asset || item.assetName).length > 18
+                ? (item.asset || item.assetName).substring(0, 16) + '…'
+                : (item.asset || item.assetName))
             : 'Unknown',
         riskLevel: item.riskLevel,
         vulnerabilities: Math.floor(item.riskLevel / 10),
