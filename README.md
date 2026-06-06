@@ -1,4 +1,4 @@
-# 🛡️ CyberGuard — AI-Driven Threat Intelligence & Incident Response
+# CyberGuard — AI-Driven Threat Intelligence & Incident Response
 
 An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Project. CyberGuard unifies real-time threat monitoring, AI-assisted analysis, and automated incident response into a single, professional security operations interface.
 
@@ -10,25 +10,25 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 ---
 
-## ✨ Platform Status
+## Platform Status
 
 | Area | Status | Details |
 |---|---|---|
-| **UI / Design System** | ✅ Complete | Unified electric cyan and neon green cyber theme across all pages |
-| **Layout Architecture** | ✅ Complete | Full-width navbar + sidebar on all authenticated pages |
-| **Landing Page** | ✅ Complete | Animated background effects, hero, features, footer |
-| **Dashboard** | ✅ Complete | Real-time metrics, threat chart, incidents, AI analysis |
-| **Authentication** | ✅ Complete | Supabase Auth — login, register, session, role-based access |
-| **Admin Panel** | ✅ Complete | User management, system health, data sources, assets |
-| **Settings / Profile** | ✅ Complete | Profile editing, role display, account details |
-| **Database Integration** | ✅ Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
-| **API Layer** | ✅ Complete | 8 endpoints with validation and graceful degradation |
-| **Real-time (WebSocket)** | ✅ Complete | Socket.io — live metrics, notifications, agent events |
-| **AI Pipeline** | ✅ Complete | 5-stage CrewAI pipeline via Groq LLM |
+| **UI / Design System** | Complete | Unified electric cyan and neon green cyber theme across all pages |
+| **Layout Architecture** | Complete | Full-width navbar + sidebar on all authenticated pages |
+| **Landing Page** | Complete | Animated background effects, hero, features, footer |
+| **Dashboard** | Complete | Real-time metrics, threat chart, incidents, AI analysis |
+| **Authentication** | Complete | Supabase Auth — login, register, session, role-based access |
+| **Admin Panel** | Complete | User management, system health, data sources, assets |
+| **Settings / Profile** | Complete | Profile editing, role display, account details |
+| **Database Integration** | Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
+| **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
+| **Real-time (WebSocket)** | Complete | Socket.io — live metrics, notifications, agent events |
+| **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM |
 
 ---
 
-## 🎨 Design System
+## Design System
 
 CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/app/globals.css`:
 
@@ -43,7 +43,7 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 
 ```
 ┌──────────────────── Full-Width Header ────────────────────────┐
-│  🛡 CyberGuard    [System Status]  [🔔 Notifications]  [User] │
+│   CyberGuard     [System Status]  [Notifications]      [User] │
 ├──────────┬────────────────────────────────────────────────────┤
 │          │                                                     │
 │ Sidebar  │              Page Content                          │
@@ -54,9 +54,9 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 
 ---
 
-## 🎯 Features
+## Features
 
-### 🏠 Landing Page
+### Landing Page
 - **Premium Cybersecurity Aesthetic** — Structural blueprint grid-line overlays (`BackgroundEffects` component) with subtle cyan and green radial glow gradients.
 - **Custom Mouse Cursor** — Lag-interpolated Cyan dot-and-ring follower cursor (`CustomCursor` component) with active resizing micro-animations on interactive hovers.
 - **Hero & Live Threat Monitor** — Two-column split layout displaying professional bold headlines, interactive agent badges, CTA controls, and a live-scrolling animated threat monitor console backed by key SOC statistics.
@@ -64,37 +64,37 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 - **Before/After Incident Slider** — Interactive drag-slider (`TransformationSlider` component) showing the visual transformation between chaotic unmapped manual logs (200+ days breach gap) and automated multi-agent response (mitigated in 3s).
 - **Workflow Pipeline & Specialists Grid** — Step-by-step security pipeline with large index row cards, and a designated team grid profile section showcasing the 5 specialized AI agents with online status tracking.
 
-### 📊 Dashboard
+### Dashboard
 - Real-time metrics (threats detected, risk score, active incidents, systems monitored)
 - Cyber cyan area chart for threat activity with 24h / 7d / 30d time range picker
 - Recent incidents list with severity badges
 - **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel
 
-### 🔍 Threats
+### Threats
 - Full threat indicator table with severity filtering
 - Source, confidence, and status tracking
 
-### 📈 Risk Analysis
+### Risk Analysis
 - Asset risk prioritization ranked by severity
 - Vulnerability count and exposure time tracking
 - Risk score breakdown with recommendations
 
-### 🚨 Incident Response
+### Incident Response
 - Active incident list with detail panel
 - Timeline view, assignee, status management
 - Playbook integration
 
-### 📖 Playbooks
+### Playbooks
 - Pre-built response procedures by category (Malware, Ransomware, Phishing…)
 - Full-text search
 - Step-by-step execution guidance
 
-### 📄 Reports
+### Reports
 - Security, compliance, and threat report tracking
 - Status tracking (Completed / In Progress)
 - Statistics summary per report
 
-### ⚙️ Admin Panel & RBAC
+### Admin Panel & RBAC
 - User management (roles: admin, manager, analyst, viewer)
 - Granular Role-Based Access Control (RBAC) restricting exports, deletions, and system configuration by role
 - System health monitoring and audit logging
@@ -103,7 +103,17 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 
 ---
 
-## 🚀 Tech Stack
+## Security Hardening
+
+To align with OWASP best practices, CyberGuard implements robust API defense and verification mechanisms:
+
+- **Sliding-Window Rate Limiting** (`src/lib/rate-limit.ts`) — In-memory request limiter tracking clients by authenticated User ID (preferred) or Client IP, returning RFC-compliant headers (`Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`).
+- **Strict Schema Validation** (`src/lib/validation.ts`) — Centralized Zod validation layer covering all public and administrative route payloads. Enforces types, strict structures, limits, and rejects unknown fields via `.strict()`.
+- **XSS Mitigation & Input Sanitization** — Automatically sanitizes and escapes HTML entities from incoming string variables before processing or storing them in Supabase.
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -120,7 +130,7 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 
 ---
 
-## 🖥️ Backend
+## Backend
 
 CyberGuard's backend runs entirely within **Next.js API Routes**. It follows a **DB-first with mock fallback** pattern to ensure high availability and resilience.
 
@@ -128,7 +138,7 @@ CyberGuard's backend runs entirely within **Next.js API Routes**. It follows a *
 
 ---
 
-## 🗄️ Database
+## Database
 
 The platform uses **Supabase** (managed PostgreSQL) with Row Level Security (RLS) to manage security-critical data.
 
@@ -136,7 +146,7 @@ The platform uses **Supabase** (managed PostgreSQL) with Row Level Security (RLS
 
 ---
 
-## 🔌 WebSocket (Real-Time)
+## WebSocket (Real-Time)
 
 Real-time updates are powered by **Socket.io**, providing instant visibility into threats and system events across the dashboard.
 
@@ -144,7 +154,7 @@ Real-time updates are powered by **Socket.io**, providing instant visibility int
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 cyberguard-platform/
@@ -210,7 +220,7 @@ cyberguard-platform/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
 # 1. Clone & install
@@ -230,11 +240,11 @@ npm run dev
 # → http://localhost:3000
 ```
 
-> 📖 Full setup instructions: [docs/SETUP.md](./docs/SETUP.md)
+> Full setup instructions: [docs/SETUP.md](./docs/SETUP.md)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | File | Contents |
 |---|---|
@@ -245,7 +255,7 @@ npm run dev
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **Educational purpose** — Built as a Final Year Project. Validate with security professionals before any production use.
 - **Data privacy** — Uses Supabase Row Level Security (RLS). Keep your `SUPABASE_SERVICE_ROLE_KEY` secret.
@@ -253,7 +263,7 @@ npm run dev
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
@@ -265,7 +275,7 @@ npm run dev
 
 <div align="center">
 
-**Built with ❤️ by the CyberGuard Team — Lahore University for Women University**
+**Built with pride by the CyberGuard Team — Lahore University for Women University**
 
 **Version:** 3.0.1 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
 
