@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getIncidents, createIncident, deleteIncident, updateIncident } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
+import { incidentPostSchema, incidentPatchSchema } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
     try {
+        // OWASP: Rate limit public fetch endpoints
+        const limitRes = await rateLimit(request, { limit: 60, endpoint: 'incidents:get' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const status = searchParams.get('status') || undefined
         const severity = searchParams.get('severity') || undefined
@@ -44,20 +50,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        // OWASP: Rate limit creation requests
+        const limitRes = await rateLimit(request, { limit: 15, endpoint: 'incidents:post' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const body = await request.json()
 
-        // Validate required fields
-        if (!body.title || !body.description || !body.severity || !body.assignee) {
+        // OWASP: Strict Zod validation and input sanitization (strips unknown fields)
+        const validation = incidentPostSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Missing required fields: title, description, severity, assignee',
-                },
+                { success: false, error: 'Validation failed', details: validation.error.format() },
                 { status: 400 }
             )
         }
 
-        const result = await createIncident(body)
+        const result = await createIncident(validation.data)
 
         if (result.success && result.data) {
             return NextResponse.json(
@@ -88,11 +96,16 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        // OWASP: Rate limit deletion requests
+        const limitRes = await rateLimit(request, { limit: 15, endpoint: 'incidents:delete' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
 
-        if (!id) {
-            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        // Validate ID format
+        if (!id || typeof id !== 'string' || id.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+            return NextResponse.json({ success: false, error: 'Invalid or missing ID parameter' }, { status: 400 })
         }
 
         const result = await deleteIncident(id)
@@ -110,28 +123,30 @@ export async function DELETE(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
+        // OWASP: Rate limit update requests
+        const limitRes = await rateLimit(request, { limit: 15, endpoint: 'incidents:patch' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
 
-        if (!id) {
-            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        // Validate ID format
+        if (!id || typeof id !== 'string' || id.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+            return NextResponse.json({ success: false, error: 'Invalid or missing ID parameter' }, { status: 400 })
         }
 
         const body = await request.json()
-        const { assignee, status } = body
 
-        if (!assignee && !status) {
+        // OWASP: Strict Zod validation and input sanitization
+        const validation = incidentPatchSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { success: false, error: 'At least one of assignee or status is required' },
+                { success: false, error: 'Validation failed', details: validation.error.format() },
                 { status: 400 }
             )
         }
 
-        const updates: { assignee?: string; status?: string } = {}
-        if (assignee !== undefined) updates.assignee = assignee
-        if (status !== undefined) updates.status = status
-
-        const result = await updateIncident(id, updates)
+        const result = await updateIncident(id, validation.data)
 
         if (result.success) {
             return NextResponse.json({ success: true, data: result.data })
@@ -143,3 +158,4 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Failed to update incident' }, { status: 500 })
     }
 }
+

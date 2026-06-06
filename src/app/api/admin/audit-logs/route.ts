@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
+import { adminAuditLogPostSchema } from '@/lib/validation'
 
 // GET /api/admin/audit-logs
 export async function GET(request: NextRequest) {
+    // OWASP: Rate limit requests
+    const limitRes = await rateLimit(request, { limit: 60, endpoint: 'admin-audit-logs:get' })
+    if (!limitRes.isAllowed) return limitRes.response
+
     const serverClient = await createClient()
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,19 +34,34 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/audit-logs — write a log entry (called server-side)
 export async function POST(request: NextRequest) {
+    // OWASP: Rate limit requests
+    const limitRes = await rateLimit(request, { limit: 15, endpoint: 'admin-audit-logs:post' })
+    if (!limitRes.isAllowed) return limitRes.response
+
     const serverClient = await createClient()
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
+
+    // OWASP: Strict Zod validation and input sanitization
+    const validation = adminAuditLogPostSchema.safeParse(body)
+    if (!validation.success) {
+        return NextResponse.json(
+            { success: false, error: 'Validation failed', details: validation.error.format() },
+            { status: 400 }
+        )
+    }
+
     const admin = createAdminClient()
 
     const { error } = await admin.from('audit_logs').insert({
         user_id:     user.id,
         user_email:  user.email,
-        ...body,
+        ...validation.data,
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
 }
+

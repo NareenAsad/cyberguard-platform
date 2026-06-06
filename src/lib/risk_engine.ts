@@ -160,17 +160,17 @@ function buildExplanation(
     ];
 
     if (finalScore >= 70) {
-        lines.push(`  ⚠️  CRITICAL: This combination of ${input.cvssBaseScore >= 9 ? "severe CVSS score" : "factors"}, ${input.activeExploitation ? "confirmed active exploitation," : ""} and ${input.assetCriticality} asset criticality requires IMMEDIATE response.`);
+        lines.push(`  CRITICAL: This combination of ${input.cvssBaseScore >= 9 ? "severe CVSS score" : "factors"}, ${input.activeExploitation ? "confirmed active exploitation," : ""} and ${input.assetCriticality} asset criticality requires IMMEDIATE response.`);
     } else if (finalScore >= 50) {
-        lines.push(`  🔶 HIGH: Elevated risk due to ${ex >= 6 ? "availability of public exploits" : "threat context"}. Remediate within 24 hours.`);
+        lines.push(`  HIGH: Elevated risk due to ${ex >= 6 ? "availability of public exploits" : "threat context"}. Remediate within 24 hours.`);
     } else if (finalScore >= 30) {
-        lines.push(`  🟡 MEDIUM: Moderate risk. Schedule remediation in the current sprint.`);
+        lines.push(`  MEDIUM: Moderate risk. Schedule remediation in the current sprint.`);
     } else {
-        lines.push(`  🟢 LOW: Low immediate risk. Track and remediate during next maintenance window.`);
+        lines.push(`  LOW: Low immediate risk. Track and remediate during next maintenance window.`);
     }
 
     if (!input.patchAvailable) {
-        lines.push(`  ⚡ No patch available — apply compensating controls immediately.`);
+        lines.push(`  No patch available — apply compensating controls immediately.`);
     }
 
     return lines.join("\n");

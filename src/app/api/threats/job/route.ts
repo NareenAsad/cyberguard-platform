@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgentJob } from '@/lib/agent-client'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
+import { jobIdSchema } from '@/lib/validation'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,19 +17,30 @@ const supabase = createClient(
 const savedJobs = new Set<string>()
 
 export async function GET(request: NextRequest) {
-    const jobId = request.nextUrl.searchParams.get('jobId')
-    if (!jobId) return NextResponse.json({ success: false, error: 'jobId required' }, { status: 400 })
-
     try {
-        const job = await getAgentJob(jobId)
+        // OWASP: Rate limit status/job polling
+        const limitRes = await rateLimit(request, { limit: 60, endpoint: 'threats-job:get' })
+        if (!limitRes.isAllowed) return limitRes.response
 
-        if (job.status === 'completed' && job.result && !savedJobs.has(jobId)) {
-            savedJobs.add(jobId)
+        const jobId = request.nextUrl.searchParams.get('jobId')
+        
+        // OWASP: Validate query parameter shape
+        const validation = jobIdSchema.safeParse({ jobId })
+        if (!validation.success) {
+            return NextResponse.json({ success: false, error: 'Invalid jobId parameter' }, { status: 400 })
+        }
+
+        const validatedJobId = validation.data.jobId
+
+        const job = await getAgentJob(validatedJobId)
+
+        if (job.status === 'completed' && job.result && !savedJobs.has(validatedJobId)) {
+            savedJobs.add(validatedJobId)
 
             // Save and emit — fire and forget so polling stays fast
-            saveAndNotify(jobId, job.result).catch(err => {
-                console.error(`[Job ${jobId}] Save failed:`, err.message)
-                savedJobs.delete(jobId) // allow retry
+            saveAndNotify(validatedJobId, job.result).catch(err => {
+                console.error(`[Job ${validatedJobId}] Save failed:`, err.message)
+                savedJobs.delete(validatedJobId) // allow retry
             })
         }
 
@@ -37,6 +50,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
+
 
 
 async function saveAndNotify(jobId: string, result: any) {

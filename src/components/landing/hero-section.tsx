@@ -66,7 +66,7 @@ function ThreatFeed() {
 
 export function HeroSection() {
   return (
-    <main className="relative z-10 pt-16 pb-20 px-6 max-w-7xl mx-auto">
+    <main className="relative z-10 pt-6 pb-20 px-6 max-w-7xl mx-auto">
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center min-h-[580px]">
 
@@ -81,21 +81,21 @@ export function HeroSection() {
             AI-Driven Threat Intelligence and Incident Response System
           </div>
 
-          <h1 className="font-sans text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
+          <h1 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white">
             Security that<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+            <span className="text-primary">
               works at machine speed.
             </span>
           </h1>
 
           <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-normal max-w-lg">
-            Breaches go undetected for an average of <strong className="text-foreground font-semibold font-sans">200+ days</strong>. CyberGuard eliminates that window — aggregating global threat feeds, reasoning over your assets with 5 specialized AI agents, and triggering automated response playbooks in seconds.
+            Continuously monitor your infrastructure and let specialized AI agents automatically detect and contain security threats in seconds.
           </p>
 
           {/* Agent pills with elegant fonts */}
           <div className="flex flex-wrap gap-2">
             {["Threat Intelligence", "Vulnerability Assessment", "Risk Analysis", "Incident Response", "Reporting"].map((a) => (
-              <span key={a} className="px-3 py-1 rounded-full border border-border bg-secondary/35 text-[10px] font-mono text-muted-foreground/80 tracking-wide uppercase">
+              <span key={a} className="px-2 py-1 rounded-full border border-border bg-secondary/35 text-[10px] font-mono text-muted-foreground/80 tracking-wide uppercase">
                 {a}
               </span>
             ))}
@@ -103,7 +103,7 @@ export function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link href="/dashboard"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-gradient-to-r from-primary to-accent px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-primary/20">
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-primary/20">
               Launch Dashboard →
             </Link>
             <Link href="#features"

@@ -55,7 +55,7 @@ export function TransformationSlider() {
           <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">Incident Transformation</span>
           <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white">
             See the security<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+            <span className="text-primary">
               transformation.
             </span>
           </h2>

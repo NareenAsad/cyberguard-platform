@@ -49,7 +49,7 @@ export function IncidentsList({
                                 }`}
                         >
                             <div className="flex items-start justify-between mb-2">
-                                <span className="text-xs font-mono text-primary">{incident.id}</span>
+                                <span className="text-xs font-mono text-primary">{incident.incidentId ?? incident.id}</span>
                                 <div className="flex items-center gap-2">
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(incident.severity)}`}>
                                         {incident.severity}

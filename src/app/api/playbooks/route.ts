@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPlaybooks, createPlaybook, deletePlaybook } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
+import { playbookPostSchema } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
     try {
+        // OWASP: Rate limit public fetch endpoints
+        const limitRes = await rateLimit(request, { limit: 60, endpoint: 'playbooks:get' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const category = searchParams.get('category') || undefined
         const search = searchParams.get('search') || undefined
@@ -41,22 +47,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { title, description, category, steps } = body
+        // OWASP: Rate limit playbook creation
+        const limitRes = await rateLimit(request, { limit: 15, endpoint: 'playbooks:post' })
+        if (!limitRes.isAllowed) return limitRes.response
 
-        if (!title || !description || !category) {
+        const body = await request.json()
+
+        // OWASP: Strict input validation and sanitization
+        const validation = playbookPostSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { success: false, error: 'title, description and category are required' },
+                { success: false, error: 'Validation failed', details: validation.error.format() },
                 { status: 400 }
             )
         }
 
-        const result = await createPlaybook({
-            title,
-            description,
-            category,
-            steps: Number(steps) || 0,
-        })
+        const result = await createPlaybook(validation.data)
 
         if (result.success && result.data) {
             return NextResponse.json({ success: true, data: result.data }, { status: 201 })
@@ -77,11 +83,16 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        // OWASP: Rate limit deletion requests
+        const limitRes = await rateLimit(request, { limit: 15, endpoint: 'playbooks:delete' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
 
-        if (!id) {
-            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        // Validate ID format
+        if (!id || typeof id !== 'string' || id.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+            return NextResponse.json({ success: false, error: 'Invalid or missing ID parameter' }, { status: 400 })
         }
 
         const result = await deletePlaybook(id)
@@ -96,3 +107,4 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Failed to delete playbook' }, { status: 500 })
     }
 }
+

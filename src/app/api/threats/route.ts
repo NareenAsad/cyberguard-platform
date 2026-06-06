@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getThreats } from '@/lib/db'
-import { startAgentAnalysis, getAgentJob } from '@/lib/agent-client'
+import { startAgentAnalysis } from '@/lib/agent-client'
+import { rateLimit } from '@/lib/rate-limit'
+import { threatsPostSchema } from '@/lib/validation'
 
 // ── POST /api/threats — Trigger AI agent pipeline ─────────────────────────
 // Fire-and-forget: returns job_id immediately, don't block waiting for result.
 // The client should poll GET /api/threats/job?jobId=xxx for completion.
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { indicators, assets } = body
+        // OWASP: Rate limit pipeline invocation (heavy agent work)
+        const limitRes = await rateLimit(request, { limit: 5, endpoint: 'threats:post' })
+        if (!limitRes.isAllowed) return limitRes.response
 
-        if (!indicators?.length || !assets?.length) {
+        const body = await request.json()
+        
+        // OWASP: Strict input validation and rejecting unexpected fields
+        const validation = threatsPostSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { success: false, error: 'indicators and assets arrays are required' },
+                { success: false, error: 'Validation failed', details: validation.error.format() },
                 { status: 400 }
             )
         }
+
+        const { indicators, assets } = validation.data
 
         // 1. Kick off FastAPI pipeline — returns immediately with job_id
         const job = await startAgentAnalysis(indicators, assets)
@@ -44,6 +53,10 @@ export async function POST(request: NextRequest) {
 // ── GET /api/threats — Fetch threats from DB ──────────────────────────────
 export async function GET(request: NextRequest) {
     try {
+        // OWASP: Rate limit public fetch endpoints
+        const limitRes = await rateLimit(request, { limit: 60, endpoint: 'threats:get' })
+        if (!limitRes.isAllowed) return limitRes.response
+
         const { searchParams } = new URL(request.url)
         const severity = searchParams.get('severity') || undefined
         const status   = searchParams.get('status')   || undefined
@@ -76,3 +89,4 @@ export async function GET(request: NextRequest) {
         )
     }
 }
+

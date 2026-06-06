@@ -5,6 +5,7 @@ import { X, BookOpen, CheckCircle, Shield, RefreshCw, AlertTriangle } from 'luci
 
 interface Playbook {
     id: string
+    playbookId?: string
     title: string
     description?: string
     category?: string
@@ -150,7 +151,7 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
 
                     {/* Meta row */}
                     <div className="flex items-center gap-3 px-6 py-2.5 bg-secondary/10 border-b border-border text-xs text-muted-foreground">
-                        <span className="font-mono text-foreground/50">{playbook?.id}</span>
+                        <span className="font-mono text-foreground/50">{playbook?.playbookId ?? playbook?.id}</span>
                         <span>·</span>
                         <span>Updated {updatedDisplay}</span>
                         {totalSteps > 0 && (

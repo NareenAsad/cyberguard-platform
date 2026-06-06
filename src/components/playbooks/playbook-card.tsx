@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle, Trash2 } from 'lucide-react'
 
 interface Playbook {
     id: string
+    playbookId?: string
     title: string
     description?: string
     category?: string
@@ -41,7 +42,7 @@ export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{playbook.id}</span>
+                    <span className="text-xs text-muted-foreground">{playbook.playbookId ?? playbook.id}</span>
                     <div 
                         role="button"
                         tabIndex={0}

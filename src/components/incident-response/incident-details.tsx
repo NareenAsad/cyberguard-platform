@@ -100,7 +100,7 @@ export function IncidentDetails({ incident, onUpdate, onDelete }: IncidentDetail
                             </span>
                         </div>
                         <h3 className="text-xl font-bold text-foreground leading-snug">{incident.title}</h3>
-                        <p className="text-xs text-muted-foreground font-mono mt-1">{incident.id}</p>
+                        <p className="text-xs text-muted-foreground font-mono mt-1">{incident.incidentId ?? incident.id}</p>
                     </div>
                     {can('canDeleteData') && (
                         <button

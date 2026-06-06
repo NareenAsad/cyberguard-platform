@@ -8,7 +8,7 @@ export function Navigation() {
         <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
           <Shield className="w-6 h-6 text-primary" />
         </div>
-        <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <span className="text-xl font-bold tracking-tight text-white">
           CyberGuard
         </span>
       </div>

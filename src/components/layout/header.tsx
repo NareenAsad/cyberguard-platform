@@ -102,7 +102,7 @@ export function Header() {
         <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-primary/20">
           <Shield className="w-5 h-5 text-primary" />
         </div>
-        <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hidden md:block">
+        <span className="text-lg font-bold tracking-tight text-white hidden md:block">
           CyberGuard
         </span>
       </div>

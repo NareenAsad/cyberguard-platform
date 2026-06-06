@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Eye, EyeOff, Save, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Save, RefreshCw, CheckCircle2, AlertCircle, Shield, Search, Globe, Bug, Link } from 'lucide-react'
 
 interface DataSource { id: string; key: string; name: string; enabled: boolean; updated_at: string }
 
-const SOURCE_META: Record<string, { icon: string; desc: string; color: string }> = {
-    otx:        { icon: '🛡️', desc: 'AlienVault Open Threat Exchange — IP/domain reputation', color: 'blue'   },
-    nvd:        { icon: '🔍', desc: 'NIST National Vulnerability Database — CVE data',         color: 'emerald'},
-    shodan:     { icon: '🌐', desc: 'Internet-wide device and service scanning',                color: 'amber'  },
-    virustotal: { icon: '🦠', desc: 'File and URL malware scanning',                            color: 'red'    },
+const SOURCE_META: Record<string, { icon: any; desc: string; color: string }> = {
+    otx:        { icon: Shield, desc: 'AlienVault Open Threat Exchange — IP/domain reputation', color: 'blue'   },
+    nvd:        { icon: Search, desc: 'NIST National Vulnerability Database — CVE data',         color: 'emerald'},
+    shodan:     { icon: Globe,  desc: 'Internet-wide device and service scanning',                color: 'amber'  },
+    virustotal: { icon: Bug,    desc: 'File and URL malware scanning',                            color: 'red'    },
 }
 
 export default function DataSourcesTab() {
@@ -66,7 +66,7 @@ export default function DataSourcesTab() {
             ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                     {sources.map(src => {
-                        const meta = SOURCE_META[src.key] || { icon: '🔗', desc: src.name, color: 'blue' }
+                        const meta = SOURCE_META[src.key] || { icon: Link, desc: src.name, color: 'blue' }
                         return (
                             <div key={src.key} className={`rounded-2xl border bg-slate-900/60 p-5 space-y-4 transition-all ${
                                 src.enabled ? colorsMap[meta.color] || colorsMap.blue : 'border-slate-700/40'
@@ -74,7 +74,9 @@ export default function DataSourcesTab() {
                                 {/* Header */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{meta.icon}</span>
+                                        <div className="p-2 rounded-xl bg-slate-800 border border-slate-700/50">
+                                            <meta.icon className="w-5 h-5 text-slate-400" />
+                                        </div>
                                         <div>
                                             <p className="text-sm font-semibold text-slate-100">{src.name}</p>
                                             <p className="text-xs text-slate-500 mt-0.5 max-w-[200px]">{meta.desc}</p>

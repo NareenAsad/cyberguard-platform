@@ -25,7 +25,6 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **API Layer** | ✅ Complete | 8 endpoints with validation and graceful degradation |
 | **Real-time (WebSocket)** | ✅ Complete | Socket.io — live metrics, notifications, agent events |
 | **AI Pipeline** | ✅ Complete | 5-stage CrewAI pipeline via Groq LLM |
-| **Documentation** | ✅ Complete | 5 clean docs (README, Architecture, Setup, API, Changelog) |
 
 ---
 

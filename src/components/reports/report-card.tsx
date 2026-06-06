@@ -1,7 +1,7 @@
 'use client'
 
 import type { Report } from '@/types/report'
-import { Download, Trash2, FileText, Calendar, Shield, ChevronRight } from 'lucide-react'
+import { Download, Trash2, FileText, Calendar, Shield, ChevronRight, BarChart3, Wrench, ClipboardList } from 'lucide-react'
 import { exportToPDF } from '@/lib/export-utils'
 import { useAuth } from '@/lib/auth/auth-context'
 
@@ -31,10 +31,10 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
 
     const getTypeIcon = (type: string) => {
         switch (type?.toLowerCase()) {
-            case 'executive': return '📊'
-            case 'technical': return '🔧'
-            case 'compliance': return '📋'
-            default: return '📄'
+            case 'executive': return BarChart3
+            case 'technical': return Wrench
+            case 'compliance': return ClipboardList
+            default: return FileText
         }
     }
 
@@ -82,9 +82,14 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
                 <div className="flex items-start justify-between gap-4 mb-4">
                     {/* Icon + Title */}
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-lg">
-                            {getTypeIcon(report.type)}
-                        </div>
+                        {(() => {
+                            const IconComponent = getTypeIcon(report.type)
+                            return (
+                                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                    <IconComponent className="w-5 h-5 text-primary" />
+                                </div>
+                            )
+                        })()}
                         <div className="min-w-0">
                             <h3 className="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
                                 {report.title}

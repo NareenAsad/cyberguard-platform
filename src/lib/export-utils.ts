@@ -163,7 +163,7 @@ export function exportReportToPDF(report: {
     const executiveHTML = exec ? `
         <section>
             <div class="section-header">
-                <span class="section-icon">📊</span>
+                <span class="section-icon"></span>
                 <h2>Executive Summary</h2>
             </div>
             <div class="metrics-grid">
@@ -186,7 +186,7 @@ export function exportReportToPDF(report: {
             </div>
             ${exec.top_risk ? `
                 <div class="threat-box">
-                    <div class="threat-label">⚠ Primary Threat</div>
+                    <div class="threat-label">Primary Threat</div>
                     <p class="threat-text">${exec.top_risk}</p>
                 </div>
             ` : ''}
@@ -202,7 +202,7 @@ export function exportReportToPDF(report: {
     // ── Technical Findings Section ────────────────────────────────────────────
     const patchesHTML = (tech?.immediate_patches ?? []).length > 0 ? `
         <div class="subsection">
-            <h3>🔧 Required Remediation Patches</h3>
+            <h3>Required Remediation Patches</h3>
             ${tech!.immediate_patches!.map(p => `
                 <div class="patch-card">
                     <div class="patch-header">
@@ -218,7 +218,7 @@ export function exportReportToPDF(report: {
 
     const iocsHTML = (tech?.ioc_summary ?? []).length > 0 ? `
         <div class="subsection">
-            <h3>🚨 Indicators of Compromise</h3>
+            <h3>Indicators of Compromise</h3>
             <table class="ioc-table">
                 <thead>
                     <tr><th>Type</th><th>Value</th><th>Associated Threat</th></tr>
@@ -238,7 +238,7 @@ export function exportReportToPDF(report: {
 
     const assetsHTML = (tech?.assets_at_risk ?? []).length > 0 ? `
         <div class="subsection">
-            <h3>🖥 Assets at Risk</h3>
+            <h3>Assets at Risk</h3>
             <div class="tag-list">
                 ${tech!.assets_at_risk!.map(a => `<span class="tag orange">${a}</span>`).join('')}
             </div>
@@ -247,7 +247,7 @@ export function exportReportToPDF(report: {
 
     const rulesHTML = (tech?.detection_rules ?? []).length > 0 ? `
         <div class="subsection">
-            <h3>📡 Detection Rules</h3>
+            <h3>Detection Rules</h3>
             ${tech!.detection_rules!.map(r => `
                 <div class="rule-card">
                     <div class="rule-name">${r.rule_name}</div>
@@ -261,7 +261,7 @@ export function exportReportToPDF(report: {
     const technicalHTML = tech ? `
         <section>
             <div class="section-header">
-                <span class="section-icon">🛡</span>
+                <span class="section-icon"></span>
                 <h2>Technical Findings</h2>
             </div>
             ${tech.total_findings != null ? `<p class="findings-count">Total Findings: <strong>${tech.total_findings}</strong></p>` : ''}
@@ -273,7 +273,7 @@ export function exportReportToPDF(report: {
     const complianceHTML = comp ? `
         <section>
             <div class="section-header">
-                <span class="section-icon">📋</span>
+                <span class="section-icon"></span>
                 <h2>Compliance &amp; Governance</h2>
             </div>
             ${comp.overall_compliance_score != null ? `
@@ -490,10 +490,10 @@ export function exportReportToPDF(report: {
                 </div>
                 <div class="report-title">${report.title}</div>
                 <div class="report-meta-row">
-                    <span>📅 ${formattedDate}</span>
-                    <span>🔖 ID: ${report.id}</span>
-                    ${report.threats != null ? `<span>⚠ ${report.threats} Threats Detected</span>` : ''}
-                    <span>🕐 Exported: ${new Date().toLocaleString()}</span>
+                    <span>Date: ${formattedDate}</span>
+                    <span>ID: ${report.id}</span>
+                    ${report.threats != null ? `<span>${report.threats} Threats Detected</span>` : ''}
+                    <span>Exported: ${new Date().toLocaleString()}</span>
                 </div>
             </div>
 
@@ -504,7 +504,6 @@ export function exportReportToPDF(report: {
                 ${complianceHTML}
                 ${!exec && !tech && !comp ? `
                     <div style="text-align:center; padding: 60px 20px; color: #94a3b8;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📄</div>
                         <p style="font-size: 15px; font-weight: 600; color: #475569;">No detailed content available for this report.</p>
                         <p style="font-size: 12px; margin-top: 6px;">Basic metadata is shown in the header above.</p>
                     </div>

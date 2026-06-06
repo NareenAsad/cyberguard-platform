@@ -52,7 +52,7 @@ export function FeaturesSection() {
             <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">How We Work</span>
             <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white mt-4">
               From raw threat data to<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">automated response.</span>
+              <span className="text-primary">automated response.</span>
             </h2>
           </div>
 
@@ -84,7 +84,7 @@ export function FeaturesSection() {
               <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">The Specialists</span>
               <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white mt-4">
                 Meet the AI agents<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent font-black">behind your defense.</span>
+                <span className="text-primary font-black">behind your defense.</span>
               </h2>
             </div>
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-light max-w-md lg:mb-2">
@@ -131,24 +131,36 @@ export function FeaturesSection() {
         </div>
 
         {/* ── Enterprise Value Banner ── */}
-        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-accent/5 p-10 md:p-14 text-center">
+        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-accent/5 p-10 md:p-14">
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative max-w-3xl mx-auto">
-            <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">Open Source · Enterprise Grade</span>
-            <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white mt-6 mb-4">
-              Less than 5% of the cost.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">100% of the capability.</span>
-            </h2>
-            <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed font-light">
-              Built on Llama 3 via Groq, CrewAI, Next.js, and Supabase — CyberGuard gives SMEs enterprise-level threat intelligence without the enterprise price tag.
-            </p>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
-              {["Role-Based Access Control", "Real-Time WebSocket Updates", "Explainable AI Reasoning", "PDF Export", "NIST Playbooks"].map((f) => (
-                <span key={f} className="flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-muted-foreground">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                  {f}
-                </span>
-              ))}
+          <div className="relative max-w-5xl mx-auto space-y-8">
+            {/* Centered label at the top */}
+            <div className="text-center">
+              <span className="font-mono text-xs tracking-[0.25em] text-primary uppercase">Open Source · Enterprise Grade</span>
+            </div>
+
+            {/* Split layout: left column for text, right column for features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+              {/* Left Column — Title and description */}
+              <div className="flex flex-col gap-4 text-left">
+                <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+                  Less than 5% of the cost.<br />
+                  <span className="text-primary">100% of the capability.</span>
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed font-light">
+                  Built on Llama 3 via Groq, CrewAI, Next.js, and Supabase — CyberGuard gives SMEs enterprise-level threat intelligence without the enterprise price tag.
+                </p>
+              </div>
+
+              {/* Right Column — Feature checklist */}
+              <div className="flex flex-col gap-4 md:pl-8 border-t md:border-t-0 md:border-l border-primary/10 pt-6 md:pt-0">
+                {["Role-Based Access Control", "Real-Time WebSocket Updates", "Explainable AI Reasoning", "PDF Export", "NIST Playbooks"].map((f) => (
+                  <span key={f} className="flex items-center gap-3 text-xs font-mono tracking-wider uppercase text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    {f}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

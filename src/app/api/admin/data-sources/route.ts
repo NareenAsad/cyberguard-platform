@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
+import { adminDataSourcePatchSchema } from '@/lib/validation'
 
 // GET /api/admin/data-sources
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // OWASP: Rate limit requests
+    const limitRes = await rateLimit(request, { limit: 60, endpoint: 'admin-data-sources:get' })
+    if (!limitRes.isAllowed) return limitRes.response
+
     const serverClient = await createClient()
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,6 +31,10 @@ export async function GET() {
 
 // PATCH /api/admin/data-sources — update a data source config
 export async function PATCH(request: NextRequest) {
+    // OWASP: Rate limit requests
+    const limitRes = await rateLimit(request, { limit: 15, endpoint: 'admin-data-sources:patch' })
+    if (!limitRes.isAllowed) return limitRes.response
+
     const serverClient = await createClient()
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -35,8 +45,17 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { key, api_key, enabled } = body
-    if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 })
+
+    // OWASP: Strict Zod validation and input sanitization
+    const validation = adminDataSourcePatchSchema.safeParse(body)
+    if (!validation.success) {
+        return NextResponse.json(
+            { success: false, error: 'Validation failed', details: validation.error.format() },
+            { status: 400 }
+        )
+    }
+
+    const { key, api_key, enabled } = validation.data
 
     const admin = createAdminClient()
     const updates: Record<string, any> = {
@@ -62,3 +81,4 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true })
 }
+

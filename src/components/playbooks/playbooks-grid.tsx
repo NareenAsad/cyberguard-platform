@@ -4,6 +4,7 @@ import { PlaybookCard } from './playbook-card'
 
 interface Playbook {
   id: string
+  playbookId?: string
   title: string
   description?: string
   category?: string

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bot, Zap, CheckCircle2, XCircle, Loader2, ChevronDown, Shield } from 'lucide-react'
+import { Bot, Zap, CheckCircle2, XCircle, Loader2, ChevronDown, Shield, AlertTriangle } from 'lucide-react'
 
 type Phase = 'idle' | 'starting' | 'polling' | 'done' | 'error'
 
@@ -20,9 +20,10 @@ const PIPELINE_STEPS = [
 
 // Sample indicators & assets sent to the pipeline
 const SAMPLE_INDICATORS = [
-    { type: 'cve', value: 'CVE-2021-44228', source: 'NVD', confidence: 100 },
-    { type: 'ip', value: '45.33.32.156', source: 'OTX', confidence: 85 },
-    { type: 'domain', value: 'malicious-c2-server.com', source: 'ThreatFox', confidence: 75 },
+    { type: 'cve', value: 'CVE-2024-3094', source: 'NVD', confidence: 100 },
+    { type: 'cve', value: 'CVE-2021-41773', source: 'NVD', confidence: 95 },
+    { type: 'ip', value: '185.220.101.5', source: 'OTX', confidence: 90 },
+    { type: 'domain', value: 'update-service-agent.net', source: 'ThreatFox', confidence: 80 },
 ]
 
 const SAMPLE_ASSETS = [
@@ -31,16 +32,16 @@ const SAMPLE_ASSETS = [
         name: 'Production Web Server',
         ip_address: '10.0.1.10',
         os: 'Ubuntu 22.04',
-        software: [{ name: 'Apache Log4j', version: '2.14.0' }],
+        software: [{ name: 'Apache HTTP Server', version: '2.4.49' }],
         criticality: 'CRITICAL',
         network_exposure: 'internet-facing',
     },
     {
         id: 'asset-002',
-        name: 'Internal Database',
+        name: 'Internal Database Server',
         ip_address: '10.0.1.20',
-        os: 'Ubuntu 22.04',
-        software: [{ name: 'PostgreSQL', version: '14.5' }],
+        os: 'RedHat 9.0',
+        software: [{ name: 'liblzma', version: '5.6.0' }],
         criticality: 'HIGH',
         network_exposure: 'internal',
     },
@@ -273,15 +274,17 @@ export function RunAnalysisButton() {
                                         ))}
                                     </div>
                                     {result.executive_report.top_risk && (
-                                        <p className="text-xs text-slate-300 border-t border-slate-700/40 pt-2">
-                                            ⚠ {result.executive_report.top_risk}
-                                        </p>
-                                    )}
-                                    {result.executive_report.action_required && (
-                                        <p className="text-xs text-emerald-300">
-                                            → {result.executive_report.action_required}
-                                        </p>
-                                    )}
+                                         <p className="text-xs text-slate-300 border-t border-slate-700/40 pt-2 flex items-center gap-1.5">
+                                             <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                             <span>{result.executive_report.top_risk}</span>
+                                         </p>
+                                     )}
+                                     {result.executive_report.action_required && (
+                                         <p className="text-xs text-emerald-300 flex items-center gap-1">
+                                             <span>Action Required:</span>
+                                             <span>{result.executive_report.action_required}</span>
+                                         </p>
+                                     )}
                                 </>
                             )}
                         </div>
