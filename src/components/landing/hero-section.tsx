@@ -103,11 +103,11 @@ export function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link href="/dashboard"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:[...]
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:shadow-lg hover:shadow-primary/50">
               Launch Dashboard →
             </Link>
             <Link href="#features"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary/35 backdrop-blur-md px-8 text-xs font-mono uppercase tracking-widest text-foregr[...]
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary/35 backdrop-blur-md px-8 text-xs font-mono uppercase tracking-widest text-foreground transition-all duration-300 hover:bg-secondary/50">
               Explore Features
             </Link>
           </div>
