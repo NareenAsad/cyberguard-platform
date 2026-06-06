@@ -66,7 +66,7 @@ function ThreatFeed() {
 
 export function HeroSection() {
   return (
-    <main className="relative z-10 pt-6 pb-20 px-6 max-w-7xl mx-auto">
+    <main className="relative z-10 pt-0 pb-20 px-6 max-w-7xl mx-auto">
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center min-h-[580px]">
 
@@ -103,11 +103,11 @@ export function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link href="/dashboard"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-primary/20">
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:[...]
               Launch Dashboard →
             </Link>
             <Link href="#features"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary/35 backdrop-blur-md px-8 text-xs font-mono uppercase tracking-widest text-foreground transition-all duration-300 hover:bg-secondary/60 hover:text-primary">
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary/35 backdrop-blur-md px-8 text-xs font-mono uppercase tracking-widest text-foregr[...]
               Explore Features
             </Link>
           </div>
