@@ -66,9 +66,9 @@ function ThreatFeed() {
 
 export function HeroSection() {
   return (
-    <main className="relative z-10 pt-6 pb-20 px-6 max-w-7xl mx-auto">
+    <main className="relative z-10 pt-0 pb-16 px-6 max-w-7xl mx-auto">
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center min-h-[580px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center min-h-[500px]">
 
         {/* Left — text */}
         <div className="flex flex-col gap-6 lg:col-span-7">

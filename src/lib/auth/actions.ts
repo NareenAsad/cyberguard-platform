@@ -30,7 +30,7 @@ export async function login(formData: FormData): Promise<AuthResult> {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    return { success: true }
 }
 
 export async function signup(formData: FormData): Promise<AuthResult> {

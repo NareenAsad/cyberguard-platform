@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,7 +11,6 @@ import { login } from '@/lib/auth/actions'
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
-    const router = useRouter()
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -25,8 +23,9 @@ export default function LoginPage() {
         if (result?.error) {
             setError(result.error)
             setLoading(false)
+        } else if (result?.success) {
+            window.location.href = '/dashboard'
         }
-        // If successful, the server action will redirect
     }
 
     return (

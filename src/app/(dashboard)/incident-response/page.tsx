@@ -13,26 +13,28 @@ import { useAuth } from '@/lib/auth/auth-context'
 
 export default function IncidentResponsePage() {
     const { can } = useAuth()
-    usePageRefresh('incident-response')
     const [incidents, setIncidents] = useState<Incident[]>([])
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        const fetchIncidents = async () => {
-            setLoading(true)
-            try {
-                const data = await incidentAPI.getIncidents()
-                if (Array.isArray(data)) {
-                    setIncidents(data)
-                    setSelectedIncident(data[0] ?? null)
-                }
-            } catch (error) {
-                console.error("Failed to fetch incidents:", error)
-            } finally {
-                setLoading(false)
+    const fetchIncidents = async () => {
+        setLoading(true)
+        try {
+            const data = await incidentAPI.getIncidents()
+            if (Array.isArray(data)) {
+                setIncidents(data)
+                setSelectedIncident(data[0] ?? null)
             }
+        } catch (error) {
+            console.error("Failed to fetch incidents:", error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    usePageRefresh('incident-response', fetchIncidents)
+
+    useEffect(() => {
         fetchIncidents()
     }, [])
 

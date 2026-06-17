@@ -14,27 +14,29 @@ interface DateRange {
 }
 
 export default function ReportsPage() {
-    usePageRefresh('reports')
     const [selectedType, setSelectedType] = useState<string | null>(null)
     const [dateRange, setDateRange] = useState<DateRange>({ from: '', to: '' })
     const [reports, setReports] = useState<Report[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedReport, setSelectedReport] = useState<Report | null>(null)
 
-    useEffect(() => {
-        const fetchReports = async () => {
-            setLoading(true)
-            try {
-                const data = await reportsAPI.getReports()
-                if (data) {
-                    setReports(data)
-                }
-            } catch (error) {
-                console.error("Failed to fetch reports:", error)
-            } finally {
-                setLoading(false)
+    const fetchReports = async () => {
+        setLoading(true)
+        try {
+            const data = await reportsAPI.getReports()
+            if (data) {
+                setReports(data)
             }
+        } catch (error) {
+            console.error("Failed to fetch reports:", error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    usePageRefresh('reports', fetchReports)
+
+    useEffect(() => {
         fetchReports()
     }, [])
 

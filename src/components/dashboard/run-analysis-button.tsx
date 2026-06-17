@@ -121,6 +121,7 @@ export function RunAnalysisButton() {
                         setSteps(PIPELINE_STEPS.map(label => ({ label, status: 'done' })))
                         setResult(job.result)
                         setPhase('done')
+                        window.dispatchEvent(new CustomEvent('ai-analysis:completed'))
                     } else if (job?.status === 'failed') {
                         clearInterval(pollRef.current!)
                         throw new Error(job.error || 'Pipeline failed')

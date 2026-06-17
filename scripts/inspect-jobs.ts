@@ -15,14 +15,18 @@ const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
 })
 
-async function testConnection() {
-    try {
-        const { data, error } = await supabase.from('Threat').select('id').limit(1)
-        if (error) throw error
-        console.log('✅ Supabase connected. Threat rows sample:', data?.length ?? 0)
-    } catch (error) {
-        console.error('❌ Connection failed:', error)
+async function main() {
+    const { data, error } = await supabase
+        .from('agent_jobs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+    if (error) {
+        throw error
     }
+
+    console.log('Recent agent jobs:', JSON.stringify(data, null, 2))
 }
 
-testConnection()
+main().catch(console.error)

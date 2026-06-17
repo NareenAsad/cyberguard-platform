@@ -1,83 +1,43 @@
-import { io, Socket } from 'socket.io-client'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Socket } from 'socket.io-client'
 
-let socket: Socket | null = null
+const mockSocket: any = {
+    on: () => mockSocket,
+    off: () => mockSocket,
+    emit: () => mockSocket,
+    disconnect: () => mockSocket,
+    connect: () => mockSocket,
+    removeAllListeners: () => mockSocket,
+    connected: false,
+    id: 'mock-socket',
+}
 
-export function initSocket() {
-    if (socket) return socket
-
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http'
-    const host = window.location.host
-
-    socket = io(`${protocol}//${host}`, {
-        path: '/api/socket',
-        addTrailingSlash: false,
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
-    })
-
-    socket.on('connect', () => {
-        console.log('[Socket] Connected:', socket?.id)
-    })
-
-    socket.on('disconnect', () => {
-        console.log('[Socket] Disconnected')
-    })
-
-    socket.on('error', (error) => {
-        console.error('[Socket] Error:', error)
-    })
-
-    return socket
+export function initSocket(): Socket {
+    return mockSocket as any
 }
 
 export function getSocket(): Socket | null {
-    return socket
+    return mockSocket as any
 }
 
 export function disconnectSocket() {
-    if (socket) {
-        socket.removeAllListeners() // cleanup all listeners
-        socket.disconnect()
-        socket = null
-    }
+    // No-op
 }
 
 // SAFE EVENT SUBSCRIPTIONS
 
 export function onMetricsUpdate(callback: (data: any) => void) {
-    const sock = socket || initSocket()
-
-    sock.off('metrics:update')
-    sock.on('metrics:update', callback)
-
-    return () => sock.off('metrics:update', callback)
+    return () => {}
 }
 
 export function onNewThreat(callback: (data: any) => void) {
-    const sock = socket || initSocket()
-
-    sock.off('threats:new')
-    sock.on('threats:new', callback)
-
-    return () => sock.off('threats:new', callback)
+    return () => {}
 }
 
 export function onIncidentUpdate(callback: (data: any) => void) {
-    const sock = socket || initSocket()
-
-    sock.off('incidents:update')
-    sock.on('incidents:update', callback)
-
-    return () => sock.off('incidents:update', callback)
+    return () => {}
 }
 
 export function onChartUpdate(callback: (data: any) => void) {
-    const sock = socket || initSocket()
-
-    sock.off('chart:update')
-    sock.on('chart:update', callback)
-
-    return () => sock.off('chart:update', callback)
+    return () => {}
 }

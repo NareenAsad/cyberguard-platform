@@ -1,8 +1,8 @@
+/* eslint-disable */
 const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
 const { Server } = require('socket.io')
-const path = require('path')
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -73,15 +73,11 @@ app.prepare().then(() => {
         }
     })
 
-    // Create Socket.io server
-    const io = new Server(httpServer, {
-        path: '/api/socket',
-        addTrailingSlash: false,
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST'],
-        },
-    })
+    // Create Mock Socket.io server to disable all real-time connections
+    const io = {
+        emit: () => {},
+        on: () => {},
+    }
 
     // Simulated metrics storage
     let lastMetrics = {

@@ -16,24 +16,24 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSocket } from '@/hooks/use-socket'
 
-export function usePageRefresh(pageName: string) {
+export function usePageRefresh(pageName: string, onRefresh?: () => void) {
     const router = useRouter()
-    const socket = useSocket()
 
     useEffect(() => {
-        if (!socket) return
-
-        const handler = (data: { page: string }) => {
-            if (data.page === pageName) {
-                console.log(`[PageRefresh] Refreshing ${pageName}...`)
+        const handler = () => {
+            console.log(`[PageRefresh] AI Analysis completed. Refreshing ${pageName}...`)
+            if (onRefresh) {
+                onRefresh()
+            } else {
                 router.refresh()   // re-runs Server Components and refetches data
             }
         }
 
-        socket.on('page:refresh', handler)
-        return () => { socket.off('page:refresh', handler) }
+        window.addEventListener('ai-analysis:completed', handler)
+        return () => {
+            window.removeEventListener('ai-analysis:completed', handler)
+        }
 
-    }, [socket, pageName, router])
+    }, [pageName, router, onRefresh])
 }

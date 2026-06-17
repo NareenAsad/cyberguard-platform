@@ -15,14 +15,19 @@ const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
 })
 
-async function testConnection() {
-    try {
-        const { data, error } = await supabase.from('Threat').select('id').limit(1)
-        if (error) throw error
-        console.log('✅ Supabase connected. Threat rows sample:', data?.length ?? 0)
-    } catch (error) {
-        console.error('❌ Connection failed:', error)
+async function main() {
+    const tables = ['Threat', 'RiskAnalysis', 'Incident', 'Playbook', 'Report', 'agent_jobs']
+    for (const t of tables) {
+        const { data, count, error } = await supabase
+            .from(t)
+            .select('*', { count: 'exact', head: true })
+        
+        if (error) {
+            console.log(`❌ Table ${t} error:`, error.message)
+        } else {
+            console.log(`✅ Table ${t} has ${count} rows`)
+        }
     }
 }
 
-testConnection()
+main().catch(console.error)

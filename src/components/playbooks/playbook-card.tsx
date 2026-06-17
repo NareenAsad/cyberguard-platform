@@ -2,7 +2,7 @@
 
 import { BookOpen, CheckCircle, Trash2 } from 'lucide-react'
 
-interface Playbook {
+export interface Playbook {
     id: string
     playbookId?: string
     title: string

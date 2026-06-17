@@ -23,7 +23,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **Settings / Profile** | Complete | Profile editing, role display, account details |
 | **Database Integration** | Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
 | **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
-| **Real-time (WebSocket)** | Complete | Socket.io — live metrics, notifications, agent events |
+| **Real-time / Client Events** | Complete | Custom Browser Events (`ai-analysis:completed`) — layout refreshes and live updates |
 | **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM |
 
 ---
@@ -43,13 +43,31 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 
 ```
 ┌──────────────────── Full-Width Header ────────────────────────┐
-│   CyberGuard     [System Status]  [Notifications]      [User] │
+│   CyberGuard     [System Status]                       [User] │
 ├──────────┬────────────────────────────────────────────────────┤
 │          │                                                     │
 │ Sidebar  │              Page Content                          │
 │  (nav)   │                                                     │
 │          │                                                     │
 └──────────┴────────────────────────────────────────────────────┘
+```
+
+```mermaid
+flowchart TD
+    subgraph Header ["Full-Width Header"]
+        direction LR
+        Logo["🛡️ CyberGuard (Brand)"] ~~~ Status["🟢 System Healthy (Status Indicator)"] ~~~ User["👤 User Menu (Profile & Actions)"]
+    end
+    subgraph MainLayout ["Application View Layout"]
+        direction LR
+        Sidebar["📁 Navigation Sidebar<br/>• Dashboard<br/>• Threats<br/>• Risk Analysis<br/>• Incident Response<br/>• Playbooks<br/>• Reports"]
+        Content["🖥️ Dynamic Page Content Area<br/>(Metrics, charts, threat feeds, action triggers)"]
+    end
+    Header --> MainLayout
+    style Header fill:#0d1117,stroke:#30363d,stroke-width:1px,color:#fff
+    style MainLayout fill:#0d1117,stroke:#30363d,stroke-width:1px,color:#fff
+    style Sidebar fill:#161b22,stroke:#30363d,color:#58a6ff
+    style Content fill:#0d1117,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
 ```
 
 ---
@@ -124,7 +142,7 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 | Icons | Lucide React |
 | Database | Supabase (Postgres) |
 | Auth | Supabase Auth |
-| Real-time | Socket.io |
+| Real-time | Custom Browser Events |
 | AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
 | Deployment | Vercel |
 
@@ -146,11 +164,11 @@ The platform uses **Supabase** (managed PostgreSQL) with Row Level Security (RLS
 
 ---
 
-## WebSocket (Real-Time)
+## Real-Time (Client Events)
 
-Real-time updates are powered by **Socket.io**, providing instant visibility into threats and system events across the dashboard.
+Real-time page refreshes and layout updates are powered by **Custom Client-Side Browser Events (`ai-analysis:completed`)**, triggering instant visibility into newly generated threats, playbooks, and reports once the AI analysis completes.
 
-> Real-time architecture, event mapping, and client-side usage examples are described in the [WebSocket Documentation](./docs/WEBSOCKET.md).
+> Event architecture, data refresh hooks, and usage examples are described in the [Client Events Documentation](./docs/WEBSOCKET.md).
 
 ---
 

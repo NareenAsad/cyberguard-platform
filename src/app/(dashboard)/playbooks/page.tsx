@@ -6,28 +6,31 @@ import { PlaybooksGrid } from '@/components/playbooks/playbooks-grid'
 import { PlaybookDetailPanel } from '@/components/playbooks/playbook-detail-panel'
 import { playbooksAPI } from '@/lib/api-service'
 import { usePageRefresh } from '@/hooks/use-page-refresh'
+import { Playbook } from '@/components/playbooks/playbook-card'
 
 export default function PlaybooksPage() {
-    usePageRefresh('playbooks')
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-    const [playbooks, setPlaybooks] = useState<any[]>([])
+    const [playbooks, setPlaybooks] = useState<Playbook[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedPlaybook, setSelectedPlaybook] = useState<any | null>(null)
+    const [selectedPlaybook, setSelectedPlaybook] = useState<Playbook | null>(null)
+
+    const fetchPlaybooks = async () => {
+        setLoading(true)
+        try {
+            const data = await playbooksAPI.getPlaybooks()
+            if (data) {
+                setPlaybooks(data)
+            }
+        } catch (error) {
+            console.error("Failed to fetch playbooks:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    usePageRefresh('playbooks', fetchPlaybooks)
 
     useEffect(() => {
-        const fetchPlaybooks = async () => {
-            setLoading(true)
-            try {
-                const data = await playbooksAPI.getPlaybooks()
-                if (data) {
-                    setPlaybooks(data)
-                }
-            } catch (error) {
-                console.error("Failed to fetch playbooks:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
         fetchPlaybooks()
     }, [])
 
@@ -43,7 +46,7 @@ export default function PlaybooksPage() {
         }
     }
 
-    const categories = Array.from(new Set(playbooks.map(p => p.category)))
+    const categories = Array.from(new Set(playbooks.map(p => p.category).filter((c): c is string => !!c)))
 
     const filteredPlaybooks = selectedCategory
         ? playbooks.filter(p => p.category === selectedCategory)

@@ -11,24 +11,26 @@ import { exportToCSV } from '@/lib/export-utils'
 import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function RiskAnalysisPage() {
-    usePageRefresh('risk-analysis')
     const [riskAnalysis, setRiskAnalysis] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        const fetchRisks = async () => {
-            setLoading(true)
-            try {
-                const data = await riskAPI.getRisks()
-                if (data) {
-                    setRiskAnalysis(data)
-                }
-            } catch (error) {
-                console.error("Failed to fetch risk analysis:", error)
-            } finally {
-                setLoading(false)
+    const fetchRisks = async () => {
+        setLoading(true)
+        try {
+            const data = await riskAPI.getRisks()
+            if (data) {
+                setRiskAnalysis(data)
             }
+        } catch (error) {
+            console.error("Failed to fetch risk analysis:", error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    usePageRefresh('risk-analysis', fetchRisks)
+
+    useEffect(() => {
         fetchRisks()
     }, [])
 

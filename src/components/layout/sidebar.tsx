@@ -14,7 +14,6 @@ import {
   Menu,
   X,
 } from 'lucide-react'
-import { initSocket } from '@/lib/socket/socket'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -45,24 +44,15 @@ export function Sidebar() {
         // Keep "No updates yet" if API is unavailable.
       })
 
-    const socket = initSocket()
-    const updateNow = () => setLastUpdatedIso(new Date().toISOString())
-    const updateFromPayload = (payload: any) =>
-      setLastUpdatedIso(payload?.updatedAt || payload?.timestamp || payload?.generatedAt || new Date().toISOString())
+    const updateNow = () => {
+      if (mounted) setLastUpdatedIso(new Date().toISOString())
+    }
 
-    socket.on('metrics:update', updateFromPayload)
-    socket.on('chart:update', updateNow)
-    socket.on('threats:new', updateNow)
-    socket.on('incidents:update', updateNow)
-    socket.on('agent:complete', updateNow)
+    window.addEventListener('ai-analysis:completed', updateNow)
 
     return () => {
       mounted = false
-      socket.off('metrics:update', updateFromPayload)
-      socket.off('chart:update', updateNow)
-      socket.off('threats:new', updateNow)
-      socket.off('incidents:update', updateNow)
-      socket.off('agent:complete', updateNow)
+      window.removeEventListener('ai-analysis:completed', updateNow)
     }
   }, [])
 

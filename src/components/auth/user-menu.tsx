@@ -14,10 +14,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/lib/auth/auth-context'
 import { getRoleLabel, getRoleBadgeColor } from '@/lib/auth/types'
-import { logout } from '@/lib/auth/actions'
 
 export function UserMenu() {
-    const { user, profile, loading } = useAuth()
+    const { user, profile, loading, signOut } = useAuth()
     const router = useRouter()
 
     if (loading) {
@@ -43,7 +42,8 @@ export function UserMenu() {
         : user.email?.slice(0, 2).toUpperCase() || 'U'
 
     const handleLogout = async () => {
-        await logout()
+        await signOut()
+        window.location.href = '/auth/login'
     }
 
     return (

@@ -11,27 +11,29 @@ import { exportToCSV } from '@/lib/export-utils'
 import { usePageRefresh } from '@/hooks/use-page-refresh'
 
 export default function ThreatsPage() {
-    usePageRefresh('threats')
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null)
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
     const [threats, setThreats] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        const fetchThreats = async () => {
-            setLoading(true)
-            try {
-                const data = await threatsAPI.getThreats()
-                if (data) {
-                    setThreats(data)
-                }
-            } catch (error) {
-                console.error("Failed to fetch threats:", error)
-            } finally {
-                setLoading(false)
+    const fetchThreats = async () => {
+        setLoading(true)
+        try {
+            const data = await threatsAPI.getThreats()
+            if (data) {
+                setThreats(data)
             }
+        } catch (error) {
+            console.error("Failed to fetch threats:", error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    usePageRefresh('threats', fetchThreats)
+
+    useEffect(() => {
         fetchThreats()
     }, [])
 
