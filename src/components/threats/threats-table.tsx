@@ -22,6 +22,7 @@ const severityColors = {
 }
 
 const statusColors = {
+    active: 'bg-red-500/20 text-red-400',
     blocked: 'bg-accent/20 text-accent',
     mitigating: 'bg-yellow-500/20 text-yellow-400',
     quarantined: 'bg-orange-500/20 text-orange-400',

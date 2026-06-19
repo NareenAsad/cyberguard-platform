@@ -5,6 +5,29 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgentJob } from '@/lib/agent-client'
+import type { AgentPipelineResult, RiskResult, ExecutiveReport, TechnicalReport } from '@/lib/agent-client'
+
+/** Extended types for pipeline fields not yet in base interfaces */
+interface ExtendedPipelineResult extends AgentPipelineResult {
+    compliance_report?: Record<string, unknown>
+}
+
+interface ExtendedRiskResult extends RiskResult {
+    score_breakdown?: string
+}
+
+interface ExtendedPlaybookResult {
+    cve_id?: string
+    asset_id?: string
+    risk_score?: number
+    incident_title?: string
+    incident_summary?: string
+    playbook?: {
+        containment?: string[]
+        eradication?: string[]
+        recovery?: string[]
+    }
+}
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
 import { jobIdSchema } from '@/lib/validation'
@@ -38,49 +61,30 @@ export async function GET(request: NextRequest) {
             savedJobs.add(validatedJobId)
 
             // Save and emit — fire and forget so polling stays fast
-            saveAndNotify(validatedJobId, job.result).catch(err => {
-                console.error(`[Job ${validatedJobId}] Save failed:`, err.message)
+            saveAndNotify(validatedJobId, job.result).catch((err: unknown) => {
+                console.error(`[Job ${validatedJobId}] Save failed:`, err instanceof Error ? err.message : err)
                 savedJobs.delete(validatedJobId) // allow retry
             })
         }
 
         return NextResponse.json({ success: true, job })
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Poll error:', error)
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
     }
 }
 
 
 
-async function saveAndNotify(jobId: string, result: any) {
+async function saveAndNotify(jobId: string, result: ExtendedPipelineResult) {
     const now = new Date().toISOString()
     const summary = { threats: 0, risks: 0, incidents: 0, playbooks: 0, reports: 0 }
 
     console.log(`[Save ${jobId}] Keys:`, Object.keys(result))
 
     // ── 1. Threats ────────────────────────────────────────────────────────
-    // Build a set of indicator values already in the DB to avoid duplicates
-    const existingValues = new Set<string>()
-    if ((result.threats ?? []).length > 0) {
-        const indicatorValues = (result.threats ?? []).map((t: any) => t.indicator_value).filter(Boolean)
-        if (indicatorValues.length > 0) {
-            const { data: existing } = await supabase
-                .from('Threat')
-                .select('target')
-                .in('target', indicatorValues)
-            for (const row of existing ?? []) existingValues.add(row.target)
-        }
-    }
-
     for (const t of result.threats ?? []) {
         const indicatorValue = t.indicator_value ?? 'Unknown'
-
-        // Skip if this exact indicator was already saved before (dedup)
-        if (existingValues.has(indicatorValue)) {
-            console.log(`[Save] Skipping duplicate threat: ${indicatorValue}`)
-            continue
-        }
 
         // Derive a meaningful source: use MITRE tactic or confidence label
         // (threat_actor does not exist on ThreatIntelResult)
@@ -105,7 +109,7 @@ async function saveAndNotify(jobId: string, result: any) {
     }
 
     // ── 2. Risk Analysis ──────────────────────────────────────────────────
-    for (const r of result.risk_register ?? []) {
+    for (const r of (result.risk_register ?? []) as ExtendedRiskResult[]) {
         const { error } = await supabase.from('RiskAnalysis').insert({
             id:             `risk-${jobId}-${rand()}`,
             asset:          r.asset_name      ?? 'Unknown Asset',
@@ -119,7 +123,7 @@ async function saveAndNotify(jobId: string, result: any) {
     }
 
     // ── 3. Incidents for risk >= 50 ───────────────────────────────────────
-    for (const r of (result.risk_register ?? []).filter((r: any) => (r.risk_score ?? 0) >= 50)) {
+    for (const r of ((result.risk_register ?? []) as ExtendedRiskResult[]).filter(r => (r.risk_score ?? 0) >= 50)) {
         const { error } = await supabase.from('Incident').insert({
             id:          `inc-${jobId}-${rand()}`,
             incidentId:  `INC-AI-${Date.now()}`,
@@ -136,7 +140,7 @@ async function saveAndNotify(jobId: string, result: any) {
     }
 
     // ── 4. Playbooks ──────────────────────────────────────────────────────
-    for (const p of result.playbooks ?? []) {
+    for (const p of (result.playbooks ?? []) as ExtendedPlaybookResult[]) {
         const { error } = await supabase.from('Playbook').insert({
             id:          `pb-${jobId}-${rand()}`,
             playbookId:  `PB-${rand().toUpperCase()}`,
@@ -153,9 +157,9 @@ async function saveAndNotify(jobId: string, result: any) {
     }
 
     // ── 5. Report ─────────────────────────────────────────────────────────
-    const exec = result.executive_report ?? {}
-    const tech = result.technical_report ?? {}
-    const comp = result.compliance_report ?? {}
+    const exec = result.executive_report ?? {} as Partial<ExecutiveReport>
+    const tech = result.technical_report ?? {} as Partial<TechnicalReport>
+    const comp = result.compliance_report ?? {} as Partial<Record<string, unknown>>
 
     if (exec.top_risk || tech.total_findings) {
         const { error } = await supabase.from('Report').insert({
@@ -191,10 +195,10 @@ async function saveAndNotify(jobId: string, result: any) {
 }
 
 
-async function emitRefreshEvents(result: any, summary: any, exec: any) {
+async function emitRefreshEvents(result: AgentPipelineResult, summary: { threats: number; risks: number; incidents: number; playbooks: number; reports: number }, exec: Partial<ExecutiveReport>) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    const emit = async (event: string, data: any) => {
+    const emit = async (event: string, data: Record<string, unknown>) => {
         try {
             await fetch(`${appUrl}/api/internal/socket-emit`, {
                 method:  'POST',

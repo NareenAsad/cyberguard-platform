@@ -95,10 +95,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                   ? 'text-primary bg-primary/5'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 <span className="text-sm font-medium">{item.name}</span>

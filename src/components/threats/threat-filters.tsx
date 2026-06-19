@@ -56,6 +56,7 @@ export function ThreatFilters({
                     className="px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                     <option value="">All Statuses</option>
+                    <option value="active">Active</option>
                     <option value="blocked">Blocked</option>
                     <option value="mitigating">Mitigating</option>
                     <option value="quarantined">Quarantined</option>
