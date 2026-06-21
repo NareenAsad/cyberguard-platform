@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { cacheGet, cacheSet } from '@/lib/cache'
+
+const CACHE_TTL = 60 // seconds
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +37,16 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
         const timeRange = searchParams.get('timeRange') || '24h'
+
+        // 1. Try Redis cache first (keyed per timeRange)
+        const cacheKey = `dashboard:chart:${timeRange}`
+        const cached = await cacheGet<{ name: string; threats: number }[]>(cacheKey)
+        if (cached) {
+            return NextResponse.json(
+                { success: true, data: cached, timeRange, timestamp: new Date().toISOString() },
+                { status: 200, headers: { 'X-Cache': 'HIT' } }
+            )
+        }
 
         let rows: { name: string; threats: number }[] = []
         const now = Date.now()
@@ -109,9 +122,12 @@ export async function GET(request: NextRequest) {
             if (rows.length === 0) rows = buildMockRows('30d')
         }
 
+        // 2. Populate Redis cache for next request
+        await cacheSet(cacheKey, rows, CACHE_TTL)
+
         return NextResponse.json(
             { success: true, data: rows, timeRange, timestamp: new Date().toISOString() },
-            { status: 200 }
+            { status: 200, headers: { 'X-Cache': 'MISS' } }
         )
     } catch (error: any) {
         if (error?.code === 'PGRST205') {

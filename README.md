@@ -5,6 +5,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E)](https://supabase.com/)
+[![Redis](https://img.shields.io/badge/Redis-7.2-DC382D)](https://upstash.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-10b981)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -23,6 +24,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **Settings / Profile** | Complete | Profile editing, role display, account details |
 | **Database Integration** | Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
 | **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
+| **Redis Integration** | Complete | Upstash Redis 7.2 — rate limiting, API caching, real-time metrics persistence |
 | **Real-time / Client Events** | Complete | Custom Browser Events (`ai-analysis:completed`) — layout refreshes and live updates |
 | **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM |
 
@@ -125,7 +127,9 @@ flowchart TD
 
 To align with OWASP best practices, CyberGuard implements robust API defense and verification mechanisms:
 
-- **Sliding-Window Rate Limiting** (`src/lib/rate-limit.ts`) — In-memory request limiter tracking clients by authenticated User ID (preferred) or Client IP, returning RFC-compliant headers (`Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`).
+- **Redis-Backed Sliding-Window Rate Limiting** (`src/lib/rate-limit.ts`) — Distributed rate limiter using **Upstash Redis sorted sets** (`ZADD` / `ZREMRANGEBYSCORE` / `ZCARD` pipeline). Tracks clients by authenticated User ID (preferred) or Client IP. Returns RFC-compliant headers (`Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`). Persists across server restarts and works correctly across multiple instances. Gracefully falls back to an in-memory store if Redis is unavailable.
+- **Redis API Response Caching** (`src/lib/cache.ts`) — Generic cache layer wrapping dashboard API routes. Dashboard metrics are cached for **30 seconds** and chart data for **60 seconds** (keyed per `timeRange`). Cache entries are namespaced under `cg:cache:*` and auto-expire via Redis TTL. Returns `X-Cache: HIT / MISS` headers for transparent debugging.
+- **Real-Time Metrics Persistence** (`server.js`) — Live dashboard metrics (threat count, risk score, active incidents) are stored in Redis under `realtime:metrics` with a 24-hour TTL, so simulated values survive server restarts.
 - **Strict Schema Validation** (`src/lib/validation.ts`) — Centralized Zod validation layer covering all public and administrative route payloads. Enforces types, strict structures, limits, and rejects unknown fields via `.strict()`.
 - **XSS Mitigation & Input Sanitization** — Automatically sanitizes and escapes HTML entities from incoming string variables before processing or storing them in Supabase.
 
@@ -142,6 +146,7 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 | Icons | Lucide React |
 | Database | Supabase (Postgres) |
 | Auth | Supabase Auth |
+| Cache / Rate Limiting | Upstash Redis 7.2 (REST API) |
 | Real-time | Custom Browser Events |
 | AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
 | Deployment | Vercel |
@@ -231,6 +236,9 @@ cyberguard-platform/
 │   │   ├── auth/             Auth context, types, helpers
 │   │   ├── socket/           Socket.io client initializer
 │   │   ├── supabase/         Client & server Supabase instances
+│   │   ├── redis.ts          Upstash Redis singleton client
+│   │   ├── cache.ts          Generic Redis cache helpers (get/set/del/invalidate)
+│   │   ├── rate-limit.ts     Redis sliding-window rate limiter
 │   │   └── agent-client.ts   AI pipeline health check
 │   └── proxy.ts              Next.js route matcher (public routes)
 └── README.md
@@ -242,21 +250,38 @@ cyberguard-platform/
 
 ```bash
 # 1. Clone & install
-git clone https://github.com/YOUR_USERNAME/cyberguard-platform.git
+git clone https://github.com/NareenAsad/cyberguard-platform.git
 cd cyberguard-platform
-npm install
+pnpm install
 
 # 2. Set up environment variables
-cp .env.example .env.local
-# Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-# SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY
+# Create .env.local and add the following:
+```
 
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# AI
+GROQ_API_KEY=your_groq_api_key
+
+# Upstash Redis (Redis 7.2) — get from https://console.upstash.com
+# Required for rate limiting, API caching, and metrics persistence
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_token
+```
+
+```bash
 # 3. Run database migrations (SQL in docs/SETUP.md)
 
 # 4. Start dev server
-npm run dev
+pnpm run dev
 # → http://localhost:3000
 ```
+
+> **Redis setup:** Create a free database at [console.upstash.com](https://console.upstash.com) → copy the REST URL and token. Without Redis credentials the app runs normally using in-memory fallbacks.
 
 > Full setup instructions: [docs/SETUP.md](./docs/SETUP.md)
 
@@ -295,6 +320,6 @@ npm run dev
 
 **Built with pride by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 3.0.1 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
+**Version:** 3.1.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
 
 </div>

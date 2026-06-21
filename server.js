@@ -3,6 +3,51 @@ const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
 const { Server } = require('socket.io')
+const { Redis } = require('@upstash/redis')
+const path = require('path')
+
+// ── Load .env.local BEFORE anything else ─────────────────────────────────────
+// Next.js loads .env.local automatically for API routes, but server.js is plain
+// Node.js — it runs before Next.js gets a chance to inject env vars.
+// We manually load the file here so Redis (and any other top-level code) sees
+// the correct values immediately.
+try {
+    const fs = require('fs')
+    const envFile = path.resolve(__dirname, '.env.local')
+    if (fs.existsSync(envFile)) {
+        const lines = fs.readFileSync(envFile, 'utf-8').split(/\r?\n/)
+        for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || trimmed.startsWith('#')) continue
+            const eqIdx = trimmed.indexOf('=')
+            if (eqIdx === -1) continue
+            const key = trimmed.slice(0, eqIdx).trim()
+            let value = trimmed.slice(eqIdx + 1).trim()
+            // Strip surrounding quotes if present
+            if ((value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.slice(1, -1)
+            }
+            // Only set if not already set by the shell environment
+            if (!process.env[key]) process.env[key] = value
+        }
+        console.log('[Env] Loaded .env.local')
+    }
+} catch (e) {
+    console.warn('[Env] Could not load .env.local:', e.message)
+}
+
+// ── Redis client (optional — falls back gracefully if env vars missing) ──────
+let redis = null
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+    console.log('[Redis] Connected to Upstash Redis')
+} else {
+    console.warn('[Redis] No Upstash credentials — lastMetrics stored in-memory only')
+}
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -35,8 +80,9 @@ app.prepare().then(() => {
                             if (result.metrics)             io.emit('metrics:update', { ...lastMetrics, ...result.metrics })
 
                         } else if (event === 'metrics:update') {
-                            // Dashboard metric cards update
+                            // Dashboard metric cards update — merge and persist
                             lastMetrics = { ...lastMetrics, ...data }
+                            persistMetrics(lastMetrics)
                             io.emit('metrics:update', lastMetrics)
 
                         } else if (event === 'page:refresh') {
@@ -80,7 +126,8 @@ app.prepare().then(() => {
     }
 
     // Simulated metrics storage
-    let lastMetrics = {
+    // Default values — overwritten by Redis on first read if data exists
+    const DEFAULT_METRICS = {
         threatsDetected: 1247,
         threatsDetectedChange: 0,
         riskScore: 73,
@@ -89,6 +136,31 @@ app.prepare().then(() => {
         incidentsActiveChange: 0,
         systemsMonitored: 145,
         systemsMonitoredChange: 0,
+    }
+
+    const REALTIME_KEY = 'realtime:metrics'
+    let lastMetrics = { ...DEFAULT_METRICS }
+
+    // Load persisted metrics from Redis at startup
+    ;(async () => {
+        if (redis) {
+            try {
+                const stored = await redis.get(REALTIME_KEY)
+                if (stored) {
+                    lastMetrics = typeof stored === 'string' ? JSON.parse(stored) : stored
+                    console.log('[Redis] Loaded persisted metrics from Redis')
+                }
+            } catch (e) {
+                console.error('[Redis] Failed to load metrics, using defaults:', e)
+            }
+        }
+    })()
+
+    /** Persist metrics to Redis (fire-and-forget, non-blocking) */
+    function persistMetrics(metrics) {
+        if (!redis) return
+        redis.set(REALTIME_KEY, JSON.stringify(metrics), { ex: 86400 }) // 24h TTL
+            .catch(e => console.error('[Redis] Failed to persist metrics:', e))
     }
 
     const THREAT_TYPES = ['Malware', 'Phishing', 'DDoS', 'SQL Injection', 'XSS', 'Zero-Day', 'Ransomware']
@@ -121,6 +193,8 @@ app.prepare().then(() => {
             systemsMonitoredChange: 0,
         }
         lastMetrics = metrics
+        // Persist updated metrics to Redis so they survive server restarts
+        persistMetrics(metrics)
         return metrics
     }
 

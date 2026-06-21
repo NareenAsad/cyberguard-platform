@@ -5,19 +5,20 @@
 | Tool | Version | Purpose |
 |---|---|---|
 | Node.js | 20.x+ | Runtime |
-| npm / pnpm | Latest | Package manager |
+| pnpm | Latest | Package manager (`npm install -g pnpm`) |
 | Git | Any | Version control |
 | Supabase account | — | Database + Auth (free tier works) |
 | Groq API key | — | LLM inference for AI pipeline |
+| Upstash account | — | Redis 7.2 — rate limiting, caching, metrics (free tier works) |
 
 ---
 
 ## 1. Clone & Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/cyberguard-platform.git
+git clone https://github.com/NareenAsad/cyberguard-platform.git
 cd cyberguard-platform
-npm install
+pnpm install
 ```
 
 ---
@@ -35,6 +36,10 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 # Groq (AI pipeline)
 GROQ_API_KEY=<your-groq-api-key>
 
+# Upstash Redis 7.2 (rate limiting, caching, metrics persistence)
+UPSTASH_REDIS_REST_URL=https://<your-db-name>.upstash.io
+UPSTASH_REDIS_REST_TOKEN=<your-upstash-token>
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -49,6 +54,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 1. Sign up at [console.groq.com](https://console.groq.com)
 2. Go to **API Keys → Create API Key**
 3. Copy the key into `GROQ_API_KEY`
+
+### Getting Upstash Redis Credentials
+1. Sign up at [console.upstash.com](https://console.upstash.com) (free tier — no credit card)
+2. Click **Create Database**
+   - Name: `cyberguard`
+   - Type: **Regional**
+   - Region: pick the closest to your location
+3. On the database page, scroll to the **Connect → REST** tab
+4. Click the **👁 eye icon** to reveal the token
+5. Copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` into `.env.local`
+
+> **Note:** Without Redis credentials the app runs normally using in-memory fallbacks for rate limiting and caching. Redis is recommended for production.
 
 ---
 
@@ -166,8 +183,17 @@ create table dashboard_metrics (
 ## 4. Run Development Server
 
 ```bash
-npm run dev
+pnpm run dev
 # App runs at http://localhost:3000
+```
+
+Expected startup output when everything is configured correctly:
+
+```
+[Env] Loaded .env.local
+[Redis] Connected to Upstash Redis
+> Server ready on http://localhost:3000
+> Socket.io ready on ws://localhost:3000/api/socket
 ```
 
 ### First-time login
@@ -196,6 +222,8 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 GROQ_API_KEY=...
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ```
 
@@ -205,10 +233,10 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 
 | Script | Description |
 |---|---|
-| `npm run dev` | Start development server |
-| `npm run build` | Build production bundle |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
+| `pnpm run dev` | Start development server |
+| `pnpm run build` | Build production bundle |
+| `pnpm run start` | Start production server |
+| `pnpm run lint` | Run ESLint |
 
 ---
 
@@ -216,8 +244,11 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 
 | Problem | Fix |
 |---|---|
-| `Module not found` errors | Run `npm install` again |
+| `Module not found` errors | Run `pnpm install` again |
 | Supabase 401/403 errors | Check `SUPABASE_SERVICE_ROLE_KEY` is correct |
 | AI pipeline hangs | Verify `GROQ_API_KEY` is valid |
 | Socket.io not connecting | Make sure only one dev server is running on port 3000 |
 | "System Degraded" shown | The AI agent health check endpoint is unreachable — normal if backend Python service is not running |
+| `[Redis] No Upstash credentials` | Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to `.env.local` — app works without them using in-memory fallback |
+| Redis 401 Unauthorized | Token is incorrect or truncated — re-copy the full token from the Upstash REST tab (click the 👁 eye icon to reveal it) |
+| Rate limits not persisting | Redis credentials missing or invalid — rate limit state resets on server restart when using in-memory fallback |

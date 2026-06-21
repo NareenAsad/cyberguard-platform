@@ -1,7 +1,8 @@
 // Common fetch config
-const fetchConfig = {
-    next: { revalidate: 30 }, // cache for 30 seconds
-}
+// Note: Redis (via src/lib/cache.ts) now handles server-side caching for
+// dashboard endpoints. The Next.js revalidate option has been removed to avoid
+// double-caching and stale data issues.
+const fetchConfig = {}
 
 // Dashboard APIs
 export const dashboardAPI = {
