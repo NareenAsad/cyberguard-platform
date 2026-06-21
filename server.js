@@ -119,11 +119,12 @@ app.prepare().then(() => {
         }
     })
 
-    // Create Mock Socket.io server to disable all real-time connections
-    const io = {
-        emit: () => {},
-        on: () => {},
-    }
+    // ── Real Socket.io Server ─────────────────────────────────────────────────
+    const io = new Server(httpServer, {
+        path: '/api/socket',
+        cors: { origin: '*' },
+        transports: ['websocket', 'polling'],
+    })
 
     // Simulated metrics storage
     // Default values — overwritten by Redis on first read if data exists
@@ -235,11 +236,11 @@ app.prepare().then(() => {
         }
     }
 
-    // Socket.io connection handling
+    // ── Socket.io connection handling ──────────────────────────────────────────
     io.on('connection', (socket) => {
         console.log('[Socket.io] Client connected:', socket.id)
 
-        // Send initial metrics to new client
+        // Send initial metrics snapshot to the newly connected client
         socket.emit('metrics:update', generateMetrics())
 
         socket.on('disconnect', () => {
@@ -251,11 +252,16 @@ app.prepare().then(() => {
         })
     })
 
-    // Start broadcasting data to all connected clients
+    // ── Live broadcasts ─────────────────────────────────────────────────────────
+    // Push a new chart data point every 10 seconds to all connected clients
     setInterval(() => {
-        // Emit chart update mock data so the dashboard stays alive
         io.emit('chart:update', generateChartPoint())
     }, 10000)
+
+    // Push updated metrics every 30 seconds
+    setInterval(() => {
+        io.emit('metrics:update', generateMetrics())
+    }, 30000)
 
     httpServer.listen(port, (err) => {
         if (err) throw err

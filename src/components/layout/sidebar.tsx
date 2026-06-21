@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { onMetricsUpdate } from '@/lib/socket/socket'
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -48,11 +49,16 @@ export function Sidebar() {
       if (mounted) setLastUpdatedIso(new Date().toISOString())
     }
 
+    // Update on AI analysis completion
     window.addEventListener('ai-analysis:completed', updateNow)
+
+    // Also update whenever the socket pushes live metrics
+    const unsubSocket = onMetricsUpdate(updateNow)
 
     return () => {
       mounted = false
       window.removeEventListener('ai-analysis:completed', updateNow)
+      unsubSocket()
     }
   }, [])
 

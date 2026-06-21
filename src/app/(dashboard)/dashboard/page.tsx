@@ -6,6 +6,7 @@ import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { QuickStats } from '@/components/dashboard/quick-stats'
 import { RecentIncidents } from '@/components/dashboard/recent-incidents'
 import { PageHeader } from '@/components/shared/page-header'
+import { RealtimeToggle } from '@/components/dashboard/realtime-toggle'
 import { Skeleton } from '@/components/ui/skeleton'
 import { dashboardAPI } from '@/lib/api-service'
 import { useFetchData } from '@/hooks/use-fetch-data'
@@ -41,44 +42,58 @@ interface ChartDataPoint {
 
 export default function DashboardPage() {
     const [timeRange, setTimeRange] = useState('24h')
+    const [realtimeEnabled, setRealtimeEnabled] = useState(true)
 
     const metricsCallback = useCallback(() => dashboardAPI.getMetrics(), [])
-    const chartCallback   = useCallback(() => dashboardAPI.getChartData(timeRange), [timeRange])
+    const chartCallback = useCallback(() => dashboardAPI.getChartData(timeRange), [timeRange])
 
-    const { data: initialMetrics,   loading: metricsLoading } = useFetchData<DashboardMetrics>(metricsCallback, { refetchInterval: 0 })
-    const { data: initialChartData, loading: chartLoading   } = useFetchData<ChartDataPoint[]>(chartCallback,   { refetchInterval: 0 })
+    const { data: initialMetrics, loading: metricsLoading } = useFetchData<DashboardMetrics>(metricsCallback, { refetchInterval: 0 })
+    const { data: initialChartData, loading: chartLoading } = useFetchData<ChartDataPoint[]>(chartCallback, { refetchInterval: 0 })
 
     const initialIncidents = initialMetrics?.recentIncidents ?? []
 
-    const { metrics: socketMetrics }  = useSocketMetrics(initialMetrics ?? undefined)
-    const socketChartData             = useSocketChartData(initialChartData ?? undefined)
+    // Socket hooks — always subscribe so we don't lose events on toggle
+    const { metrics: socketMetrics } = useSocketMetrics(initialMetrics ?? undefined)
+    const socketChartData = useSocketChartData(initialChartData ?? undefined)
     const { incidents: socketIncidents } = useSocketIncidents(initialIncidents)
 
-    const displayMetrics = socketMetrics || initialMetrics || {
+    // When real-time is OFF, fall back to the initial API data (snapshot)
+    const displayMetrics = (realtimeEnabled ? socketMetrics : null) || initialMetrics || {
         threatsDetected: 0, threatsDetectedChange: 0,
-        riskScore: 0,       riskScoreChange: 0,
+        riskScore: 0, riskScoreChange: 0,
         incidentsActive: 0, incidentsActiveChange: 0,
         systemsMonitored: 0, systemsMonitoredChange: 0,
     }
 
-    const displayChartData = (socketChartData && socketChartData.length > 0)
+    const displayChartData = (realtimeEnabled && socketChartData && socketChartData.length > 0)
         ? socketChartData
         : initialChartData
 
-    const displayIncidents = ((socketIncidents && socketIncidents.length > 0) ? socketIncidents : null) ?? initialIncidents ?? []
+    const displayIncidents = (realtimeEnabled && socketIncidents && socketIncidents.length > 0)
+        ? socketIncidents
+        : (initialIncidents ?? [])
 
     return (
         <div className="p-4 md:p-8 space-y-6 md:space-y-8">
             <PageHeader
                 title="Dashboard"
-                description="Real-time security monitoring and threat detection"
+                description="AI-powered security monitoring and threat detection"
             />
 
-            <RunAnalysisButton />
+            {/* Run AI Analysis + Real-Time toggle — grouped together */}
+            <div className="space-y-3  mb-5">
+                <RunAnalysisButton />
+                <div className="mt-5">
+                    <RealtimeToggle
+                        enabled={realtimeEnabled}
+                        onToggle={setRealtimeEnabled}
+                    />
+                </div>
+            </div>
 
-            <MetricsGrid 
-                metrics={displayMetrics} 
-                loading={metricsLoading && !socketMetrics} 
+            <MetricsGrid
+                metrics={displayMetrics}
+                loading={metricsLoading && !socketMetrics}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">

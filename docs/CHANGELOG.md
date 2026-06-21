@@ -5,10 +5,48 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.3.0] — 2026-05-12 (Current)
+## [3.2.0] — 2026-06-21 (Current)
+
+### Real-Time System Restored & Enhanced
+- **Socket.io re-enabled** — `src/lib/socket/socket.ts` and `src/lib/socket/socket-server.ts` replaced their no-op mock stubs with real `socket.io-client` / `socket.io` implementations
+- **`server.js` restored** — mock `io` object replaced with `new Server(httpServer, { path: '/api/socket' })`
+- **Live broadcasts** — server now emits `metrics:update` every 30 s and `chart:update` every 10 s to all connected clients
+- **On-connect snapshot** — each new socket client immediately receives the current metrics state
+
+### New Feature — Real-Time Monitoring Toggle
+- **`RealtimeToggle` component** (`src/components/dashboard/realtime-toggle.tsx`) — pulsing LIVE badge (electric cyan) / PAUSED badge (grey) with an accessible toggle switch
+- Placed on the Dashboard directly beneath the **Run AI Analysis** button
+- When **LIVE**: Socket.io events drive metric cards, chart, and incidents list in real time
+- When **Paused**: data freezes at last API snapshot so analysts can review pipeline results without numbers changing
+- Socket connection stays alive in both states — only UI state updates are gated
+
+### Docs
+- `README.md` bumped to v3.2.0; tech stack row updated to `Socket.io 4.8 + Custom Browser Events`
+- `docs/WEBSOCKET.md` rewritten — documents both Socket.io and browser event systems, toggle behaviour, Redis metrics persistence
+- `docs/BACKEND.md` updated — Socket.io broadcast table, toggle section, internal socket-emit webhook description
+
+---
+
+## [3.1.0] — 2026-06-20
+
+### Redis Integration
+- **Upstash Redis 7.2** added for rate limiting, API response caching, and real-time metrics persistence
+- `src/lib/redis.ts` — singleton Upstash client with in-memory fallback
+- `src/lib/cache.ts` — generic `cacheGet` / `cacheSet` / `cacheDel` / `cacheInvalidatePrefix` helpers; keys namespaced under `cg:cache:*`
+- `src/lib/rate-limit.ts` — sliding-window rate limiter using Redis sorted sets; falls back to in-memory Map
+- `server.js` — metrics persisted under `realtime:metrics` key (24h TTL); loaded on startup
+- **Real-time / Custom Browser Events** — `ai-analysis:completed` custom event dispatched by `RunAnalysisButton`; `usePageRefresh` hook and `Sidebar` listen and refresh
+
+### Docs
+- `README.md` updated to v3.1.0; platform status table, security hardening section, and tech stack updated
+- `docs/WEBSOCKET.md` and `docs/BACKEND.md` reconciled with actual implementation
+
+---
+
+## [1.3.0] — 2026-05-12
 
 ### UI / Design Overhaul
-- **Unified color palette** — replaced all legacy `blue-*` and `cyan-*` Tailwind classes with a consistent `emerald-*` primary theme across all 21+ components
+- **Unified color palette** — replaced legacy colors with a consistent electric cyan (`#00e5ff`) primary theme across all 21+ components
 - **Full-width navbar** — restructured `Dashboard`, `Settings`, and `Admin` layouts so `Header` spans 100% of viewport width, with `Sidebar` sitting beneath it
 - **CyberGuard logo moved to Header** — shield icon + gradient wordmark now lives in the top-left of the full-width navbar instead of the sidebar top
 - **Sidebar cleanup** — removed the logo section from the sidebar; navigation links now start at the top

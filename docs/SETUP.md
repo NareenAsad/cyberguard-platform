@@ -76,7 +76,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 Go to your Supabase project → **SQL Editor** and run:
 
 ```sql
-```sql
 -- Profiles (extends Supabase auth.users)
 create table profiles (
   id uuid references auth.users on delete cascade primary key,

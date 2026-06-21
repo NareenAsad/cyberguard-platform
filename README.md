@@ -6,6 +6,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E)](https://supabase.com/)
 [![Redis](https://img.shields.io/badge/Redis-7.2-DC382D)](https://upstash.com/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.8-010101)](https://socket.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-10b981)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -25,7 +26,8 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **Database Integration** | Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
 | **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
 | **Redis Integration** | Complete | Upstash Redis 7.2 — rate limiting, API caching, real-time metrics persistence |
-| **Real-time / Client Events** | Complete | Custom Browser Events (`ai-analysis:completed`) — layout refreshes and live updates |
+| **Real-Time / Socket.io** | Complete | Socket.io 4.8 — live metrics every 30 s, chart data every 10 s, instant AI pipeline completion events |
+| **Real-Time Toggle** | Complete | Per-user on/off switch — pause live updates to focus on static snapshot during analysis |
 | **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM |
 
 ---
@@ -54,24 +56,6 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 └──────────┴────────────────────────────────────────────────────┘
 ```
 
-```mermaid
-flowchart TD
-    subgraph Header ["Full-Width Header"]
-        direction LR
-        Logo["🛡️ CyberGuard (Brand)"] ~~~ Status["🟢 System Healthy (Status Indicator)"] ~~~ User["👤 User Menu (Profile & Actions)"]
-    end
-    subgraph MainLayout ["Application View Layout"]
-        direction LR
-        Sidebar["📁 Navigation Sidebar<br/>• Dashboard<br/>• Threats<br/>• Risk Analysis<br/>• Incident Response<br/>• Playbooks<br/>• Reports"]
-        Content["🖥️ Dynamic Page Content Area<br/>(Metrics, charts, threat feeds, action triggers)"]
-    end
-    Header --> MainLayout
-    style Header fill:#0d1117,stroke:#30363d,stroke-width:1px,color:#fff
-    style MainLayout fill:#0d1117,stroke:#30363d,stroke-width:1px,color:#fff
-    style Sidebar fill:#161b22,stroke:#30363d,color:#58a6ff
-    style Content fill:#0d1117,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
-```
-
 ---
 
 ## Features
@@ -85,10 +69,11 @@ flowchart TD
 - **Workflow Pipeline & Specialists Grid** — Step-by-step security pipeline with large index row cards, and a designated team grid profile section showcasing the 5 specialized AI agents with online status tracking.
 
 ### Dashboard
-- Real-time metrics (threats detected, risk score, active incidents, systems monitored)
-- Cyber cyan area chart for threat activity with 24h / 7d / 30d time range picker
+- Real-time metrics (threats detected, risk score, active incidents, systems monitored) — pushed by Socket.io every 30 seconds
+- Cyber cyan area chart for threat activity with live data points pushed every 10 seconds via Socket.io; 24h / 7d / 30d time range picker
+- **Real-Time Monitoring Toggle** — on/off switch that pauses Socket.io updates and freezes the dashboard to a static snapshot; analysts can review pipeline results without numbers changing underneath them
 - Recent incidents list with severity badges
-- **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel
+- **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel; dispatches `ai-analysis:completed` browser event on completion to refresh all pages
 
 ### Threats
 - Full threat indicator table with severity filtering
@@ -147,7 +132,7 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 | Database | Supabase (Postgres) |
 | Auth | Supabase Auth |
 | Cache / Rate Limiting | Upstash Redis 7.2 (REST API) |
-| Real-time | Custom Browser Events |
+| Real-time | Socket.io 4.8 (WebSocket) + Custom Browser Events (`ai-analysis:completed`) |
 | AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
 | Deployment | Vercel |
 
@@ -169,9 +154,15 @@ The platform uses **Supabase** (managed PostgreSQL) with Row Level Security (RLS
 
 ---
 
-## Real-Time (Client Events)
+## Real-Time (Socket.io + Browser Events)
 
-Real-time page refreshes and layout updates are powered by **Custom Client-Side Browser Events (`ai-analysis:completed`)**, triggering instant visibility into newly generated threats, playbooks, and reports once the AI analysis completes.
+Live dashboard updates are powered by a **dual real-time system**:
+
+1. **Socket.io** (`server.js` + `src/lib/socket/`) — persistent WebSocket connection on `/api/socket`. Server broadcasts `metrics:update` every 30 s and `chart:update` every 10 s to all connected clients. The `RunAnalysisButton` also triggers socket events via an internal webhook (`POST /api/internal/socket-emit`) when the AI pipeline completes.
+
+2. **Custom Browser Events** (`ai-analysis:completed`) — dispatched by `RunAnalysisButton` on pipeline completion. Hooks (`usePageRefresh`) respond by calling `router.refresh()` to re-run Server Components and pull fresh data from Supabase across all dashboard pages.
+
+3. **Real-Time Monitoring Toggle** (`RealtimeToggle` component) — lets any authenticated user (admin, manager, analyst) pause Socket.io-driven updates. When **paused**, the dashboard freezes at the last snapshot so users can analyse the AI pipeline output without live numbers changing.
 
 > Event architecture, data refresh hooks, and usage examples are described in the [Client Events Documentation](./docs/WEBSOCKET.md).
 
@@ -218,10 +209,15 @@ cyberguard-platform/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── header.tsx              Full-width top navbar
-│   │   │   ├── sidebar.tsx             Left navigation
+│   │   │   ├── sidebar.tsx             Left navigation (socket-aware last-update)
 │   │   │   ├── background-effects.tsx  Landing page grid blueprint overlay
 │   │   │   └── custom-cursor.tsx       Mouse follow dot-and-ring follower
 │   │   ├── dashboard/
+│   │   │   ├── run-analysis-button.tsx AI pipeline trigger + progress panel
+│   │   │   ├── realtime-toggle.tsx     Live / Paused Socket.io toggle
+│   │   │   ├── metrics-grid.tsx        4 live metric cards
+│   │   │   ├── quick-stats.tsx         Summary stats panel
+│   │   │   └── recent-incidents.tsx    Latest incidents list
 │   │   ├── threats/
 │   │   ├── risk-analysis/
 │   │   ├── incident-response/
@@ -232,15 +228,23 @@ cyberguard-platform/
 │   │   │   └── transformation-slider.tsx Draggable before/after comparison slider
 │   │   ├── auth/
 │   │   └── ui/                         shadcn/ui primitives
+│   ├── hooks/
+│   │   ├── use-socket-events.ts        useSocketMetrics, useSocketChartData, useSocketIncidents
+│   │   ├── use-page-refresh.ts         ai-analysis:completed browser event listener
+│   │   └── use-fetch-data.ts           Generic API fetch hook
 │   ├── lib/
 │   │   ├── auth/             Auth context, types, helpers
-│   │   ├── socket/           Socket.io client initializer
+│   │   ├── socket/
+│   │   │   ├── socket.ts              Socket.io client singleton (initSocket, event helpers)
+│   │   │   ├── socket-server.ts       Socket.io server initializer
+│   │   │   └── mock-data-generator.ts Data generators for simulated broadcasts
 │   │   ├── supabase/         Client & server Supabase instances
 │   │   ├── redis.ts          Upstash Redis singleton client
 │   │   ├── cache.ts          Generic Redis cache helpers (get/set/del/invalidate)
 │   │   ├── rate-limit.ts     Redis sliding-window rate limiter
 │   │   └── agent-client.ts   AI pipeline health check
 │   └── proxy.ts              Next.js route matcher (public routes)
+├── server.js                 Custom Node.js server (Socket.io + Redis metrics)
 └── README.md
 ```
 
@@ -276,9 +280,10 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_token
 ```bash
 # 3. Run database migrations (SQL in docs/SETUP.md)
 
-# 4. Start dev server
+# 4. Start dev server (runs custom Node.js server with Socket.io)
 pnpm run dev
 # → http://localhost:3000
+# → Socket.io ready on ws://localhost:3000/api/socket
 ```
 
 > **Redis setup:** Create a free database at [console.upstash.com](https://console.upstash.com) → copy the REST URL and token. Without Redis credentials the app runs normally using in-memory fallbacks.
@@ -291,9 +296,11 @@ pnpm run dev
 
 | File | Contents |
 |---|---|
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, layout structure, component map |
+| [docs/ARCHITECTURE.md](./docs/architecture.md) | System design, layout structure, component map |
 | [docs/SETUP.md](./docs/SETUP.md) | Installation, env vars, DB setup, deployment |
 | [docs/API.md](./docs/API.md) | REST endpoints + WebSocket events reference |
+| [docs/WEBSOCKET.md](./docs/WEBSOCKET.md) | Real-time architecture — Socket.io + browser events |
+| [docs/BACKEND.md](./docs/BACKEND.md) | Backend patterns, rate limiting, Redis, AI pipeline |
 | [docs/CHANGELOG.md](./docs/CHANGELOG.md) | Full version history and change log |
 
 ---
@@ -303,6 +310,7 @@ pnpm run dev
 - **Educational purpose** — Built as a Final Year Project. Validate with security professionals before any production use.
 - **Data privacy** — Uses Supabase Row Level Security (RLS). Keep your `SUPABASE_SERVICE_ROLE_KEY` secret.
 - **AI pipeline** — Requires Groq API key. Without it, the Run AI Analysis button will return an error.
+- **Real-time** — Socket.io runs via a custom Node.js server (`server.js`). Standard `next start` does not include Socket.io; always start with `pnpm run dev` or `node server.js`.
 
 ---
 
@@ -320,6 +328,6 @@ pnpm run dev
 
 **Built with pride by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 3.1.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
+**Version:** 3.2.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
 
 </div>

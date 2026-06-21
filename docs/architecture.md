@@ -35,8 +35,8 @@ CyberGuard follows a **monolithic Next.js architecture** with clear separation o
 
 The platform uses a **unified dark cybersecurity aesthetic** across all pages, established through:
 
-- **Global CSS variables** in `globals.css` — all colors defined as HSL tokens (`--primary`, `--background`, `--card`, etc.)
-- **Emerald primary palette** — replaced all legacy blue/cyan colours with a consistent emerald green theme (`#10b981`)
+- **Global CSS variables** in `globals.css` — all colors defined as HSL/hex tokens (`--primary`, `--background`, `--card`, etc.)
+- **Electric Cyan primary palette** — features a vibrant electric cyan (`#00e5ff`) primary color and neon green (`#00e676`) accent color.
 - **`BackgroundEffects` component** — ambient glowing orbs rendered exclusively on the landing page (`src/components/layout/background-effects.tsx`)
 - **Glassmorphism** — sidebar and header use `backdrop-blur` where appropriate
 
@@ -162,7 +162,7 @@ src/components/
 │   ├── run-analysis-button.tsx AI pipeline trigger + progress panel
 │   └── recent-incidents.tsx
 ├── threats/
-│   ├── threat-chart.tsx        Emerald area chart (Recharts)
+│   ├── threat-chart.tsx        Electric cyan area chart (Recharts)
 │   └── threats-table.tsx
 ├── risk-analysis/
 │   └── risk-prioritization.tsx
