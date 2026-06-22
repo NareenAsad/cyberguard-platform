@@ -4,7 +4,8 @@
  * Used by Next.js API routes to trigger and poll the CrewAI pipeline.
  */
 
-const AGENT_BASE_URL = process.env.AGENT_API_URL ?? 'http://localhost:8001'
+const rawAgentUrl = process.env.AGENT_API_URL ?? 'http://localhost:8001'
+const AGENT_BASE_URL = rawAgentUrl.endsWith('/') ? rawAgentUrl.slice(0, -1) : rawAgentUrl
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
