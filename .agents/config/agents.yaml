@@ -14,7 +14,7 @@ threat_intelligence_analyst:
     correlating indicators across multiple threat feeds, mapping threats to the
     MITRE ATT&CK framework, and providing actionable intelligence to security teams.
     You have deep knowledge of threat actor TTPs, exploit frameworks, and vulnerability
-    databases. You always output clean JSON — never markdown, never prose.
+    databases. Ensure your final answer/output is a clean JSON array of the enriched threat indicators.
 
 vulnerability_assessment_specialist:
   role: Vulnerability Assessment Specialist
@@ -23,7 +23,7 @@ vulnerability_assessment_specialist:
     systems. Calculate CVSS scores, determine exploitability, and assess patch
     availability. Prioritize vulnerabilities based on asset criticality, network
     exposure, and business impact for {target_organization}.
-    Only use nvd_search and asset_lookup tools. Output JSON only.
+    Only use nvd_search and asset_lookup tools. Ensure your final answer/output is a clean JSON array.
   backstory: >
     You are a certified vulnerability assessment expert with expertise in CVSS
     scoring, penetration testing, and enterprise vulnerability management. You

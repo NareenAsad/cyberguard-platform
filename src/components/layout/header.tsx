@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { Shield } from 'lucide-react'
 import { UserMenu } from '../auth/user-menu'
-import { checkAgentHealth } from '@/lib/agent-client'
 
 export function Header() {
   const [isHealthy, setIsHealthy] = useState(true)
@@ -13,8 +12,13 @@ export function Header() {
     
     // Check Agent Health periodically
     const pollHealth = async () => {
-      const healthy = await checkAgentHealth()
-      if (mounted) setIsHealthy(healthy)
+      try {
+        const res = await fetch('/api/agents/health')
+        const data = await res.json()
+        if (mounted) setIsHealthy(!!data.healthy)
+      } catch {
+        if (mounted) setIsHealthy(false)
+      }
     }
     
     pollHealth()

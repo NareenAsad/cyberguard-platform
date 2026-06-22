@@ -12,7 +12,7 @@ threat_intelligence_analysis:
        mitre_tactic, mitre_technique_id, threat_actor (or "Unknown"),
        active_exploitation (bool), priority_score (0-100)
 
-    JSON only. No prose.
+    Your final response/answer must be a valid JSON array only. Do not include any other explanations, prose, or markdown formatting outside the JSON array block.
   expected_output: >
     JSON array of enriched threat indicators with MITRE ATT&CK mappings,
     confidence scores, threat actor attribution, and priority scores.
@@ -34,7 +34,7 @@ vulnerability_assessment:
     patch_available (bool), match_confidence (0-100), affected_component,
     network_exposure, remediation_command
 
-    JSON only. No prose.
+    Your final response/answer must be a valid JSON array only. Do not include any other explanations, prose, or markdown formatting outside the JSON array block.
   expected_output: >
     JSON array mapping CVEs to specific assets with CVSS scores,
     exploitability, patch availability, and remediation commands.
