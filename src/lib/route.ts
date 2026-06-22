@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const PYTHON_AI_SERVICE = process.env.PYTHON_AI_SERVICE_URL || "http://localhost:8000";
+const rawPythonUrl = process.env.PYTHON_AI_SERVICE_URL || "http://localhost:8000"
+const PYTHON_AI_SERVICE = rawPythonUrl.endsWith('/') ? rawPythonUrl.slice(0, -1) : rawPythonUrl
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

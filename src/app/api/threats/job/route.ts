@@ -196,7 +196,8 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult) {
 
 
 async function emitRefreshEvents(result: AgentPipelineResult, summary: { threats: number; risks: number; incidents: number; playbooks: number; reports: number }, exec: Partial<ExecutiveReport>) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = rawAppUrl.endsWith('/') ? rawAppUrl.slice(0, -1) : rawAppUrl
 
     const emit = async (event: string, data: Record<string, unknown>) => {
         try {
