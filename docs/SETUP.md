@@ -190,10 +190,15 @@ create table "DashboardMetric" (
 -- ============================================================
 
 -- Profiles (extends Supabase auth.users)
+-- Note: role is a native Postgres enum, not text+CHECK — Supabase's table
+-- editor auto-creates one when you pick "Custom" > select-of-values for a
+-- new column, which is how this project's `role` column ended up typed.
+create type user_role as enum ('admin', 'analyst', 'manager', 'viewer');
+
 create table profiles (
   id uuid references auth.users on delete cascade primary key,
   full_name text,
-  role text default 'analyst' check (role in ('admin','analyst','manager','viewer')),
+  role user_role not null default 'analyst',
   avatar_url text,
   created_at timestamptz default now()
 );
@@ -202,7 +207,15 @@ create table profiles (
 alter table profiles enable row level security;
 create policy "Users can view own profile" on profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
+```
 
+**If your `profiles.role` enum already existed without `'viewer'`** (true for any install predating v3.5.0), add the missing value once — this cannot run inside a larger transaction block, so execute it as its own statement in the SQL editor:
+
+```sql
+alter type user_role add value if not exists 'viewer';
+```
+
+```sql
 -- Asset inventory (Admin Panel)
 create table assets (
   id uuid primary key default gen_random_uuid(),
@@ -280,7 +293,7 @@ create table agent_jobs (
 | `admin` | Full system access + Admin Panel |
 | `manager` | Full operational access (no Admin Panel) |
 | `analyst` | Threat and incident management |
-| `viewer` | Read-only dashboard access |
+| `viewer` | Read-only access + can run the AI analysis pipeline; no delete/manage rights |
 
 ---
 

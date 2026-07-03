@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPlaybooks, createPlaybook, deletePlaybook } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { playbookPostSchema } from '@/lib/validation'
+import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
 
 export async function GET(request: NextRequest) {
     try {
@@ -86,6 +87,10 @@ export async function DELETE(request: NextRequest) {
         // OWASP: Rate limit deletion requests
         const limitRes = await rateLimit(request, { limit: 15, endpoint: 'playbooks:delete' })
         if (!limitRes.isAllowed) return limitRes.response
+
+        // RBAC: only roles with canDeleteData (currently: admin) may delete
+        const denied = await requireDeletePermission()
+        if (denied) return denied
 
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')

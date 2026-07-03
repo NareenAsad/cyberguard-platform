@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'analyst' | 'manager'
+export type UserRole = 'admin' | 'analyst' | 'manager' | 'viewer'
 
 export interface UserProfile {
     id: string
@@ -74,6 +74,23 @@ export const ROLE_PERMISSIONS = {
         canViewAuditLogs:    false,
         canManageAssets:     false,
     },
+    viewer: {
+        canViewDashboard:    true,
+        canViewThreats:      true,
+        canViewIncidents:    true,
+        canViewReports:      true,
+        canViewSettings:     true,
+        canViewAdminPanel:   false,
+        canRunAiAnalysis:    true,
+        canAssignIncidents:  false,
+        canExportData:       false,
+        canManageUsers:      false,
+        canManageRoles:      false,
+        canDeleteData:       false,
+        canConfigureSources: false,
+        canViewAuditLogs:    false,
+        canManageAssets:     false,
+    },
 } as const
 
 export type Permission = keyof typeof ROLE_PERMISSIONS.admin
@@ -95,10 +112,10 @@ export function canAccess(
     feature: string
 ): boolean {
     const permissions: Record<string, string[]> = {
-        run_ai_analysis:   ['analyst', 'manager', 'admin'],
+        run_ai_analysis:   ['analyst', 'manager', 'admin', 'viewer'],
         assign_incidents:  ['manager', 'admin'],
         export_reports:    ['manager', 'admin'],
-        view_reports:      ['analyst', 'manager', 'admin'],
+        view_reports:      ['analyst', 'manager', 'admin', 'viewer'],
         manage_users:      ['admin'],
         view_admin_panel:  ['admin'],
         configure_sources: ['admin'],
@@ -114,6 +131,7 @@ export function getRoleLabel(role: UserRole): string {
         admin:   'Administrator',
         manager: 'Security Manager',
         analyst: 'Security Analyst',
+        viewer:  'Viewer',
     }
     return labels[role] || role
 }
@@ -123,6 +141,7 @@ export function getRoleBadgeColor(role: UserRole): string {
         admin:   'bg-destructive/10 text-destructive border-destructive/20',
         manager: 'bg-chart-4/10 text-chart-4 border-chart-4/20',
         analyst: 'bg-primary/10 text-primary border-primary/20',
+        viewer:  'bg-muted text-muted-foreground border-border',
     }
     return colors[role] || 'bg-muted text-muted-foreground'
 }

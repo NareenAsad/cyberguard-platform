@@ -1,6 +1,7 @@
 'use client'
 
 import { BookOpen, CheckCircle, Trash2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export interface Playbook {
     id: string
@@ -21,6 +22,7 @@ interface PlaybookCardProps {
 }
 
 export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps) {
+    const { can } = useAuth()
     // steps lives in content.steps (new) or top-level steps (seeded data)
     const steps = playbook.content?.steps ?? playbook.steps ?? null
 
@@ -43,18 +45,20 @@ export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{playbook.playbookId ?? playbook.id}</span>
-                    <div 
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(playbook.id)
-                        }}
-                        className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
-                        title="Delete Playbook"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </div>
+                    {can('canDeleteData') && (
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onDelete(playbook.id)
+                            }}
+                            className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                            title="Delete Playbook"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </div>
+                    )}
                 </div>
             </div>
 

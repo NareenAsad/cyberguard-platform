@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
-export type UserRole = "admin" | "analyst" | "manager"
+export type UserRole = "admin" | "analyst" | "manager" | "viewer"
 
 export interface UserProfile {
   id: string
@@ -78,9 +78,9 @@ export async function signOut() {
 
 // Role-based page access configuration
 export const rolePermissions: Record<string, UserRole[]> = {
-  "/dashboard": ["admin", "analyst", "manager"],
+  "/dashboard": ["admin", "analyst", "manager", "viewer"],
   "/admin": ["admin"],
-  "/reports": ["admin", "analyst", "manager"],
+  "/reports": ["admin", "analyst", "manager", "viewer"],
   "/settings": ["admin", "manager"],
   "/users": ["admin"],
 }

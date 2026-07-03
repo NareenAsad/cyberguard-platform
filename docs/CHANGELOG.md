@@ -5,7 +5,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.4.0] — 2026-07-03 (Current)
+## [3.5.0] — 2026-07-03 (Current)
+
+### New Feature — Viewer Role (RBAC)
+- Added a 4th role, **`viewer`**: can view all dashboards/data and trigger the AI analysis pipeline, but cannot delete data or access user/admin management. Any number of accounts may hold this role — an admin assigns it from the Admin Panel's Users tab like any other role.
+- `docs/DATABASE.md`, `docs/SETUP.md`, and `README.md` already documented a `viewer` role from an earlier planning pass, but it was never wired into the actual permission code (`UserRole` only had `admin`/`analyst`/`manager`) — this release closes that gap and corrects the docs, which had described it as pure read-only (it also gets pipeline access).
+- Updated `src/lib/auth/types.ts` (`UserRole`, `ROLE_PERMISSIONS.viewer`, `canAccess()`, `getRoleLabel()`, `getRoleBadgeColor()`), `src/lib/auth.ts` (duplicate server-side `UserRole`/`rolePermissions`), `src/lib/supabase/middleware.ts` (`/reports` route now allows `viewer`), and the Admin Panel's Users tab (role dropdown + stat card).
+- **Fixed a pre-existing security gap found while implementing this**: the incident/report/playbook `DELETE` API routes had *no server-side role check at all* — only the UI hid the delete button, so any authenticated user could delete via a direct API call regardless of role. Added a shared `requireDeletePermission()` guard (`src/lib/auth/require-delete-permission.ts`) enforcing `canDeleteData` (admin-only) on all three routes. Also added the missing UI gate on the playbook delete button, which previously had none (`incident-details.tsx` and `report-card.tsx` already gated theirs).
+
+### Admin Panel — Fixed Silent Role/Status Update Failures + User Delete
+- **Root cause found**: `UsersTab`'s role/active-status dropdown applied its optimistic UI update unconditionally, even when the underlying `PATCH /api/admin/users/[id]` request failed — so a role change could appear to succeed in the UI while the database write was silently rejected. This is why assigning `viewer` briefly appeared to work in the Admin Panel but never landed in Supabase: `profiles.role` is a native Postgres **enum type** (`user_role`), not `text` with a CHECK constraint as the docs assumed, and the enum didn't have `'viewer'` as a valid value yet.
+- Fixed `updateUser()` (`src/app/admin/_tabs/users-tab.tsx`) to check the response before applying the optimistic update, and surface a visible error banner on failure instead of failing silently.
+- **Migration required**: run `alter type user_role add value if not exists 'viewer';` in the Supabase SQL editor once — see docs/SETUP.md.
+- **New**: admins can now permanently delete a user (e.g. someone who's left the company) via a delete icon next to Deactivate in the Users tab, with a confirmation prompt. Added `DELETE /api/admin/users/[id]` (`src/app/api/admin/users/[id]/route.ts`) — admin-only, blocks self-deletion, deletes the Supabase Auth user (cascades to the `profiles` row), and writes a `USER_DELETED` audit log entry.
+
+## [3.4.0] — 2026-07-03
 
 ### New Feature — Notification Bell
 - **`NotificationBell` component** (`src/components/layout/notification-bell.tsx`) restored in the Header next to the system-status indicator — previously removed from the codebase despite being referenced in the docs, and before that, only ever showed a single static "Welcome to CyberGuard" placeholder.

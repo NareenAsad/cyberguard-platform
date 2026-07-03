@@ -23,7 +23,7 @@ Access control is enforced via Supabase RLS and application-level middleware.
 | `admin` | **Full Access**: Can manage users, access all operational data, and use the Admin Panel. |
 | `manager` | **Operational Management**: Can read and write all operational data but cannot access the Admin Panel. |
 | `analyst` | **Security Operations**: Can read and write threats, incidents, and playbooks. |
-| `viewer` | **Read-Only**: Can view the dashboard and reports without making changes. |
+| `viewer` | **Read-Only + Pipeline**: Can view all operational data and trigger the AI analysis pipeline, but cannot delete data or manage users/settings. Unlimited accounts may hold this role. |
 
 ## Graceful Degradation
 

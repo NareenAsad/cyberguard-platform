@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, UserCheck, UserX, ChevronDown, RefreshCw, Plus } from 'lucide-react'
+import { Search, UserCheck, UserX, ChevronDown, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import { getRoleLabel, getRoleBadgeColor } from '@/lib/auth/types'
 import type { UserRole } from '@/lib/auth/types'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface AdminUser {
     id: string; email: string; full_name: string | null
@@ -14,13 +15,16 @@ const ROLE_COLORS: Record<UserRole, string> = {
     admin:   'text-red-400 bg-red-500/10 border-red-500/30',
     manager: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     analyst: 'text-primary bg-primary/10 border-primary/30',
+    viewer:  'text-slate-400 bg-slate-500/10 border-slate-500/30',
 }
 
 export default function UsersTab() {
+    const { user: currentUser } = useAuth()
     const [users, setUsers] = useState<AdminUser[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [saving, setSaving] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
     const load = useCallback(async () => {
         setLoading(true)
@@ -34,13 +38,43 @@ export default function UsersTab() {
 
     async function updateUser(id: string, patch: Partial<AdminUser>) {
         setSaving(id)
-        await fetch(`/api/admin/users/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-        })
-        setUsers(u => u.map(x => x.id === id ? { ...x, ...patch } : x))
-        setSaving(null)
+        setError(null)
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch),
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                setError(json.error || 'Failed to update user')
+                return
+            }
+            setUsers(u => u.map(x => x.id === id ? { ...x, ...patch } : x))
+        } catch {
+            setError('Failed to update user — network error')
+        } finally {
+            setSaving(null)
+        }
+    }
+
+    async function deleteUser(id: string, label: string) {
+        if (!window.confirm(`Permanently delete ${label}? This cannot be undone.`)) return
+        setSaving(id)
+        setError(null)
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                setError(json.error || 'Failed to delete user')
+                return
+            }
+            setUsers(u => u.filter(x => x.id !== id))
+        } catch {
+            setError('Failed to delete user — network error')
+        } finally {
+            setSaving(null)
+        }
     }
 
     const filtered = users.filter(u =>
@@ -67,13 +101,20 @@ export default function UsersTab() {
                 </div>
             </div>
 
+            {error && (
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+                    {error}
+                </div>
+            )}
+
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
                     { label: 'Total',    value: users.length, color: 'text-slate-200' },
                     { label: 'Active',   value: users.filter(u => u.is_active).length,  color: 'text-primary' },
                     { label: 'Admins',   value: users.filter(u => u.role === 'admin').length,   color: 'text-red-400' },
                     { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-primary' },
+                    { label: 'Viewers',  value: users.filter(u => u.role === 'viewer').length,  color: 'text-slate-400' },
                 ].map(s => (
                     <div key={s.label} className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4 text-center">
                         <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -123,6 +164,7 @@ export default function UsersTab() {
                                                 onChange={e => updateUser(u.id, { role: e.target.value as UserRole })}
                                                 className={`text-xs font-semibold px-2.5 py-1 rounded-full border appearance-none cursor-pointer pr-6 ${ROLE_COLORS[u.role]} bg-transparent focus:outline-none`}
                                             >
+                                                <option value="viewer">Viewer</option>
                                                 <option value="analyst">Security Analyst</option>
                                                 <option value="manager">Security Manager</option>
                                                 <option value="admin">Administrator</option>
@@ -153,17 +195,29 @@ export default function UsersTab() {
                                     </td>
                                     {/* Actions */}
                                     <td className="px-4 py-3">
-                                        <button
-                                            onClick={() => updateUser(u.id, { is_active: !u.is_active })}
-                                            disabled={saving === u.id}
-                                            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 ${
-                                                u.is_active
-                                                    ? 'text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20'
-                                                    : 'text-primary border-primary/20 bg-primary/10 hover:bg-primary/20'
-                                            }`}
-                                        >
-                                            {u.is_active ? <><UserX className="w-3 h-3" /> Deactivate</> : <><UserCheck className="w-3 h-3" /> Activate</>}
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+                                                disabled={saving === u.id}
+                                                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 ${
+                                                    u.is_active
+                                                        ? 'text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20'
+                                                        : 'text-primary border-primary/20 bg-primary/10 hover:bg-primary/20'
+                                                }`}
+                                            >
+                                                {u.is_active ? <><UserX className="w-3 h-3" /> Deactivate</> : <><UserCheck className="w-3 h-3" /> Activate</>}
+                                            </button>
+                                            {u.id !== currentUser?.id && (
+                                                <button
+                                                    onClick={() => deleteUser(u.id, u.full_name || u.email)}
+                                                    disabled={saving === u.id}
+                                                    title="Delete user permanently"
+                                                    className="flex items-center justify-center p-1.5 rounded-lg border border-slate-700/50 bg-slate-800/40 text-slate-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all disabled:opacity-40"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

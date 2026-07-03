@@ -88,7 +88,7 @@ export async function updateSession(request: NextRequest) {
   // ── Role-based route protection ─────────────────────────────────────────────
   const ROLE_ROUTES: Record<string, string[]> = {
     '/admin':   ['manager', 'admin'],
-    '/reports': ['analyst', 'manager', 'admin'],
+    '/reports': ['analyst', 'manager', 'admin', 'viewer'],
   }
 
   const matchedEntry = Object.entries(ROLE_ROUTES).find(([route]) =>

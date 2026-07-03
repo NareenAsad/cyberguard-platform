@@ -52,3 +52,40 @@ export async function PATCH(
 
     return NextResponse.json({ success: true })
 }
+
+// DELETE /api/admin/users/[id] — permanently remove a user who has left
+export async function DELETE(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const serverClient = await createClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data: profile } = await serverClient.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || profile.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { id } = await params
+    if (id === user.id) {
+        return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+
+    // profiles.id references auth.users on delete cascade — deleting the
+    // auth user removes the profile row automatically.
+    const { error } = await admin.auth.admin.deleteUser(id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await admin.from('audit_logs').insert({
+        user_id:     user.id,
+        user_email:  user.email,
+        action:      'USER_DELETED',
+        target_id:   id,
+        target_type: 'user',
+    })
+
+    return NextResponse.json({ success: true })
+}

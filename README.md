@@ -356,6 +356,6 @@ mocked, so no API keys are required to run them.
 
 **Built with pride by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 3.4.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
+**Version:** 3.5.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
 
 </div>
