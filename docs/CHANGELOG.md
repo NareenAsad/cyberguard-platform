@@ -5,7 +5,64 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.2.0] — 2026-06-21 (Current)
+## [3.4.0] — 2026-07-03 (Current)
+
+### New Feature — Notification Bell
+- **`NotificationBell` component** (`src/components/layout/notification-bell.tsx`) restored in the Header next to the system-status indicator — previously removed from the codebase despite being referenced in the docs, and before that, only ever showed a single static "Welcome to CyberGuard" placeholder.
+- Subscribes to the real `alert:new` Socket.io event (in-memory only, resets on refresh — no history is fetched or persisted server-side).
+- **New alert triggers** — previously only "AI analysis complete" fired an alert:
+  - Per-item **critical threat detected** and **critical incident opened** alerts, emitted from `src/app/api/threats/job/route.ts` as the AI pipeline saves results.
+  - **Critical incident opened**, emitted from `src/app/api/incident-response/route.ts` when an analyst manually creates a critical-severity incident.
+- Extracted the repeated "POST to the internal Socket.io webhook" logic into a shared `emitSocketEvent` / `emitAlert` helper (`src/lib/socket/emit-socket-event.ts`), replacing three duplicated inline implementations.
+- **Per-notification read/unread state** — each item tracks its own read state (unread = bold + highlighted row + filled dot); click the dot to toggle a notification back to unread. "Mark all read" and "Clear all" act on the whole list. Previously the entire unread badge cleared the instant the panel opened, with no way to tell what was new.
+- Fixed two rendering bugs found while building this: (1) the popover's `ScrollArea` nested inside an animated Popover was letting page content bleed through in Chromium — fixed with explicit solid backgrounds at every nested layer; (2) the list used `max-h-80` instead of a fixed `h-80`, which doesn't reliably constrain a Radix `ScrollArea` Viewport's percentage height, so the panel grew off-screen instead of scrolling.
+
+### Real-Time Monitoring Toggle — Persistence Fix
+- Fixed: the toggle reset to LIVE on every page refresh regardless of what the user had set, because its state was plain in-memory React state with no persistence.
+- New shared module `src/lib/realtime-toggle-events.ts` persists the toggle to `localStorage` (`cyberguard:realtime-enabled`) and broadcasts a custom event so other mounted components react immediately when it changes.
+- The Sidebar's "Last Update" timestamp now respects the same paused state (previously it kept ticking from live socket updates even while the dashboard was frozen) — `ai-analysis:completed` still always updates it, since that's an explicit action result rather than a live tick.
+
+### AI Pipeline — Rate-Limit Retry Fix & Token Visibility
+- **Root cause found**: a Groq rate-limit hit partway through the 5-agent pipeline caused the retry to call `kickoff()` again, restarting **all 5 tasks from scratch** — since task 5 (reporting) carries the most context and is the likeliest place to hit a TPM cap, one unlucky run could multiply total token consumption up to 4x.
+- **Fixed** (`.agents/crew.py`): retries now resume from the last successfully completed task via CrewAI's built-in `Crew.replay()`, which reuses each task's already-persisted output instead of re-running it.
+- Fixed a related dead-code bug the new tests caught: when retries were fully exhausted, the code always re-raised an exception instead of returning the graceful `{"error": ...}` dict it was clearly written to return — meaning the token-usage diagnostic was never visible on the run that needed it most.
+- **Added token usage logging** — every task logs its own token cost; every run logs and returns a `token_usage` summary (`total_tokens`, `prompt_tokens`, `completion_tokens`, `successful_requests`) in the pipeline metadata.
+- Added `.agents/tests/test_crew_retry.py` (5 tests, mocked — a real test would cost real Groq tokens) covering the retry/resume control flow.
+
+### Cleanup
+- Removed `update_risk_colors.js` — a one-off Node script from the 1.3.0 color-system migration; it already did its job (no target file still contains the colors it replaces) and nothing referenced it.
+- Removed `scratch/` (untracked, ad-hoc debug scripts, no references anywhere) and added it to `.gitignore`.
+
+### Docs — Fixed a Stale Database Schema
+- `docs/SETUP.md`'s "Create Tables in Supabase" SQL used lowercase `snake_case` table/column names (`threats`, `risk_analyses`, `risk_level`, ...) left over from the original 1.0.0 schema — the app was later migrated to a Prisma-modeled schema (`prisma/schema.prisma`) with PascalCase tables and camelCase columns (`"Threat"`, `"RiskAnalysis"`, `"riskLevel"`, ...), but the setup doc was never updated. Anyone following it verbatim would have created tables the live app doesn't query at all.
+- Rewrote the schema to match what the app actually queries (verified against every `.from(...)` call in `src/`), and added the tables that were missing entirely: `assets`, `audit_logs`, `data_source_configs`, `agent_jobs`, `"DashboardMetric"`.
+- Added `pnpm run db:init` / `db:seed` / `db:setup` / `db:test` to the documented npm scripts table — these existed in `package.json` but were never listed.
+
+## [3.3.0] — 2026-07-03
+
+### Testing
+- **Automated test suites added** — previously zero automated tests existed; the platform relied entirely on manual `scripts/inspect-*.ts` checks.
+- **Python** (`.agents/tests/`, pytest) — 63 tests covering `risk_engine_py.py` (weighting, clamping, severity thresholds, exposure multiplier), `crew.py`'s `_extract_json` LLM-output parser, `tools.py`'s NVD/OTX/MITRE/asset-lookup tools (external calls mocked with `respx`), and the new Redis job store. Runs fully offline.
+- **TypeScript** (`src/lib/*.test.ts`, Vitest) — 65 tests covering `validation.ts` Zod schemas (XSS sanitization, strict-mode rejection, enum/range validation) and `risk_engine.ts` (scoring, batching, posture summary, explainability).
+- Run via `pnpm test` (Node) and `pytest` from `.agents/` (Python).
+
+### Evaluation
+- **`docs/EVALUATION.md`** + `.agents/evaluate.py` — the risk-scoring engine is benchmarked against 8 labeled cases (4 real CVEs: Log4Shell, EternalBlue/WannaCry, Heartbleed, the Apache Struts CVE behind the 2017 Equifax breach, plus PrintNightmare, and 3 synthetic boundary cases) with 100% agreement against real-world/industry-consensus severity.
+- The same benchmark file (`.agents/data/risk_scoring_benchmark.json`) is evaluated by both the Python and TypeScript engines, cross-checking that the two implementations agree with each other as well as with ground truth.
+- Added parametrized monotonicity checks (increasing any risk factor must never decrease the score) on both sides.
+
+### AI Pipeline Job Store Persistence
+- Replaced the in-memory `jobs: dict` in `main.py` (lost on every restart/redeploy) with `.agents/job_store.py`, a Redis-backed store using the same Upstash instance the Node app already uses. Falls back to in-memory automatically if Redis credentials are absent.
+- `Dockerfile` updated to copy `job_store.py` and the new `data/` directory into the image (previously missing — would have crashed on deploy).
+
+### MITRE ATT&CK Coverage
+- Replaced the ~15-technique hardcoded dictionary in `tools.py` with the full official ATT&CK Enterprise matrix (697 techniques), trimmed from MITRE's public STIX bundle (`github.com/mitre/cti`) into `.agents/data/mitre_attack_enterprise.json` (~890 KB) — detection and mitigation guidance reconstructed from MITRE's newer `x-mitre-detection-strategy`/`x-mitre-analytic` and `course-of-action` relationship objects.
+- `mitre_lookup_tool`'s output now includes description, detection, and mitigation text (previously the hardcoded version had these fields but never actually returned them).
+
+### Bug Fixes
+- Fixed `_extract_json` in `crew.py`: when LLM output had prose before a JSON array (e.g. `"Playbooks: [{...}, {...}]"`), the function greedily matched the first `{...}` object inside the array instead of the full array, silently dropping all but the first element. Found via the new test suite.
+
+## [3.2.0] — 2026-06-21
 
 ### Real-Time System Restored & Enhanced
 - **Socket.io re-enabled** — `src/lib/socket/socket.ts` and `src/lib/socket/socket-server.ts` replaced their no-op mock stubs with real `socket.io-client` / `socket.io` implementations

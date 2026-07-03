@@ -17,8 +17,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # ── Copy application code ─────────────────────────────────────────
-COPY crew.py tools.py main.py risk_engine_py.py ./
+COPY crew.py tools.py main.py risk_engine_py.py job_store.py ./
 COPY config/ ./config/
+COPY data/ ./data/
 
 # ── Runtime config ────────────────────────────────────────────────
 # All secrets are injected at runtime via --env-file or -e flags.
@@ -35,6 +36,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 
 # ── Start server ──────────────────────────────────────────────────
 # --host 0.0.0.0  → bind to all interfaces (required inside Docker)
-# --workers 1     → single worker keeps CrewAI in-memory job store consistent
+# --workers 1     → job store is now Redis-backed (job_store.py) so this is no
+#                   longer a correctness requirement, just the current default
 # No --reload in production
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

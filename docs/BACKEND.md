@@ -1,6 +1,6 @@
 # Backend Documentation (docs/BACKEND.md)
 
-> **v3.2.0 — Updated June 2026**
+> **v3.4.0 — Updated July 2026**
 
 CyberGuard's backend is implemented entirely with **Next.js API Routes** + a custom **Node.js server** (`server.js`) for Socket.io. No separate API process is required.
 
@@ -36,13 +36,19 @@ CyberGuard's backend is implemented entirely with **Next.js API Routes** + a cus
 
 - Triggered via `POST /api/threats`.
 - Runs **five sequential CrewAI agents** powered by Groq (`llama-3.3-70b-versatile`):
-  1. **Threat Intelligence Agent** — enriches indicators via OSINT.
+  1. **Threat Intelligence Agent** — enriches indicators via OSINT (NVD, OTX, full MITRE ATT&CK Enterprise matrix — 697 techniques).
   2. **Vulnerability Assessment Agent** — maps CVEs to assets.
   3. **Risk Scoring Agent** — calculates criticality.
   4. **Incident Response Agent** — suggests containment steps.
   5. **Reporting Agent** — produces an executive summary.
 - The frontend polls job status using `GET /api/threats/job?jobId=<id>` until `status === "completed"`.
-- On completion, the server is notified via `POST /api/internal/socket-emit` which broadcasts Socket.io events (`threats:new`, `metrics:update`, `page:refresh`) to all connected clients.
+- On completion, the server is notified via `POST /api/internal/socket-emit` which broadcasts Socket.io events (`metrics:update`, `page:refresh`, `alert:new`) to all connected clients. `alert:new` also fires per-item when a threat or incident the pipeline saves is classified `critical` — see [Notification Bell](./WEBSOCKET.md#4-notification-bell-alertnew).
+
+### Job persistence & rate-limit resilience (`.agents/`)
+
+- **Job state** (`.agents/job_store.py`) is persisted to the same Upstash Redis instance the Node app uses (24h TTL), not held in an in-memory dict — job status/results survive a service restart or redeploy. Falls back to in-memory automatically if Redis credentials are absent.
+- **Retry behavior** (`.agents/crew.py`): if Groq rate-limits a call partway through the 5-task pipeline, the retry resumes from the last successfully completed task (via CrewAI's `Crew.replay()`, backed by its own local task-output checkpoint) instead of restarting all 5 tasks from scratch — previously a rate limit late in the pipeline could multiply total token consumption up to 4x per run.
+- **Token usage logging**: each task logs its own token cost, and each run logs/returns a `token_usage` summary (`total_tokens`, `prompt_tokens`, `completion_tokens`, `successful_requests`) in the pipeline result's `metadata`, visible in the FastAPI service logs.
 
 ---
 
@@ -73,7 +79,7 @@ The `usePageRefresh` hook responds by calling `router.refresh()`, which re-runs 
 
 ### 3. Real-Time Monitoring Toggle
 
-The `RealtimeToggle` component (`src/components/dashboard/realtime-toggle.tsx`) allows users to pause Socket.io-driven updates. When paused, data freezes at the last snapshot — ideal for reviewing AI analysis results without live metrics changing.
+The `RealtimeToggle` component (`src/components/dashboard/realtime-toggle.tsx`) allows users to pause Socket.io-driven updates. When paused, data freezes at the last snapshot — ideal for reviewing AI analysis results without live metrics changing. The paused state persists across refreshes (`localStorage`) and is shared with the Sidebar's "Last Update" timestamp, which freezes too when paused (see [WEBSOCKET.md](./WEBSOCKET.md#2-real-time-monitoring-toggle)).
 
 > For the full event architecture and code examples, see the [Real-Time Documentation](./WEBSOCKET.md).
 

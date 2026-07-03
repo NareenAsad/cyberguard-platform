@@ -71,11 +71,124 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## 3. Database Setup
 
+> **Two naming conventions, on purpose.** The core app tables (`Threat`, `RiskAnalysis`,
+> `Incident`, `Playbook`, `Report`, `DashboardMetric`) are modeled in `prisma/schema.prisma`
+> — PascalCase table names, camelCase columns — but there's no `DATABASE_URL` configured, so
+> `prisma migrate`/`db push` is never actually run; the schema below creates matching tables
+> by hand in Supabase's SQL editor instead. Everything else the app queries directly via the
+> Supabase client (`profiles`, `assets`, `audit_logs`, `data_source_configs`, `agent_jobs`) is
+> plain Supabase, lowercase `snake_case`. Quoted identifiers (`"threatId"`) are required below
+> to preserve camelCase in Postgres — omitting the quotes would silently fold it to lowercase.
+
 ### Create Tables in Supabase
 
 Go to your Supabase project → **SQL Editor** and run:
 
 ```sql
+-- ============================================================
+-- Prisma-modeled tables (see prisma/schema.prisma) — created by
+-- hand here since DATABASE_URL isn't configured for `prisma db push`.
+-- ============================================================
+
+create table "Threat" (
+  id text primary key default gen_random_uuid()::text,
+  "threatId" text unique not null,
+  type text not null,
+  severity text not null check (severity in ('critical','high','medium','low')),
+  source text not null,
+  target text not null,
+  detected text not null,
+  status text not null check (status in ('active','mitigating','blocked','quarantined','isolated','resolved')),
+  "createdAt" timestamptz default now(),
+  "updatedAt" timestamptz default now()
+);
+create index on "Threat" (severity);
+create index on "Threat" (status);
+create index on "Threat" (detected);
+
+create table "RiskAnalysis" (
+  id text primary key default gen_random_uuid()::text,
+  asset text unique not null,
+  "riskLevel" integer not null check ("riskLevel" between 0 and 100),
+  vulnerabilities integer not null default 0,
+  "exposureTime" text not null,
+  recommendation text not null,
+  "createdAt" timestamptz default now(),
+  "updatedAt" timestamptz default now()
+);
+create index on "RiskAnalysis" ("riskLevel");
+
+create table "Incident" (
+  id text primary key default gen_random_uuid()::text,
+  "incidentId" text unique not null,
+  title text not null,
+  description text not null,
+  severity text not null check (severity in ('critical','high','medium','low')),
+  status text not null default 'open' check (status in ('open','in-progress','resolved','closed')),
+  assignee text not null,
+  created text not null,
+  updated text not null,
+  "createdAt" timestamptz default now(),
+  "updatedAt" timestamptz default now()
+);
+create index on "Incident" (severity);
+create index on "Incident" (status);
+create index on "Incident" (created);
+
+create table "Playbook" (
+  id text primary key default gen_random_uuid()::text,
+  "playbookId" text unique,
+  title text not null,
+  description text not null,
+  category text not null,
+  steps integer default 0,
+  content jsonb default '{}'::jsonb,
+  "updatedBy" text,
+  "lastUpdated" text,
+  "createdAt" timestamptz default now(),
+  "updatedAt" timestamptz default now()
+);
+create index on "Playbook" (category);
+
+create table "Report" (
+  id text primary key default gen_random_uuid()::text,
+  "reportId" text unique,
+  title text not null,
+  type text not null check (type in ('security','compliance','threat','incident','executive')),
+  status text not null default 'in_progress' check (status in ('completed','in_progress','final','generating','pending')),
+  content jsonb,
+  "jobId" text,
+  generated text not null,
+  threats integer default 0,
+  resolved integer default 0,
+  download text,
+  "createdAt" timestamptz default now(),
+  "updatedAt" timestamptz default now()
+);
+create index on "Report" (type);
+create index on "Report" (status);
+create index on "Report" (generated);
+
+-- Modeled in prisma/schema.prisma but not currently queried by any live
+-- code — getDashboardMetrics() in src/lib/db.ts computes everything
+-- on-the-fly from Threat/Incident/RiskAnalysis instead. Kept for parity.
+create table "DashboardMetric" (
+  id text primary key default gen_random_uuid()::text,
+  "threatsDetected" integer default 0,
+  "threatsDetectedChange" integer default 0,
+  "riskScore" integer default 0,
+  "riskScoreChange" integer default 0,
+  "incidentsActive" integer default 0,
+  "incidentsActiveChange" integer default 0,
+  "systemsMonitored" integer default 0,
+  "systemsMonitoredChange" integer default 0,
+  "updatedAt" timestamptz default now()
+);
+
+-- ============================================================
+-- Plain Supabase tables (not Prisma-managed)
+-- ============================================================
+
 -- Profiles (extends Supabase auth.users)
 create table profiles (
   id uuid references auth.users on delete cascade primary key,
@@ -90,67 +203,57 @@ alter table profiles enable row level security;
 create policy "Users can view own profile" on profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
 
--- Threats
-create table threats (
+-- Asset inventory (Admin Panel)
+create table assets (
   id uuid primary key default gen_random_uuid(),
-  title text not null,
-  severity text check (severity in ('critical','high','medium','low')),
-  status text default 'active' check (status in ('active','investigating','resolved')),
-  source text,
-  indicator_value text,
+  name text not null,
+  type text not null,
+  ip_address text,
+  os text,
+  criticality text not null check (criticality in ('CRITICAL','HIGH','MEDIUM','LOW')),
+  network_exposure text check (network_exposure in ('internet-facing','internal','air-gapped')),
+  owner text,
+  active boolean default true,
+  created_at timestamptz default now(),
+  last_seen timestamptz
+);
+
+-- Admin action audit trail
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users,
+  user_email text,
+  action text not null,
+  target_id text,
+  target_type text,
+  details jsonb,
   created_at timestamptz default now()
 );
 
--- Risk Analyses
-create table risk_analyses (
+-- Threat-feed integration toggles (Admin Panel → Data Sources)
+create table data_source_configs (
   id uuid primary key default gen_random_uuid(),
-  asset text not null,
-  risk_level integer check (risk_level between 0 and 100),
-  vulnerabilities integer default 0,
-  exposure_time text,
-  created_at timestamptz default now()
+  key text unique not null,
+  name text not null,
+  enabled boolean default true,
+  api_key text,
+  updated_at timestamptz default now(),
+  updated_by uuid references auth.users
 );
 
--- Incidents
-create table incidents (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text,
-  severity text check (severity in ('critical','high','medium','low')),
-  status text default 'open' check (status in ('open','investigating','resolved','closed')),
-  assignee text,
-  created_at timestamptz default now()
-);
-
--- Playbooks
-create table playbooks (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  category text,
-  description text,
-  steps jsonb default '[]'::jsonb,
-  created_at timestamptz default now()
-);
-
--- Reports
-create table reports (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  type text check (type in ('security','compliance','threat','incident')),
-  status text default 'in_progress' check (status in ('completed','in_progress')),
-  threats_count integer default 0,
-  resolved_count integer default 0,
-  created_at timestamptz default now()
-);
-
--- Dashboard Metrics
-create table dashboard_metrics (
-  id uuid primary key default gen_random_uuid(),
-  threats_detected integer default 0,
-  risk_score integer default 0,
-  incidents_active integer default 0,
-  systems_monitored integer default 0,
-  created_at timestamptz default now()
+-- AI pipeline job tracking. Note: currently a no-op in practice — the only
+-- live code path (src/app/api/threats/job/route.ts) UPDATEs a row here on
+-- completion, but nothing live ever INSERTs one first (the code that did,
+-- src/lib/route.ts, isn't imported anywhere). Job state that actually drives
+-- the UI lives in the Python AI service's Redis-backed store instead
+-- (.agents/job_store.py). Kept here for forward-compatibility.
+create table agent_jobs (
+  job_id text primary key,
+  status text not null default 'queued',
+  created_at timestamptz default now(),
+  completed_at timestamptz,
+  indicators_count integer default 0,
+  assets_count integer default 0
 );
 ```
 
@@ -158,13 +261,17 @@ create table dashboard_metrics (
 
 | Table | Purpose |
 |---|---|
+| `"Threat"` | Security threat indicators |
+| `"RiskAnalysis"` | Asset risk assessments |
+| `"Incident"` | Tracked security incidents |
+| `"Playbook"` | Response procedures |
+| `"Report"` | Generated security reports |
+| `"DashboardMetric"` | Modeled in Prisma, not currently queried live |
 | `profiles` | User profiles and roles |
-| `threats` | Security threat indicators |
-| `risk_analyses` | Asset risk assessments |
-| `incidents` | Tracked security incidents |
-| `playbooks` | Response procedures |
-| `reports` | Generated security reports |
-| `dashboard_metrics` | Aggregated statistics |
+| `assets` | Asset inventory (Admin Panel) |
+| `audit_logs` | Admin action audit trail |
+| `data_source_configs` | Threat-feed integration toggles (Admin Panel) |
+| `agent_jobs` | AI pipeline job tracking (not currently populated — see note above) |
 
 ### User Roles & Permissions
 
@@ -174,8 +281,6 @@ create table dashboard_metrics (
 | `manager` | Full operational access (no Admin Panel) |
 | `analyst` | Threat and incident management |
 | `viewer` | Read-only dashboard access |
-
-```
 
 ---
 
@@ -236,6 +341,11 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 | `pnpm run build` | Build production bundle |
 | `pnpm run start` | Start production server |
 | `pnpm run lint` | Run ESLint |
+| `pnpm test` | Run the Vitest suite (`src/lib/*.test.ts`) |
+| `pnpm run db:init` | Validate that all required Supabase tables exist and are reachable |
+| `pnpm run db:seed` | Seed `Threat`/`RiskAnalysis`/`Incident`/`Playbook`/`Report` with sample rows |
+| `pnpm run db:setup` | Runs `db:init` then `db:seed` |
+| `pnpm run db:test` | Quick connectivity check against the `Threat` table |
 
 ---
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ThreatChart } from '@/components/threats/threat-chart'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { QuickStats } from '@/components/dashboard/quick-stats'
@@ -12,6 +12,7 @@ import { dashboardAPI } from '@/lib/api-service'
 import { useFetchData } from '@/hooks/use-fetch-data'
 import { useSocketMetrics, useSocketChartData, useSocketIncidents } from '@/hooks/use-socket-events'
 import { RunAnalysisButton } from '@/components/dashboard/run-analysis-button'
+import { getStoredRealtimeEnabled, setStoredRealtimeEnabled } from '@/lib/realtime-toggle-events'
 
 interface DashboardIncident {
     id: string
@@ -43,6 +44,17 @@ interface ChartDataPoint {
 export default function DashboardPage() {
     const [timeRange, setTimeRange] = useState('24h')
     const [realtimeEnabled, setRealtimeEnabled] = useState(true)
+
+    // Restore the toggle's last state on mount (localStorage isn't available
+    // during SSR, so this runs client-side after the default `true` render).
+    useEffect(() => {
+        setRealtimeEnabled(getStoredRealtimeEnabled())
+    }, [])
+
+    const handleToggle = useCallback((enabled: boolean) => {
+        setRealtimeEnabled(enabled)
+        setStoredRealtimeEnabled(enabled) // persists + notifies other components (e.g. Sidebar)
+    }, [])
 
     const metricsCallback = useCallback(() => dashboardAPI.getMetrics(), [])
     const chartCallback = useCallback(() => dashboardAPI.getChartData(timeRange), [timeRange])
@@ -86,7 +98,7 @@ export default function DashboardPage() {
                 <div className="mt-5">
                     <RealtimeToggle
                         enabled={realtimeEnabled}
-                        onToggle={setRealtimeEnabled}
+                        onToggle={handleToggle}
                     />
                 </div>
             </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Shield } from 'lucide-react'
 import { UserMenu } from '../auth/user-menu'
+import { NotificationBell } from './notification-bell'
 
 export function Header() {
   const [isHealthy, setIsHealthy] = useState(true)
@@ -48,6 +49,9 @@ export function Header() {
           <div className={`w-3 h-3 rounded-full ${isHealthy ? 'bg-green-400' : 'bg-red-400 animate-pulse'}`}></div>
           <span className="text-sm text-muted-foreground">{isHealthy ? 'System Healthy' : 'System Degraded'}</span>
         </div>
+
+        {/* Notifications */}
+        <NotificationBell />
 
         {/* User Menu */}
         <UserMenu />

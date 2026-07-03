@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { onMetricsUpdate } from '@/lib/socket/socket'
+import { getStoredRealtimeEnabled, onRealtimeToggle } from '@/lib/realtime-toggle-events'
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -30,6 +31,19 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [lastUpdatedIso, setLastUpdatedIso] = useState<string | null>(null)
 
+  // Mirrors the Dashboard's Real-Time Monitoring toggle (shared via
+  // localStorage + a custom event — see lib/realtime-toggle-events.ts) so
+  // this timestamp freezes too when the user pauses live updates, instead
+  // of quietly ticking away and implying fresher data than what's shown.
+  const realtimeEnabledRef = useRef(true)
+
+  useEffect(() => {
+    realtimeEnabledRef.current = getStoredRealtimeEnabled()
+    return onRealtimeToggle((enabled) => {
+      realtimeEnabledRef.current = enabled
+    })
+  }, [])
+
   useEffect(() => {
     let mounted = true
 
@@ -49,11 +63,15 @@ export function Sidebar() {
       if (mounted) setLastUpdatedIso(new Date().toISOString())
     }
 
-    // Update on AI analysis completion
+    // Update on AI analysis completion — always, even while paused, since
+    // this is an explicit user-triggered result rather than a live tick.
     window.addEventListener('ai-analysis:completed', updateNow)
 
-    // Also update whenever the socket pushes live metrics
-    const unsubSocket = onMetricsUpdate(updateNow)
+    // Update whenever the socket pushes live metrics, but only while
+    // real-time monitoring isn't paused.
+    const unsubSocket = onMetricsUpdate(() => {
+      if (realtimeEnabledRef.current) updateNow()
+    })
 
     return () => {
       mounted = false

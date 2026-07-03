@@ -31,6 +31,7 @@ interface ExtendedPlaybookResult {
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
 import { jobIdSchema } from '@/lib/validation'
+import { emitSocketEvent, emitAlert } from '@/lib/socket/emit-socket-event'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -94,18 +95,32 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult) {
             ? 'Active Exploitation'
             : 'Threat Intelligence Feed'
 
+        const severity = priorityToSeverity(t.priority_score ?? 50)
+
         const { error } = await supabase.from('Threat').insert({
             id:          `thr-${jobId}-${rand()}`,
             threatId:    `THR-AI-${rand().toUpperCase()}`,
             type:        t.indicator_type  ?? 'malware',
-            severity:    priorityToSeverity(t.priority_score ?? 50),
+            severity,
             source:      sourceLabel,
             target:      indicatorValue,
             detected:    now,
             status:      'mitigating',
         })
-        if (error) console.error('[Save] Threat:', error.message)
-        else summary.threats++
+        if (error) {
+            console.error('[Save] Threat:', error.message)
+        } else {
+            summary.threats++
+            if (severity === 'critical') {
+                await emitAlert({
+                    id:      `alert-threat-${jobId}-${rand()}`,
+                    type:    'critical_threat',
+                    title:   'Critical Threat Detected',
+                    message: `${indicatorValue} (${t.indicator_type ?? 'indicator'}) — ${sourceLabel}`,
+                    severity: 'critical',
+                })
+            }
+        }
     }
 
     // ── 2. Risk Analysis ──────────────────────────────────────────────────
@@ -124,19 +139,34 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult) {
 
     // ── 3. Incidents for risk >= 50 ───────────────────────────────────────
     for (const r of ((result.risk_register ?? []) as ExtendedRiskResult[]).filter(r => (r.risk_score ?? 0) >= 50)) {
+        const severity = (r.severity_label ?? 'high').toLowerCase()
+        const title = `[AI] ${r.cve_id ?? 'Vulnerability'} on ${r.asset_name ?? 'Unknown Asset'}`
+
         const { error } = await supabase.from('Incident').insert({
             id:          `inc-${jobId}-${rand()}`,
             incidentId:  `INC-AI-${Date.now()}`,
-            title:       `[AI] ${r.cve_id ?? 'Vulnerability'} on ${r.asset_name ?? 'Unknown Asset'}`,
+            title,
             description: `Risk ${r.risk_score}/100. MITRE: ${r.mitre_tactic ?? 'N/A'}.`,
-            severity:    (r.severity_label ?? 'high').toLowerCase(),
+            severity,
             status:      'open',
             assignee:    'Unassigned',
             created:     now,
             updated:     now,
         })
-        if (error) console.error('[Save] Incident:', error.message)
-        else summary.incidents++
+        if (error) {
+            console.error('[Save] Incident:', error.message)
+        } else {
+            summary.incidents++
+            if (severity === 'critical') {
+                await emitAlert({
+                    id:      `alert-incident-${jobId}-${rand()}`,
+                    type:    'critical_incident',
+                    title:   'Critical Incident Opened',
+                    message: `${title} — Risk ${r.risk_score}/100`,
+                    severity: 'critical',
+                })
+            }
+        }
     }
 
     // ── 4. Playbooks ──────────────────────────────────────────────────────
@@ -196,23 +226,8 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult) {
 
 
 async function emitRefreshEvents(result: AgentPipelineResult, summary: { threats: number; risks: number; incidents: number; playbooks: number; reports: number }, exec: Partial<ExecutiveReport>) {
-    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const appUrl = rawAppUrl.endsWith('/') ? rawAppUrl.slice(0, -1) : rawAppUrl
-
-    const emit = async (event: string, data: Record<string, unknown>) => {
-        try {
-            await fetch(`${appUrl}/api/internal/socket-emit`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ event, data }),
-            })
-        } catch (e) {
-            console.warn(`[Socket] ${event} failed`)
-        }
-    }
-
     // Dashboard metrics update
-    await emit('metrics:update', {
+    await emitSocketEvent('metrics:update', {
         postureScore:   exec.posture_score                ?? 0,
         criticalCount:  exec.severity_summary?.critical   ?? 0,
         highCount:      exec.severity_summary?.high       ?? 0,
@@ -222,20 +237,21 @@ async function emitRefreshEvents(result: AgentPipelineResult, summary: { threats
     })
 
     // Tell each page to refetch its data
-    if (summary.threats   > 0) await emit('page:refresh', { page: 'threats' })
-    if (summary.risks     > 0) await emit('page:refresh', { page: 'risk-analysis' })
-    if (summary.incidents > 0) await emit('page:refresh', { page: 'incident-response' })
-    if (summary.playbooks > 0) await emit('page:refresh', { page: 'playbooks' })
-    if (summary.reports   > 0) await emit('page:refresh', { page: 'reports' })
+    if (summary.threats   > 0) await emitSocketEvent('page:refresh', { page: 'threats' })
+    if (summary.risks     > 0) await emitSocketEvent('page:refresh', { page: 'risk-analysis' })
+    if (summary.incidents > 0) await emitSocketEvent('page:refresh', { page: 'incident-response' })
+    if (summary.playbooks > 0) await emitSocketEvent('page:refresh', { page: 'playbooks' })
+    if (summary.reports   > 0) await emitSocketEvent('page:refresh', { page: 'reports' })
 
-    // Alert banner for dashboard
-    await emit('alert:new', {
-        id:        `alert-${Date.now()}`,
-        type:      'analysis_complete',
-        title:     'AI Analysis Saved',
-        message:   `${summary.threats} threats · ${summary.risks} risks · ${summary.incidents} incidents · ${summary.playbooks} playbooks`,
-        severity:  (exec.severity_summary?.critical ?? 0) > 0 ? 'critical' : 'info',
-        timestamp: new Date().toISOString(),
+    // Alert banner for dashboard — always fires once per completed run.
+    // Per-item critical threat/incident alerts are emitted individually as
+    // they're saved (see saveAndNotify above).
+    await emitAlert({
+        id:      `alert-${Date.now()}`,
+        type:    'analysis_complete',
+        title:   'AI Analysis Saved',
+        message: `${summary.threats} threats · ${summary.risks} risks · ${summary.incidents} incidents · ${summary.playbooks} playbooks`,
+        severity: (exec.severity_summary?.critical ?? 0) > 0 ? 'critical' : 'info',
     })
 }
 

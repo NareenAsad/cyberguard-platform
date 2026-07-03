@@ -27,8 +27,12 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
 | **Redis Integration** | Complete | Upstash Redis 7.2 — rate limiting, API caching, real-time metrics persistence |
 | **Real-Time / Socket.io** | Complete | Socket.io 4.8 — live metrics every 30 s, chart data every 10 s, instant AI pipeline completion events |
-| **Real-Time Toggle** | Complete | Per-user on/off switch — pause live updates to focus on static snapshot during analysis |
-| **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM |
+| **Real-Time Toggle** | Complete | Per-user on/off switch, persisted across refreshes — pause live updates to focus on static snapshot during analysis |
+| **Notifications** | Complete | Header bell with per-item read/unread state — live alerts on AI analysis completion and critical threats/incidents |
+| **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM, Redis-persisted job state, rate-limit-aware retry that resumes instead of restarting |
+| **MITRE ATT&CK Coverage** | Complete | Full official Enterprise matrix (697 techniques) loaded from `.agents/data/mitre_attack_enterprise.json` |
+| **Automated Testing** | Complete | 68 pytest tests (Python AI service) + 65 Vitest tests (Node/TS) — see [Testing](#testing) |
+| **Evaluation** | Complete | Risk-scoring engine benchmarked against 8 known incidents (100% accuracy) + monotonicity checks — see [docs/EVALUATION.md](./docs/EVALUATION.md) |
 
 ---
 
@@ -301,7 +305,31 @@ pnpm run dev
 | [docs/API.md](./docs/API.md) | REST endpoints + WebSocket events reference |
 | [docs/WEBSOCKET.md](./docs/WEBSOCKET.md) | Real-time architecture — Socket.io + browser events |
 | [docs/BACKEND.md](./docs/BACKEND.md) | Backend patterns, rate limiting, Redis, AI pipeline |
+| [docs/EVALUATION.md](./docs/EVALUATION.md) | Risk-scoring engine benchmark & monotonicity results |
 | [docs/CHANGELOG.md](./docs/CHANGELOG.md) | Full version history and change log |
+
+---
+
+## Testing
+
+**Node / TypeScript** (Vitest — validation schemas, risk-scoring engine, known-incident benchmark):
+
+```bash
+pnpm test          # run once
+pnpm test:watch    # watch mode
+```
+
+**Python AI service** (pytest — risk engine, LLM JSON-extraction robustness,
+CrewAI tools with mocked external APIs, Redis job store, evaluation benchmark):
+
+```bash
+cd .agents
+venv\Scripts\python.exe -m pytest      # Windows
+# or: source venv/bin/activate && pytest
+```
+
+Both suites run fully offline — external HTTP calls (NVD, OTX, Redis) are
+mocked, so no API keys are required to run them.
 
 ---
 
@@ -328,6 +356,6 @@ pnpm run dev
 
 **Built with pride by the CyberGuard Team — Lahore University for Women University**
 
-**Version:** 3.2.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** June 2026
+**Version:** 3.4.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
 
 </div>

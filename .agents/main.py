@@ -15,6 +15,7 @@ from typing import Optional
 import asyncio
 
 from crew import CyberguardThreatIntelligenceIncidentResponseCrew as CyberGuardCrew
+from job_store import jobs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,8 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory job store (replace with Redis in production)
-jobs: dict[str, dict] = {}
 crew = CyberGuardCrew(verbose=True)
 
 
@@ -106,8 +105,8 @@ async def run_analysis(request: AnalysisRequest, background_tasks: BackgroundTas
     Called by the Node.js backend after collecting fresh threat indicators.
     """
     job_id = request.run_id or f"cg-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-    
-    jobs[job_id] = {
+
+    job = {
         "job_id": job_id,
         "status": "queued",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -115,6 +114,7 @@ async def run_analysis(request: AnalysisRequest, background_tasks: BackgroundTas
         "result": None,
         "error": None,
     }
+    jobs.set(job_id, job)
 
     # Run the crew pipeline in the background
     background_tasks.add_task(
@@ -125,15 +125,16 @@ async def run_analysis(request: AnalysisRequest, background_tasks: BackgroundTas
     )
 
     logger.info(f"[Job {job_id}] Queued analysis: {len(request.indicators)} indicators, {len(request.assets)} assets")
-    return jobs[job_id]
+    return job
 
 
 @app.get("/api/agents/jobs/{job_id}", response_model=JobStatusResponse)
 def get_job_status(job_id: str):
     """Poll this endpoint to check pipeline progress and retrieve results."""
-    if job_id not in jobs:
+    job = jobs.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-    return jobs[job_id]
+    return job
 
 
 @app.post("/api/agents/score")
@@ -159,8 +160,7 @@ def calculate_risk_score(payload: dict):
 
 async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict]):
     """Execute the CrewAI pipeline and store the result."""
-    from datetime import timezone
-    jobs[job_id]["status"] = "running"
+    jobs.update(job_id, status="running")
     logger.info(f"[Job {job_id}] Pipeline started")
 
     try:
@@ -171,19 +171,28 @@ async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict])
             timeout=600,
         )
 
-        jobs[job_id]["status"] = "completed"
-        jobs[job_id]["result"] = result
-        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+        jobs.update(
+            job_id,
+            status="completed",
+            result=result,
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
         logger.info(f"[Job {job_id}] Pipeline completed successfully")
 
     except asyncio.TimeoutError:
-        jobs[job_id]["status"] = "failed"
-        jobs[job_id]["error"] = "Pipeline timed out after 5 minutes"
-        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+        jobs.update(
+            job_id,
+            status="failed",
+            error="Pipeline timed out after 5 minutes",
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
         logger.error(f"[Job {job_id}] Pipeline timed out")
 
     except Exception as e:
-        jobs[job_id]["status"] = "failed"
-        jobs[job_id]["error"] = str(e)
-        jobs[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+        jobs.update(
+            job_id,
+            status="failed",
+            error=str(e),
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
         logger.error(f"[Job {job_id}] Pipeline failed: {e}")

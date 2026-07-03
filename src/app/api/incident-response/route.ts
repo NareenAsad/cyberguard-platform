@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIncidents, createIncident, deleteIncident, updateIncident } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { incidentPostSchema, incidentPatchSchema } from '@/lib/validation'
+import { emitAlert } from '@/lib/socket/emit-socket-event'
 
 export async function GET(request: NextRequest) {
     try {
@@ -68,6 +69,16 @@ export async function POST(request: NextRequest) {
         const result = await createIncident(validation.data)
 
         if (result.success && result.data) {
+            if (validation.data.severity === 'critical') {
+                await emitAlert({
+                    id:      `alert-incident-manual-${Date.now()}`,
+                    type:    'critical_incident',
+                    title:   'Critical Incident Opened',
+                    message: validation.data.title,
+                    severity: 'critical',
+                })
+            }
+
             return NextResponse.json(
                 {
                     success: true,

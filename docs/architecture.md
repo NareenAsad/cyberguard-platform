@@ -108,11 +108,12 @@ Events emitted by the server and consumed by client components:
 
 | Event | Payload | Consumer |
 |---|---|---|
-| `metrics:update` | `{ updatedAt }` | Sidebar last-update timestamp |
-| `chart:update` | — | ThreatChart re-fetch data |
-| `threats:new` | `{ indicator_value }` | Header notification bell |
-| `incidents:update` | `{ cve_id, id }` | Header notification bell |
-| `agent:complete` | `{ job_id }` | Header notifications + RunAnalysisButton |
+| `metrics:update` | dashboard metrics | Sidebar last-update timestamp (paused while Real-Time Monitoring is off), dashboard metric cards |
+| `chart:update` | `{ name, threats, detected, timestamp }` | ThreatChart re-fetch data |
+| `page:refresh` | `{ page }` | Target page calls `router.refresh()` (see `usePageRefresh`) |
+| `alert:new` | `{ id, type, title, message, severity, timestamp }` | Header notification bell (`NotificationBell`) — fired on AI-analysis completion and on any critical-severity threat/incident being created |
+
+> `threats:new` / `incidents:update` listeners exist client-side (`src/lib/socket/socket.ts`) but nothing server-side currently emits them — only `alert:new`, `metrics:update`, `page:refresh`, and `chart:update` are real. Building new features on the unused listeners will silently never fire.
 
 ### Real-Time Workflow
 1. **Trigger**: An API request (e.g., `POST /api/incident-response`) modifies the database.
@@ -156,6 +157,7 @@ profiles         (id, full_name, role, avatar_url, created_at)  -- extends auth.
 src/components/
 ├── layout/
 │   ├── header.tsx              Full-width top navbar (logo, status, notifications, user)
+│   ├── notification-bell.tsx   Header alert dropdown (alert:new, per-item read/unread)
 │   ├── sidebar.tsx             Left nav (links + last-update footer)
 │   └── background-effects.tsx  Landing page ambient glow orbs
 ├── dashboard/

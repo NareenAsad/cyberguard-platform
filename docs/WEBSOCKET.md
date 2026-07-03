@@ -1,6 +1,6 @@
 # Real-Time Documentation (docs/WEBSOCKET.md)
 
-> **v3.2.0 — Updated June 2026**
+> **v3.4.0 — Updated July 2026**
 > CyberGuard uses a **dual real-time system**: Socket.io for continuous live dashboard
 > updates, and a Custom Browser Event for instant post-pipeline page refreshes.
 
@@ -20,12 +20,14 @@ server.js (Node.js + Socket.io Server)
         ├── Every 30 s  →  metrics:update      →  Metric cards + sidebar timestamp refresh
         ├── On connect  →  metrics:update      →  New client gets immediate snapshot
         │
-        └── On AI pipeline complete (via POST /api/internal/socket-emit)
-                        →  threats:new         →  (available for future UI use)
+        └── On AI pipeline complete / critical threat / critical incident
+            (via POST /api/internal/socket-emit, see src/lib/socket/emit-socket-event.ts)
                         →  metrics:update      →  Refreshed metric values
                         →  page:refresh        →  Triggers router.refresh() on target page
-                        →  alert:new           →  Notification banner (future use)
+                        →  alert:new           →  Header notification bell (NotificationBell)
 ```
+
+> Note: `threats:new` / `incidents:update` client listeners exist in `src/lib/socket/socket.ts` but nothing server-side currently emits them. Only `metrics:update`, `chart:update`, `page:refresh`, and `alert:new` are real.
 
 ### Server (server.js)
 
@@ -71,9 +73,10 @@ export function initSocket(): Socket {
 // Typed subscription helpers (each returns an unsubscribe fn)
 export const onMetricsUpdate  = (cb) => { ... }
 export const onChartUpdate    = (cb) => { ... }
-export const onNewThreat      = (cb) => { ... }
-export const onIncidentUpdate = (cb) => { ... }
+export const onNewThreat      = (cb) => { ... }  // defined, but nothing server-side emits threats:new
+export const onIncidentUpdate = (cb) => { ... }  // defined, but nothing server-side emits incidents:update
 export const onPageRefresh    = (cb) => { ... }
+export const onAlert          = (cb) => { ... }  // 'alert:new' — powers the Header NotificationBell
 ```
 
 ### React Hooks (src/hooks/use-socket-events.ts)
@@ -82,8 +85,10 @@ export const onPageRefresh    = (cb) => { ... }
 |---|---|---|
 | `useSocketMetrics()` | `metrics:update` | Dashboard metric cards |
 | `useSocketChartData()` | `chart:update` | ThreatChart |
-| `useSocketIncidents()` | `incidents:update` | Recent Incidents list |
+| `useSocketIncidents()` | `incidents:update` | Recent Incidents list (event never actually fires — see note above) |
 | `useSocketConnection()` | `connect` / `disconnect` | Connection status |
+
+The notification bell (`src/components/layout/notification-bell.tsx`) doesn't use a hook — it calls `onAlert()` directly in a `useEffect`.
 
 ---
 
@@ -97,6 +102,8 @@ The dashboard includes a **Real-Time Monitoring** toggle (`src/components/dashbo
 | **Paused** (grey) | Dashboard freezes at last data snapshot; Socket stays connected but updates are suppressed — safe to review AI pipeline output |
 
 The toggle does **not** disconnect the socket — it only gates whether the UI state is updated from incoming events.
+
+**Persistence & cross-component sync** (`src/lib/realtime-toggle-events.ts`): the paused state is written to `localStorage` (`cyberguard:realtime-enabled`) so it survives a page refresh, and a custom `cyberguard:realtime-toggle` window event notifies other already-mounted components immediately when it changes — without this, the toggle used to silently reset to LIVE on every refresh. The Sidebar's "Last Update" timestamp subscribes to the same state so it freezes too when paused, instead of continuing to tick from live socket updates while the rest of the dashboard is frozen.
 
 ---
 
@@ -137,13 +144,30 @@ window.addEventListener('ai-analysis:completed', () => router.refresh())
 
 ```typescript
 // src/components/layout/sidebar.tsx
-window.addEventListener('ai-analysis:completed', updateNow)
-// also: onMetricsUpdate(updateNow) — updates timestamp on every Socket.io push too
+window.addEventListener('ai-analysis:completed', updateNow)  // always updates — explicit user action
+onMetricsUpdate(() => {
+    if (realtimeEnabledRef.current) updateNow()  // only on live socket ticks, gated by the pause toggle
+})
 ```
 
 ---
 
-## 4. Redis Metrics Persistence
+## 4. Notification Bell (`alert:new`)
+
+The Header's notification bell (`src/components/layout/notification-bell.tsx`) is in-memory only — it holds whatever `alert:new` events arrived since the tab was opened, with no history fetched or persisted server-side. Each notification tracks its own read/unread state (a filled dot to the right of a row toggles it); "Mark all read" and "Clear all" act on the whole list.
+
+### Emission points (`src/lib/socket/emit-socket-event.ts` → `emitAlert()`)
+
+| Trigger | Where | Severity |
+|---|---|---|
+| AI analysis pipeline finishes saving results | `src/app/api/threats/job/route.ts` (`emitRefreshEvents`) | `critical` if any critical-severity finding, else `info` |
+| A threat saved by the AI pipeline is classified `critical` | `src/app/api/threats/job/route.ts` (`saveAndNotify`, per-threat) | `critical` |
+| An incident saved by the AI pipeline is classified `critical` | `src/app/api/threats/job/route.ts` (`saveAndNotify`, per-incident) | `critical` |
+| An analyst manually creates an incident with `severity: "critical"` | `src/app/api/incident-response/route.ts` (`POST`) | `critical` |
+
+---
+
+## 5. Redis Metrics Persistence
 
 Live dashboard metrics pushed via Socket.io (`metrics:update`) are also written to Redis under
 the key `realtime:metrics` with a **24-hour TTL**. On server restart, the last known values

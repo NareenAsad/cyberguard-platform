@@ -45,8 +45,18 @@ def _extract_json(text: str) -> dict | list | None:
         except (json.JSONDecodeError, ValueError):
             pass
 
-    # 3. Find first { or [ and balance brackets
-    for start_char, end_char in [('{', '}'), ('[', ']')]:
+    # 3. Find first { or [ and balance brackets.
+    # Try whichever bracket type actually appears first in the text — an LLM
+    # response like "Playbooks: [{"a": 1}, {"b": 2}]" starts with '[', but a
+    # fixed '{' before '[' order would greedily match just the first {...}
+    # element instead of the full array.
+    brace_idx = text.find('{')
+    bracket_idx = text.find('[')
+    candidates = [('{', '}'), ('[', ']')]
+    if bracket_idx != -1 and (brace_idx == -1 or bracket_idx < brace_idx):
+        candidates = [('[', ']'), ('{', '}')]
+
+    for start_char, end_char in candidates:
         start_idx = text.find(start_char)
         if start_idx == -1:
             continue
@@ -95,6 +105,9 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             max_tokens=4096,
         )
         self.llm_powerful = self.llm
+
+        # Token-usage checkpoint for task_callback delta logging (see run()).
+        self._usage_checkpoint = 0
 
     @agent
     def threat_intelligence_analyst(self) -> Agent:
@@ -179,9 +192,20 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
 
     def task_callback(self, task_output) -> None:
         """
-        Enforce delay between tasks to prevent Groq TPM rate limits.
+        Logs per-task token usage (so it's visible which task is actually
+        expensive) and enforces a delay between tasks to let the Groq TPM
+        bucket reset.
         """
-        logger.info(f"[CyberGuard] Task completed. Waiting {INTER_TASK_DELAY}s for TPM bucket reset...")
+        usage = self.llm.get_token_usage_summary()
+        task_tokens = usage.total_tokens - self._usage_checkpoint
+        self._usage_checkpoint = usage.total_tokens
+
+        task_name = getattr(task_output, "name", None) or getattr(task_output, "description", "")[:60]
+        logger.info(
+            f"[CyberGuard] Task '{task_name}' completed — "
+            f"{task_tokens} tokens (prompt={usage.prompt_tokens}, completion={usage.completion_tokens}), "
+            f"run total so far: {usage.total_tokens}. Waiting {INTER_TASK_DELAY}s for TPM bucket reset..."
+        )
         time.sleep(INTER_TASK_DELAY)
 
     def run(self, raw_indicators: list[dict], asset_inventory: list[dict]) -> dict:
@@ -198,8 +222,15 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             'asset_inventory': json.dumps(asset_inventory)
         }
 
+        # Baseline so task_callback's per-task deltas (and the final totals
+        # logged below) reflect THIS run, not this process's lifetime total
+        # (self.llm is shared across every job the FastAPI service handles).
+        run_start_usage = self.llm.get_token_usage_summary()
+        self._usage_checkpoint = run_start_usage.total_tokens
+
         max_retries = 4
         result = None
+        c = self.crew()
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
@@ -207,8 +238,30 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                     logger.warning(f"[CyberGuard] Rate limit retry {attempt}/{max_retries - 1} — waiting {wait}s")
                     time.sleep(wait)
 
-                c = self.crew()
-                result = c.kickoff(inputs=inputs)
+                    # Resume from the last successfully completed task instead
+                    # of restarting the whole 5-agent pipeline. CrewAI persists
+                    # each task's output as it completes (a local SQLite file),
+                    # so replay() re-runs only the last completed task (cheap,
+                    # since it's already the shortest re-run available) plus
+                    # everything after it — not tasks that already succeeded.
+                    # Without this, one rate limit on task 4 or 5 (the biggest,
+                    # most context-heavy tasks) silently re-spent tasks 1-3's
+                    # tokens too, multiplying consumption up to 4x per run.
+                    stored = c._task_output_handler.load()
+                    if stored:
+                        resume_from_id = stored[-1]["task_id"]
+                        logger.warning(
+                            f"[CyberGuard] Resuming from task {len(stored)}/{len(c.tasks)} "
+                            f"(task_id={resume_from_id}) instead of restarting the full pipeline"
+                        )
+                        result = c.replay(task_id=resume_from_id, inputs=inputs)
+                    else:
+                        # Nothing completed yet — nothing to resume from.
+                        c = self.crew()
+                        result = c.kickoff(inputs=inputs)
+                else:
+                    result = c.kickoff(inputs=inputs)
+
                 logger.info("[CyberGuard] Pipeline completed successfully")
                 break
 
@@ -218,10 +271,30 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                 if is_rate_limit and attempt < max_retries - 1:
                     logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
                     continue
+                if is_rate_limit:
+                    # Retries exhausted — fall through to the graceful error
+                    # return below (with token_usage) instead of raising, so
+                    # the caller sees how much this failed run cost, not just
+                    # an unhandled exception.
+                    logger.error(f"[CyberGuard] Rate limit persisted after {max_retries} attempts, giving up")
+                    break
                 raise
 
+        final_usage = self.llm.get_token_usage_summary()
+        run_usage = {
+            "total_tokens": final_usage.total_tokens - run_start_usage.total_tokens,
+            "prompt_tokens": final_usage.prompt_tokens - run_start_usage.prompt_tokens,
+            "completion_tokens": final_usage.completion_tokens - run_start_usage.completion_tokens,
+            "successful_requests": final_usage.successful_requests - run_start_usage.successful_requests,
+        }
+        logger.info(
+            f"[CyberGuard] Run token usage: {run_usage['total_tokens']} total "
+            f"(prompt={run_usage['prompt_tokens']}, completion={run_usage['completion_tokens']}, "
+            f"requests={run_usage['successful_requests']})"
+        )
+
         if result is None:
-            return {"error": "Pipeline failed after maximum retries"}
+            return {"error": "Pipeline failed after maximum retries", "token_usage": run_usage}
 
         # Aggregated result structure
         aggregated = {
@@ -272,6 +345,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                 "processed_at": datetime.now(timezone.utc).isoformat(),
                 "indicators_processed": len(raw_indicators),
                 "assets_scanned": len(asset_inventory),
+                "token_usage": run_usage,
             },
             **aggregated,
         }
