@@ -79,6 +79,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
+    "playwright": "^1.61.1",
     "prisma": "^7.7.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
@@ -86,7 +87,7 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   },
-  "description": "An enterprise-grade, AI-powered cybersecurity platform that revolutionizes security operations through intelligent automation, contextual risk assessment, and real-time threat monitoring — built as a Final Year Project at Lahore University for Women University.",
+  "description": "An enterprise-grade, AI-powered cybersecurity platform that revolutionizes security operations through intelligent automation, contextual risk assessment, and real-time threat monitoring — built as a Final Year Project at Lahore College for Women University.",
   "main": "server.js",
   "directories": {
     "doc": "docs"

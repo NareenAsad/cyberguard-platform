@@ -12,6 +12,39 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 ---
 
+## Screenshots
+
+| Landing Page | Dashboard |
+|---|---|
+| ![Landing page](./docs/screenshots/landing.png) | ![Dashboard](./docs/screenshots/dashboard.png) |
+
+| Threat Intelligence |
+|---|
+| ![Threats table](./docs/screenshots/threats.png) |
+
+---
+
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Platform Status](#platform-status)
+- [Design System](#design-system)
+- [Features](#features)
+- [Security Hardening](#security-hardening)
+- [Tech Stack](#tech-stack)
+- [Backend](#backend)
+- [Database](#database)
+- [Real-Time (Socket.io + Browser Events)](#real-time-socketio--browser-events)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Testing](#testing)
+- [Important Notes](#important-notes)
+- [Team](#team)
+- [Contributing](#contributing)
+
+---
+
 ## Platform Status
 
 | Area | Status | Details |
@@ -75,7 +108,7 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 ### Dashboard
 - Real-time metrics (threats detected, risk score, active incidents, systems monitored) — pushed by Socket.io every 30 seconds
 - Cyber cyan area chart for threat activity with live data points pushed every 10 seconds via Socket.io; 24h / 7d / 30d time range picker
-- **Real-Time Monitoring Toggle** — on/off switch that pauses Socket.io updates and freezes the dashboard to a static snapshot; analysts can review pipeline results without numbers changing underneath them
+- **Real-Time Monitoring Toggle** — pauses live updates for a static snapshot (see [Real-Time](#real-time-socketio--browser-events) for details)
 - Recent incidents list with severity badges
 - **Run AI Analysis** — triggers 5-stage CrewAI pipeline with live progress panel; dispatches `ai-analysis:completed` browser event on completion to refresh all pages
 
@@ -138,7 +171,7 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 | Cache / Rate Limiting | Upstash Redis 7.2 (REST API) |
 | Real-time | Socket.io 4.8 (WebSocket) + Custom Browser Events (`ai-analysis:completed`) |
 | AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
-| Deployment | Vercel |
+| Deployment | Railway — two services: the Next.js app (`railway.json`, Nixpacks) and the Python AI microservice (`.agents/railway.json`, Dockerfile). Vercel is not used: the custom Socket.io server (`server.js`) needs a long-running process, which Vercel's serverless model doesn't support. |
 
 ---
 
@@ -177,7 +210,7 @@ Live dashboard updates are powered by a **dual real-time system**:
 ```
 cyberguard-platform/
 ├── docs/
-│   ├── ARCHITECTURE.md       System & component architecture
+│   ├── architecture.md       System & component architecture
 │   ├── SETUP.md              Installation & database setup
 │   ├── API.md                Full API & WebSocket reference
 │   └── CHANGELOG.md          Version history & change log
@@ -300,7 +333,7 @@ pnpm run dev
 
 | File | Contents |
 |---|---|
-| [docs/ARCHITECTURE.md](./docs/architecture.md) | System design, layout structure, component map |
+| [docs/architecture.md](./docs/architecture.md) | System design, layout structure, component map |
 | [docs/SETUP.md](./docs/SETUP.md) | Installation, env vars, DB setup, deployment |
 | [docs/API.md](./docs/API.md) | REST endpoints + WebSocket events reference |
 | [docs/WEBSOCKET.md](./docs/WEBSOCKET.md) | Real-time architecture — Socket.io + browser events |
@@ -342,19 +375,30 @@ mocked, so no API keys are required to run them.
 
 ---
 
+## Team
+
+| Name | GitHub | Role |
+|---|---|---|
+| Nareen Asad | [@NareenAsad](https://github.com/NareenAsad) | Project Lead & Full-Stack Development |
+| Anber Aziz | [@AnberAziz](https://github.com/AnberAziz) | Development |
+| Sunbal Aziz | [@SunbalAzizLCWU](https://github.com/SunbalAzizLCWU) | Development |
+| Minahil Irfan | — | UI/UX Design |
+
+---
+
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit changes: `git commit -m 'feat: add your feature'`
-4. Push: `git push origin feature/your-feature`
-5. Open a Pull Request
+This is a university Final Year Project maintained by the team below. If you'd like to propose a change:
+
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Commit changes: `git commit -m 'feat: add your feature'`
+3. Push and open a Pull Request against `main`
 
 ---
 
 <div align="center">
 
-**Built with pride by the CyberGuard Team — Lahore University for Women University**
+**Built with pride by the CyberGuard Team — Lahore College for Women University**
 
 **Version:** 3.5.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
 
