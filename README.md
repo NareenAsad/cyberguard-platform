@@ -380,9 +380,9 @@ mocked, so no API keys are required to run them.
 | Name | GitHub | Role |
 |---|---|---|
 | Nareen Asad | [@NareenAsad](https://github.com/NareenAsad) | Project Lead & Full-Stack Development |
-| Anber Aziz | [@AnberAziz](https://github.com/AnberAziz) | Development |
-| Sunbal Aziz | [@SunbalAzizLCWU](https://github.com/SunbalAzizLCWU) | Development |
-| Minahil Irfan | — | UI/UX Design |
+| Anber Aziz | [@AnberAziz](https://github.com/AnberAziz) | Frontend Development |
+| Sunbal Aziz | [@SunbalAzizLCWU](https://github.com/SunbalAzizLCWU) | AI Integration |
+| Minahil Irfan | [@MinahilIrfan98](https://github.com/MinahilIrfan98) | UI/UX Design |
 
 ---
 
