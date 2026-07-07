@@ -80,19 +80,6 @@ CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/a
 - **Glassmorphism** — Sidebar and header use `backdrop-blur` where appropriate
 - **Ambient effects** — Glowing cyan/neon green orb background rendered on the landing page only (`BackgroundEffects` component)
 
-### Layout Structure (all authenticated pages)
-
-```
-┌──────────────────── Full-Width Header ────────────────────────┐
-│   CyberGuard     [System Status]                       [User] │
-├──────────┬────────────────────────────────────────────────────┤
-│          │                                                     │
-│ Sidebar  │              Page Content                          │
-│  (nav)   │                                                     │
-│          │                                                     │
-└──────────┴────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## Features
