@@ -5,7 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.5.0] — 2026-07-03 (Current)
+## [3.5.1] — 2026-07-07 (Current)
+
+### Fix — AI Pipeline Deploy Failure on Fresh Installs
+- **Root cause**: `.agents/requirements.txt` pinned `crewai[litellm]>=0.51.0` with no upper bound. A fresh `pip install` (e.g. redeploying on a new Railway project with no cached layers) resolves to whatever the newest CrewAI release is — which currently has a regression ([crewAIInc/crewAI#5886](https://github.com/crewAIInc/crewAI/issues/5886)): CrewAI calls `mark_cache_breakpoint()` on every message regardless of LLM provider, but only the Anthropic adapter strips that flag before sending. Groq's API then rejects every request with `property 'cache_breakpoint' is unsupported`, failing the pipeline on the very first LLM call.
+- **Fixed**: pinned `crewai[litellm]==1.14.1` — the last version confirmed not to have this bug, verified against the full local pytest suite (68 tests passing).
+
+## [3.5.0] — 2026-07-03
 
 ### New Feature — Viewer Role (RBAC)
 - Added a 4th role, **`viewer`**: can view all dashboards/data and trigger the AI analysis pipeline, but cannot delete data or access user/admin management. Any number of accounts may hold this role — an admin assigns it from the Admin Panel's Users tab like any other role.
