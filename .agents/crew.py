@@ -100,9 +100,10 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
 
         # Using Groq models
         self.llm = LLM(
-            model="groq/llama-3.3-70b-versatile",
+            model="groq/openai/gpt-oss-120b",
             temperature=0.1,
             max_tokens=4096,
+            tool_choice="auto",
         )
         self.llm_powerful = self.llm
 

@@ -302,7 +302,7 @@ export function RunAnalysisButton() {
                             </span>
                         </div>
                         <span className="text-xs text-slate-600">
-                            Groq · llama-3.3-70b-versatile
+                            Groq · gpt-oss-120b
                         </span>
                     </div>
                 </div>

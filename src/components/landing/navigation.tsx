@@ -18,7 +18,6 @@ export function Navigation() {
         </Link>
         <Link href="/dashboard" className="group relative inline-flex h-8 md:h-9 items-center justify-center overflow-hidden rounded-md bg-primary px-3 md:px-4 py-2 font-medium text-[11px] md:text-sm text-slate-950 transition-all hover:bg-primary/90 hover:ring-2 hover:ring-primary hover:ring-offset-2 hover:ring-offset-slate-900 whitespace-nowrap">
           <span className="mr-1 md:mr-2">Get Started</span>
-          <ArrowRight className="w-3 md:w-4 h-3 md:h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
     </nav>

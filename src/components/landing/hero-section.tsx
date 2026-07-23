@@ -78,7 +78,7 @@ export function HeroSection() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-full w-full bg-primary" />
             </span>
-            <span className="truncate md:whitespace-normal">AI-Driven Threat Intelligence</span>
+            <span className="truncate md:whitespace-normal">AI-Driven Threat Intelligence & Incident Response System</span>
           </div>
 
           <h1 className="font-sans text-2xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-white">
@@ -105,7 +105,7 @@ export function HeroSection() {
             <Link href="/dashboard"
               className="inline-flex h-10 md:h-11 items-center justify-center rounded-lg bg-primary px-4 md:px-8 text-[11px] md:text-xs font-mono uppercase tracking-widest text-slate-950 font-bold transition-all duration-300 hover:bg-primary/90 whitespace-nowrap"
             >
-              Launch Dashboard →
+              Launch Dashboard
             </Link>
             <Link href="#features"
               className="inline-flex h-10 md:h-11 items-center justify-center rounded-lg border border-border bg-secondary/35 backdrop-blur-md px-4 md:px-8 text-[11px] md:text-xs font-mono uppercase tracking-widest text-foreground transition-all hover:bg-secondary/50 whitespace-nowrap"
