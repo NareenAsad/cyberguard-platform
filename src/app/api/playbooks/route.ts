@@ -3,6 +3,7 @@ import { getPlaybooks, createPlaybook, deletePlaybook } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { playbookPostSchema } from '@/lib/validation'
 import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
+import { recordAuditLog } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
     try {
@@ -66,6 +67,13 @@ export async function POST(request: NextRequest) {
         const result = await createPlaybook(validation.data)
 
         if (result.success && result.data) {
+            await recordAuditLog({
+                action: 'PLAYBOOK_CREATED',
+                targetType: 'playbook',
+                targetId: result.data.id,
+                details: { title: validation.data.title, category: validation.data.category },
+            })
+
             return NextResponse.json({ success: true, data: result.data }, { status: 201 })
         }
 
@@ -103,6 +111,12 @@ export async function DELETE(request: NextRequest) {
         const result = await deletePlaybook(id)
 
         if (result.success) {
+            await recordAuditLog({
+                action: 'PLAYBOOK_DELETED',
+                targetType: 'playbook',
+                targetId: id,
+            })
+
             return NextResponse.json({ success: true, message: 'Playbook deleted successfully' })
         }
 

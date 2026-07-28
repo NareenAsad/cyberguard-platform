@@ -6,11 +6,6 @@ const { Server } = require('socket.io')
 const { Redis } = require('@upstash/redis')
 const path = require('path')
 
-// ── Load .env.local BEFORE anything else ─────────────────────────────────────
-// Next.js loads .env.local automatically for API routes, but server.js is plain
-// Node.js — it runs before Next.js gets a chance to inject env vars.
-// We manually load the file here so Redis (and any other top-level code) sees
-// the correct values immediately.
 try {
     const fs = require('fs')
     const envFile = path.resolve(__dirname, '.env.local')
@@ -62,7 +57,7 @@ app.prepare().then(() => {
     const httpServer = createServer(async (req, res) => {
         try {
             const parsedUrl = parse(req.url, true)
-            
+
             // Internal webhook to bridge Next.js API routes with Socket.io
             if (req.method === 'POST' && parsedUrl.pathname === '/api/internal/socket-emit') {
                 let body = ''
@@ -75,9 +70,9 @@ app.prepare().then(() => {
                         if (event === 'agent:complete') {
                             // Legacy handler
                             const result = data?.result || {}
-                            if (result.threats?.length)     io.emit('threats:new',   result.threats)
+                            if (result.threats?.length) io.emit('threats:new', result.threats)
                             if (result.risk_scores?.length) io.emit('metrics:update', result.risk_scores)
-                            if (result.metrics)             io.emit('metrics:update', { ...lastMetrics, ...result.metrics })
+                            if (result.metrics) io.emit('metrics:update', { ...lastMetrics, ...result.metrics })
 
                         } else if (event === 'metrics:update') {
                             // Dashboard metric cards update — merge and persist
@@ -110,7 +105,7 @@ app.prepare().then(() => {
                 })
                 return
             }
-            
+
             await handle(req, res, parsedUrl)
         } catch (err) {
             console.error('Error handling request:', err)
@@ -142,20 +137,20 @@ app.prepare().then(() => {
     const REALTIME_KEY = 'realtime:metrics'
     let lastMetrics = { ...DEFAULT_METRICS }
 
-    // Load persisted metrics from Redis at startup
-    ;(async () => {
-        if (redis) {
-            try {
-                const stored = await redis.get(REALTIME_KEY)
-                if (stored) {
-                    lastMetrics = typeof stored === 'string' ? JSON.parse(stored) : stored
-                    console.log('[Redis] Loaded persisted metrics from Redis')
+        // Load persisted metrics from Redis at startup
+        ; (async () => {
+            if (redis) {
+                try {
+                    const stored = await redis.get(REALTIME_KEY)
+                    if (stored) {
+                        lastMetrics = typeof stored === 'string' ? JSON.parse(stored) : stored
+                        console.log('[Redis] Loaded persisted metrics from Redis')
+                    }
+                } catch (e) {
+                    console.error('[Redis] Failed to load metrics, using defaults:', e)
                 }
-            } catch (e) {
-                console.error('[Redis] Failed to load metrics, using defaults:', e)
             }
-        }
-    })()
+        })()
 
     /** Persist metrics to Redis (fire-and-forget, non-blocking) */
     function persistMetrics(metrics) {

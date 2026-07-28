@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assignRoleOnSignup } from '@/lib/auth/role-slots'
+import type { UserRole } from '@/lib/auth/types'
+import { recordAuditLog } from '@/lib/audit-logger'
 
 export type AuthResult = {
     error?: string
@@ -20,13 +23,24 @@ export async function login(formData: FormData): Promise<AuthResult> {
         return { error: 'Email and password are required' }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
 
     if (error) {
         return { error: error.message }
+    }
+
+    if (data?.user) {
+        await recordAuditLog({
+            userId: data.user.id,
+            userEmail: data.user.email,
+            action: 'USER_SIGNIN',
+            targetType: 'user',
+            targetId: data.user.id,
+            details: { provider: 'email' },
+        })
     }
 
     revalidatePath('/', 'layout')
@@ -48,14 +62,13 @@ export async function signup(formData: FormData): Promise<AuthResult> {
         return { error: 'Password must be at least 6 characters' }
     }
 
-    // Determine role: first user ever → admin, everyone else → analyst
+    // One admin, one manager, one analyst — everyone else gets viewer
     const adminClient = createAdminClient()
-    const { count } = await adminClient
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-    const role = count === 0 ? 'admin' : 'analyst'
+    const { data: profiles } = await adminClient.from('profiles').select('role')
+    const existingRoles = (profiles || []).map(p => p.role as UserRole)
+    const role = assignRoleOnSignup(existingRoles)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -73,11 +86,34 @@ export async function signup(formData: FormData): Promise<AuthResult> {
         return { error: error.message }
     }
 
+    if (data?.user) {
+        await recordAuditLog({
+            userId: data.user.id,
+            userEmail: data.user.email,
+            action: 'USER_SIGNUP',
+            targetType: 'user',
+            targetId: data.user.id,
+            details: { role },
+        })
+    }
+
     return { success: true }
 }
 
 export async function logout(): Promise<void> {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+        await recordAuditLog({
+            userId: user.id,
+            userEmail: user.email,
+            action: 'USER_SIGNOUT',
+            targetType: 'user',
+            targetId: user.id,
+        })
+    }
+
     await supabase.auth.signOut()
     revalidatePath('/', 'layout')
     redirect('/auth/login')

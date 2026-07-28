@@ -3,6 +3,7 @@ import { getReports, createReport, deleteReport } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { reportPostSchema } from '@/lib/validation'
 import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
+import { recordAuditLog } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
     try {
@@ -66,6 +67,13 @@ export async function POST(request: NextRequest) {
         const result = await createReport(validation.data)
 
         if (result.success && result.data) {
+            await recordAuditLog({
+                action: 'REPORT_GENERATED',
+                targetType: 'report',
+                targetId: result.data.id,
+                details: { title: validation.data.title, type: validation.data.type },
+            })
+
             return NextResponse.json(
                 { success: true, data: result.data, message: 'Report generated successfully' },
                 { status: 201 }
@@ -106,6 +114,12 @@ export async function DELETE(request: NextRequest) {
         const result = await deleteReport(id)
 
         if (result.success) {
+            await recordAuditLog({
+                action: 'REPORT_DELETED',
+                targetType: 'report',
+                targetId: id,
+            })
+
             return NextResponse.json({ success: true, message: 'Report deleted successfully' })
         }
 

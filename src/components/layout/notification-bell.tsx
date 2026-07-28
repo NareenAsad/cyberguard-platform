@@ -40,28 +40,54 @@ function timeAgo(iso: string): string {
 }
 
 export function NotificationBell() {
-    // In-memory only — resets on refresh. Populated live from the 'alert:new'
-    // socket event (see docs/WEBSOCKET.md); no history is fetched or persisted.
     const [notifications, setNotifications] = useState<StoredNotification[]>([])
     const [open, setOpen] = useState(false)
 
     const unreadCount = notifications.filter((n) => !n.read).length
 
     useEffect(() => {
+        // Load initial persisted notifications from database
+        fetch('/api/notifications?limit=20')
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.success && Array.isArray(data.notifications)) {
+                    setNotifications(data.notifications)
+                }
+            })
+            .catch((err) => console.error('Failed to fetch notifications:', err))
+
+        // Subscribe to live real-time alerts via socket
         return onAlert((data: AlertNotification) => {
-            setNotifications((prev) => [{ ...data, read: false }, ...prev].slice(0, MAX_NOTIFICATIONS))
+            setNotifications((prev) => {
+                if (prev.some((item) => item.id === data.id)) return prev
+                return [{ ...data, read: false }, ...prev].slice(0, MAX_NOTIFICATIONS)
+            })
         })
     }, [])
 
-    // Opening the panel no longer bulk-marks everything read — each item
-    // keeps its own read/unread state so you can tell what's new and flag
-    // something back as unread for later.
     const toggleRead = (id: string) => {
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n)))
+        fetch('/api/notifications', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        }).catch((err) => console.error('Failed to mark notification read:', err))
     }
 
     const markAllRead = () => {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+        fetch('/api/notifications', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markAll: true }),
+        }).catch((err) => console.error('Failed to mark all notifications read:', err))
+    }
+
+    const clearAll = () => {
+        setNotifications([])
+        fetch('/api/notifications', {
+            method: 'DELETE',
+        }).catch((err) => console.error('Failed to clear notifications:', err))
     }
 
     return (
@@ -98,7 +124,7 @@ export function NotificationBell() {
                         )}
                         {notifications.length > 0 && (
                             <button
-                                onClick={() => setNotifications([])}
+                                onClick={clearAll}
                                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 Clear all

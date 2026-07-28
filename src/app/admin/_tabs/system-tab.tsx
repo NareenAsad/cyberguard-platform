@@ -9,6 +9,17 @@ interface AuditLog {
 }
 
 const ACTION_COLORS: Record<string, string> = {
+    USER_SIGNIN:         'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    USER_SIGNUP:         'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    USER_SIGNOUT:        'text-slate-400 bg-slate-500/10 border-slate-500/30',
+    PIPELINE_RUN:        'text-purple-400 bg-purple-500/10 border-purple-500/30',
+    INCIDENT_CREATED:    'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    INCIDENT_UPDATED:    'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    INCIDENT_DELETED:    'text-red-400 bg-red-500/10 border-red-500/30',
+    PLAYBOOK_CREATED:    'text-indigo-400 bg-indigo-500/10 border-indigo-500/30',
+    PLAYBOOK_DELETED:    'text-red-400 bg-red-500/10 border-red-500/30',
+    REPORT_GENERATED:    'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+    REPORT_DELETED:      'text-red-400 bg-red-500/10 border-red-500/30',
     ROLE_CHANGED:        'text-amber-400 bg-amber-500/10 border-amber-500/30',
     USER_DEACTIVATED:    'text-red-400 bg-red-500/10 border-red-500/30',
     USER_ACTIVATED:      'text-primary bg-primary/10 border-primary/30',
@@ -85,7 +96,7 @@ export default function SystemTab() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-800/30">
-                                {['Time', 'Admin', 'Action', 'Target', 'Details'].map(h => (
+                                {['Time', 'User', 'Action', 'Target', 'Details'].map(h => (
                                     <th key={h} className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{h}</th>
                                 ))}
                             </tr>

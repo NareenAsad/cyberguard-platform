@@ -1,11 +1,15 @@
-"""
-CyberGuard - Python AI Service
-main.py — FastAPI server that exposes CrewAI pipeline to the Node.js backend
-Run: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-"""
-
 import os
 import sys
+
+if os.name == "nt":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 import logging
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
@@ -19,17 +23,6 @@ from job_store import jobs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Windows console encoding can throw OSError [Errno 22] when verbose
-# tool/agent logs include emoji or non-ASCII characters.
-if os.name == "nt":
-    try:
-        if hasattr(sys.stdout, "reconfigure"):
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        if hasattr(sys.stderr, "reconfigure"):
-            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
 
 app = FastAPI(
     title="CyberGuard AI Agent Service",
@@ -48,7 +41,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-crew = CyberGuardCrew(verbose=True)
+# Verbose CrewAI logging uses emoji; disable on Windows to avoid console crashes.
+crew = CyberGuardCrew(verbose=os.name != "nt")
 
 
 # ─────────────────────────────────────────────
@@ -171,6 +165,17 @@ async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict])
             timeout=600,
         )
 
+        if isinstance(result, dict) and result.get("error"):
+            jobs.update(
+                job_id,
+                status="failed",
+                error=str(result["error"]),
+                result=result,
+                completed_at=datetime.now(timezone.utc).isoformat(),
+            )
+            logger.error(f"[Job {job_id}] Pipeline returned error: {result['error']}")
+            return
+
         jobs.update(
             job_id,
             status="completed",
@@ -189,10 +194,13 @@ async def _run_pipeline(job_id: str, indicators: list[dict], assets: list[dict])
         logger.error(f"[Job {job_id}] Pipeline timed out")
 
     except Exception as e:
+        err_msg = str(e)
+        if getattr(e, "__cause__", None):
+            err_msg = f"{err_msg} — {e.__cause__}"
         jobs.update(
             job_id,
             status="failed",
-            error=str(e),
+            error=err_msg,
             completed_at=datetime.now(timezone.utc).isoformat(),
         )
-        logger.error(f"[Job {job_id}] Pipeline failed: {e}")
+        logger.error(f"[Job {job_id}] Pipeline failed: {err_msg}", exc_info=True)

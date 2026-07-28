@@ -35,6 +35,9 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
 # Groq (AI pipeline)
 GROQ_API_KEY=<your-groq-api-key>
+# Optional — leave unset to use the default below. Do NOT use gpt-oss-120b or
+# llama-4-scout here; they fail with CrewAI tool/JSON output on Groq.
+# GROQ_MODEL=groq/llama-3.3-70b-versatile
 
 # Upstash Redis 7.2 (rate limiting, caching, metrics persistence)
 UPSTASH_REDIS_REST_URL=https://<your-db-name>.upstash.io

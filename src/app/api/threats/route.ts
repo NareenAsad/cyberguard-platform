@@ -3,6 +3,7 @@ import { getThreats } from '@/lib/db'
 import { startAgentAnalysis } from '@/lib/agent-client'
 import { rateLimit } from '@/lib/rate-limit'
 import { threatsPostSchema } from '@/lib/validation'
+import { recordAuditLog } from '@/lib/audit-logger'
 
 // ── POST /api/threats — Trigger AI agent pipeline ─────────────────────────
 // Fire-and-forget: returns job_id immediately, don't block waiting for result.
@@ -29,7 +30,15 @@ export async function POST(request: NextRequest) {
         // 1. Kick off FastAPI pipeline — returns immediately with job_id
         const job = await startAgentAnalysis(indicators, assets)
 
-        // 2. Return job_id to client so it can poll for results
+        // 2. Audit Log the pipeline run action
+        await recordAuditLog({
+            action: 'PIPELINE_RUN',
+            targetType: 'pipeline',
+            targetId: job.job_id,
+            details: { indicators: indicators.length, assets: assets.length },
+        })
+
+        // 3. Return job_id to client so it can poll for results
         //    Do NOT await the full pipeline here — it takes 1-3 minutes
         return NextResponse.json(
             {

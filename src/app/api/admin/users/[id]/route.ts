@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { canAssignRole } from '@/lib/auth/role-slots'
+import type { UserRole } from '@/lib/auth/types'
 
 // PATCH /api/admin/users/[id] — update role or is_active
 export async function PATCH(
@@ -21,6 +23,19 @@ export async function PATCH(
     const { role, is_active } = body
 
     const admin = createAdminClient()
+
+    if (role !== undefined) {
+        const { data: allProfiles } = await admin.from('profiles').select('id, role')
+        const check = canAssignRole(
+            role as UserRole,
+            (allProfiles || []).map(p => ({ id: p.id, role: p.role as UserRole })),
+            id
+        )
+        if (!check.allowed) {
+            return NextResponse.json({ error: check.reason }, { status: 409 })
+        }
+    }
+
     const updates: Record<string, any> = { updated_at: new Date().toISOString() }
     if (role      !== undefined) updates.role      = role
     if (is_active !== undefined) updates.is_active = is_active

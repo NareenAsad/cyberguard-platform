@@ -464,3 +464,109 @@ export async function deleteReport(id: string) {
         return { success: false, error }
     }
 }
+
+// Notification queries
+export async function getNotifications(limit = 30) {
+    try {
+        let { data, error } = await supabase
+            .from('Notification')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(limit)
+
+        if (error && (error as any).code === 'PGRST205') {
+            const fallback = await supabase
+                .from('notifications')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(limit)
+            data = fallback.data
+            error = fallback.error
+        }
+
+        if (error) return { success: false, error: error.message }
+        return { success: true, data: data || [] }
+    } catch (error: any) {
+        console.error('Error fetching notifications:', error)
+        return { success: false, error: error?.message || 'Failed to fetch notifications' }
+    }
+}
+
+export async function createNotification(notification: {
+    id?: string
+    type: string
+    title: string
+    message: string
+    severity: string
+    timestamp?: string
+    read?: boolean
+}) {
+    try {
+        const payload = {
+            id: notification.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            severity: notification.severity,
+            read: notification.read ?? false,
+            timestamp: notification.timestamp || new Date().toISOString(),
+        }
+
+        let { data, error } = await supabase
+            .from('Notification')
+            .insert(payload)
+            .select('*')
+            .single()
+
+        if (error && (error as any).code === 'PGRST205') {
+            const fallback = await supabase
+                .from('notifications')
+                .insert(payload)
+                .select('*')
+                .single()
+            data = fallback.data
+            error = fallback.error
+        }
+
+        if (error) return { success: false, error: error.message }
+        return { success: true, data }
+    } catch (error: any) {
+        console.error('Error creating notification:', error)
+        return { success: false, error: error?.message || 'Failed to create notification' }
+    }
+}
+
+export async function markNotificationRead(id?: string, markAll = false) {
+    try {
+        if (markAll) {
+            let res = await supabase.from('Notification').update({ read: true }).eq('read', false)
+            if (res.error && (res.error as any).code === 'PGRST205') {
+                res = await supabase.from('notifications').update({ read: true }).eq('read', false)
+            }
+            return { success: !res.error }
+        } else if (id) {
+            let res = await supabase.from('Notification').update({ read: true }).eq('id', id)
+            if (res.error && (res.error as any).code === 'PGRST205') {
+                res = await supabase.from('notifications').update({ read: true }).eq('id', id)
+            }
+            return { success: !res.error }
+        }
+        return { success: true }
+    } catch (error: any) {
+        console.error('Error marking notification read:', error)
+        return { success: false, error: error?.message }
+    }
+}
+
+export async function clearNotifications() {
+    try {
+        let res = await supabase.from('Notification').delete().neq('id', '___none___')
+        if (res.error && (res.error as any).code === 'PGRST205') {
+            res = await supabase.from('notifications').delete().neq('id', '___none___')
+        }
+        return { success: !res.error }
+    } catch (error: any) {
+        console.error('Error clearing notifications:', error)
+        return { success: false, error: error?.message }
+    }
+}

@@ -15,6 +15,7 @@ threat_intelligence_analyst:
     MITRE ATT&CK framework, and providing actionable intelligence to security teams.
     You have deep knowledge of threat actor TTPs, exploit frameworks, and vulnerability
     databases. Ensure your final answer/output is a clean JSON array of the enriched threat indicators.
+    CRITICAL: When generating your final answer, DO NOT output any tool calls. Just output the JSON.
 
 vulnerability_assessment_specialist:
   role: Vulnerability Assessment Specialist
@@ -31,6 +32,7 @@ vulnerability_assessment_specialist:
     You excel at translating technical vulnerabilities into business risk context
     and providing actionable remediation guidance. Match confidence must be >= 70%
     for any finding to be included in your output.
+    CRITICAL: When generating your final answer, DO NOT output any tool calls. Just output the JSON.
 
 risk_analysis_engineer:
   role: Risk Analysis Engineer

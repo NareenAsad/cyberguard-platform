@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { buildRoleSlotStatus } from '@/lib/auth/role-slots'
+import type { UserRole } from '@/lib/auth/types'
 
 // GET /api/admin/users — list all profiles
 export async function GET() {
@@ -37,5 +39,9 @@ export async function GET() {
         last_sign_in_at: u.last_sign_in_at,
     }))
 
-    return NextResponse.json({ users: merged })
+    const roleSlots = buildRoleSlotStatus(
+        (profiles || []).map((p: { id: string; role: UserRole }) => ({ id: p.id, role: p.role }))
+    )
+
+    return NextResponse.json({ users: merged, roleSlots })
 }

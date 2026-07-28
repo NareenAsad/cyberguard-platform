@@ -4,6 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { incidentPostSchema, incidentPatchSchema } from '@/lib/validation'
 import { emitAlert } from '@/lib/socket/emit-socket-event'
 import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
+import { recordAuditLog } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
     try {
@@ -70,6 +71,13 @@ export async function POST(request: NextRequest) {
         const result = await createIncident(validation.data)
 
         if (result.success && result.data) {
+            await recordAuditLog({
+                action: 'INCIDENT_CREATED',
+                targetType: 'incident',
+                targetId: result.data.id,
+                details: { title: validation.data.title, severity: validation.data.severity },
+            })
+
             if (validation.data.severity === 'critical') {
                 await emitAlert({
                     id:      `alert-incident-manual-${Date.now()}`,
@@ -127,6 +135,12 @@ export async function DELETE(request: NextRequest) {
         const result = await deleteIncident(id)
 
         if (result.success) {
+            await recordAuditLog({
+                action: 'INCIDENT_DELETED',
+                targetType: 'incident',
+                targetId: id,
+            })
+
             return NextResponse.json({ success: true, message: 'Incident deleted successfully' })
         }
 
@@ -165,6 +179,13 @@ export async function PATCH(request: NextRequest) {
         const result = await updateIncident(id, validation.data)
 
         if (result.success) {
+            await recordAuditLog({
+                action: 'INCIDENT_UPDATED',
+                targetType: 'incident',
+                targetId: id,
+                details: validation.data,
+            })
+
             return NextResponse.json({ success: true, data: result.data })
         }
 

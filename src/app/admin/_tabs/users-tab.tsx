@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Search, UserCheck, UserX, ChevronDown, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import { getRoleLabel, getRoleBadgeColor } from '@/lib/auth/types'
 import type { UserRole } from '@/lib/auth/types'
+import { isRoleOptionDisabled, type RoleSlotStatus } from '@/lib/auth/role-slots'
 import { useAuth } from '@/lib/auth/auth-context'
 
 interface AdminUser {
@@ -18,9 +19,17 @@ const ROLE_COLORS: Record<UserRole, string> = {
     viewer:  'text-slate-400 bg-slate-500/10 border-slate-500/30',
 }
 
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+    { value: 'viewer',  label: 'Viewer' },
+    { value: 'analyst', label: 'Security Analyst' },
+    { value: 'manager', label: 'Security Manager' },
+    { value: 'admin',   label: 'Administrator' },
+]
+
 export default function UsersTab() {
     const { user: currentUser } = useAuth()
     const [users, setUsers] = useState<AdminUser[]>([])
+    const [roleSlots, setRoleSlots] = useState<RoleSlotStatus | null>(null)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [saving, setSaving] = useState<string | null>(null)
@@ -31,6 +40,7 @@ export default function UsersTab() {
         const res = await fetch('/api/admin/users')
         const json = await res.json()
         setUsers(json.users || [])
+        setRoleSlots(json.roleSlots || null)
         setLoading(false)
     }, [])
 
@@ -51,6 +61,7 @@ export default function UsersTab() {
                 return
             }
             setUsers(u => u.map(x => x.id === id ? { ...x, ...patch } : x))
+            load()
         } catch {
             setError('Failed to update user — network error')
         } finally {
@@ -108,16 +119,19 @@ export default function UsersTab() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
                     { label: 'Total',    value: users.length, color: 'text-slate-200' },
-                    { label: 'Active',   value: users.filter(u => u.is_active).length,  color: 'text-primary' },
-                    { label: 'Admins',   value: users.filter(u => u.role === 'admin').length,   color: 'text-red-400' },
-                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-primary' },
+                    { label: 'Active',   value: users.filter(u => u.is_active).length, color: 'text-primary' },
+                    { label: 'Admins',   value: users.filter(u => u.role === 'admin').length,   color: 'text-red-400',   max: 1 },
+                    { label: 'Managers', value: users.filter(u => u.role === 'manager').length, color: 'text-amber-400', max: 1 },
+                    { label: 'Analysts', value: users.filter(u => u.role === 'analyst').length, color: 'text-primary',   max: 1 },
                     { label: 'Viewers',  value: users.filter(u => u.role === 'viewer').length,  color: 'text-slate-400' },
                 ].map(s => (
                     <div key={s.label} className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4 text-center">
-                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                        <p className={`text-2xl font-bold ${s.color}`}>
+                            {s.value}{s.max !== undefined ? <span className="text-sm text-slate-500 font-normal">/{s.max}</span> : null}
+                        </p>
                         <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
                     </div>
                 ))}
@@ -164,10 +178,15 @@ export default function UsersTab() {
                                                 onChange={e => updateUser(u.id, { role: e.target.value as UserRole })}
                                                 className={`text-xs font-semibold px-2.5 py-1 rounded-full border appearance-none cursor-pointer pr-6 ${ROLE_COLORS[u.role]} bg-transparent focus:outline-none`}
                                             >
-                                                <option value="viewer">Viewer</option>
-                                                <option value="analyst">Security Analyst</option>
-                                                <option value="manager">Security Manager</option>
-                                                <option value="admin">Administrator</option>
+                                                {ROLE_OPTIONS.map(opt => (
+                                                    <option
+                                                        key={opt.value}
+                                                        value={opt.value}
+                                                        disabled={roleSlots ? isRoleOptionDisabled(opt.value, roleSlots, u.role) : false}
+                                                    >
+                                                        {opt.label}{roleSlots?.[opt.value].filled && opt.value !== u.role ? ' (filled)' : ''}
+                                                    </option>
+                                                ))}
                                             </select>
                                             <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none opacity-60" />
                                         </div>

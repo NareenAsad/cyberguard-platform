@@ -1,11 +1,21 @@
 import json
 import re
 import os
+import sys
 import time
 import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from pathlib import Path
+
+if os.name == "nt":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
@@ -18,10 +28,29 @@ from tools import (
 )
 
 logger = logging.getLogger(__name__)
-load_dotenv(Path(__file__).parent.parent / ".env.local")
+load_dotenv(Path(__file__).parent.parent / ".env.local", override=True)
 
 # Delay between tasks (seconds) — lets TPM window reset
 INTER_TASK_DELAY = 30
+
+# CrewAI + Groq model configuration
+DEFAULT_GROQ_MODEL = "groq/llama-3.3-70b-versatile"
+_INVALID_GROQ_MODEL_MARKERS = ("llama-4-scout", "llama-4-maverick", "meta-llama")
+
+
+def _resolve_groq_model() -> str:
+    configured = os.getenv("GROQ_MODEL", "").strip()
+    if not configured:
+        return DEFAULT_GROQ_MODEL
+    lowered = configured.lower()
+    if any(marker in lowered for marker in _INVALID_GROQ_MODEL_MARKERS):
+        logger.warning(
+            "Ignoring invalid or non-existent GROQ_MODEL=%r; using default %s",
+            configured,
+            DEFAULT_GROQ_MODEL,
+        )
+        return DEFAULT_GROQ_MODEL
+    return configured
 
 
 def _extract_json(text: str) -> dict | list | None:
@@ -98,12 +127,14 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
 
-        # Using Groq models
+        groq_model = _resolve_groq_model()
+        logger.info("[CyberGuard] Groq model: %s", groq_model)
+
+        # llama-3.3-70b handles CrewAI tool/JSON output reliably on Groq.
         self.llm = LLM(
-            model="groq/openai/gpt-oss-120b",
+            model=groq_model,
             temperature=0.1,
             max_tokens=4096,
-            tool_choice="auto",
         )
         self.llm_powerful = self.llm
 
@@ -116,7 +147,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             config=self.agents_config["threat_intelligence_analyst"],
             tools=[otx_threat_tool, mitre_lookup_tool, nvd_search_tool],
             allow_delegation=False,
-            max_iter=3,
+            max_iter=15,
             llm=self.llm,
         )
 
@@ -126,7 +157,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             config=self.agents_config["vulnerability_assessment_specialist"],
             tools=[nvd_search_tool, asset_lookup_tool],
             allow_delegation=False,
-            max_iter=3,
+            max_iter=15,
             llm=self.llm,
         )
 
@@ -268,7 +299,11 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
 
             except Exception as e:
                 err = str(e).lower()
-                is_rate_limit = "rate_limit" in err or "429" in err or "ratelimit" in err
+                is_rate_limit = (
+                    ("rate_limit" in err or "429" in err or "ratelimit" in err)
+                    and "tool_use_failed" not in err
+                    and "badrequest" not in err
+                )
                 if is_rate_limit and attempt < max_retries - 1:
                     logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
                     continue
