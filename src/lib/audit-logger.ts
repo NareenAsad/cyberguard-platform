@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { emitAlert } from '@/lib/socket/emit-socket-event'
 
 interface AuditLogOptions {
     userId?: string
@@ -12,6 +13,7 @@ interface AuditLogOptions {
 
 /**
  * Record an audit log entry for actions performed by any user role (Admin, Manager, Analyst, Viewer).
+ * Also stores a notification in the database.
  */
 export async function recordAuditLog(options: AuditLogOptions): Promise<void> {
     try {
@@ -44,6 +46,29 @@ export async function recordAuditLog(options: AuditLogOptions): Promise<void> {
 
         if (error) {
             console.error('[AuditLog] Database error inserting audit log:', error.message)
+        }
+
+        // Also store a notification in the database for important actions
+        if (!error && userId) {
+            // Decide severity based on action
+            let severity: 'info' | 'medium' | 'high' = 'info'
+            if (options.action === 'PIPELINE_RUN') severity = 'high'
+            else if (options.action.includes('DELETE')) severity = 'high'
+            else if (options.action.includes('UPDATE')) severity = 'medium'
+
+            let title = 'System Event'
+            if (options.action === 'PIPELINE_RUN') title = 'Pipeline Started'
+            else if (options.action === 'LOGIN') title = 'User Logged In'
+            else if (options.action === 'LOGOUT') title = 'User Logged Out'
+            else if (options.action === 'SIGNUP') title = 'New User Registration'
+
+            await emitAlert({
+                id: `audit-notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                type: 'audit',
+                title: title,
+                message: `${userEmail} performed ${options.action}${options.targetType ? ` on ${options.targetType}` : ''}`,
+                severity: severity
+            })
         }
     } catch (err: any) {
         console.error('[AuditLog] Unexpected error recorded:', err?.message || err)

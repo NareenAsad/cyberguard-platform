@@ -31,10 +31,10 @@ logger = logging.getLogger(__name__)
 load_dotenv(Path(__file__).parent.parent / ".env.local", override=True)
 
 # Delay between tasks (seconds) — lets TPM window reset
-INTER_TASK_DELAY = 30
+INTER_TASK_DELAY = 5
 
 # CrewAI + Groq model configuration
-DEFAULT_GROQ_MODEL = "groq/llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL = "groq/llama-3.1-8b-instant"
 _INVALID_GROQ_MODEL_MARKERS = ("llama-4-scout", "llama-4-maverick", "meta-llama")
 
 
@@ -219,6 +219,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=self.verbose,
+            max_rpm=10,
             task_callback=self.task_callback,
         )
 

@@ -51,7 +51,7 @@ export const SEVERITY_COLORS = {
 
 // Crew AI / Agent Configuration
 export const AGENT_CONFIG = {
-    model: "llama-3.1-70b-versatile",
+    model: "llama-3.1-8b-instant",
     temperature: 0.1,
     maxTokens: 2048,
     maxIterations: 5,

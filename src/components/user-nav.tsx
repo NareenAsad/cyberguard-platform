@@ -53,10 +53,8 @@ export function UserNav({ user }: UserNavProps) {
 
   async function handleSignOut() {
     setIsLoading(true)
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/auth/login")
-    router.refresh()
+    const { logout } = await import('@/lib/auth/actions')
+    await logout()
   }
 
   return (

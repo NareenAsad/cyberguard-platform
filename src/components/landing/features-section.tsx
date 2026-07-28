@@ -148,7 +148,7 @@ export function FeaturesSection() {
                   <span className="text-primary">100% of capability.</span>
                 </h2>
                 <p className="text-xs md:text-base text-muted-foreground leading-relaxed font-light">
-                  Built on Llama 3 via Groq, CrewAI, Next.js, and Supabase — CyberGuard gives SMEs enterprise-level threat intelligence without the enterprise price tag.
+                  Built on GPT-OSS 120B via OpenAI, CrewAI, Next.js, and Supabase — CyberGuard gives SMEs enterprise-level threat intelligence without the enterprise price tag.
                 </p>
               </div>
 

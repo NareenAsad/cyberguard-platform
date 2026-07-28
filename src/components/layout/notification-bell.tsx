@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { onAlert } from '@/lib/socket/socket'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface AlertNotification {
     id: string
@@ -42,8 +43,21 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<StoredNotification[]>([])
     const [open, setOpen] = useState(false)
+    const { role, user } = useAuth()
 
     const unreadCount = notifications.filter((n) => !n.read).length
+
+    const shouldShowNotification = (type: string) => {
+        if (role === 'admin') return true
+        if (type === 'audit') return false
+        
+        if (type.includes('|')) {
+            const [_, targetUserId] = type.split('|')
+            return targetUserId === user?.id
+        }
+        
+        return true
+    }
 
     useEffect(() => {
         // Load initial persisted notifications from database
@@ -51,19 +65,30 @@ export function NotificationBell() {
             .then((res) => res.json())
             .then((data) => {
                 if (data.success && Array.isArray(data.notifications)) {
-                    setNotifications(data.notifications)
+                    // Filter notifications for non-admins and specific users
+                    const filtered = data.notifications.filter(
+                        (n: StoredNotification) => shouldShowNotification(n.type)
+                    )
+                    setNotifications(filtered)
                 }
             })
             .catch((err) => console.error('Failed to fetch notifications:', err))
 
         // Subscribe to live real-time alerts via socket
-        return onAlert((data: AlertNotification) => {
+        const unsub = onAlert((data: AlertNotification) => {
+            // Filter live alerts
+            if (!shouldShowNotification(data.type)) return
+
             setNotifications((prev) => {
                 if (prev.some((item) => item.id === data.id)) return prev
                 return [{ ...data, read: false }, ...prev].slice(0, MAX_NOTIFICATIONS)
             })
         })
-    }, [])
+
+        return () => {
+            unsub()
+        }
+    }, [role, user])
 
     const toggleRead = (id: string) => {
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n)))

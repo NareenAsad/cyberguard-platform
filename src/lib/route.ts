@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json().catch(() => ({}));
         const runId = `cg-${Date.now()}`;
 
-        // 1. Fetch latest threat indicators from MongoDB (via your existing API)
+        // 1. Fetch latest threat indicators from the database (via internal API)
         const indicatorsRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/threats?limit=100&hours=24`);
         const indicators = indicatorsRes.ok ? await indicatorsRes.json() : [];
 

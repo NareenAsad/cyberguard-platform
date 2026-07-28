@@ -3,5 +3,6 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/.agents"
     ],
-    "pyrefly.pythonInterpreter": "${workspaceFolder}/.agents/venv/Scripts/python.exe"
+    "pyrefly.pythonInterpreter": "${workspaceFolder}/.agents/venv/Scripts/python.exe",
+    "python.terminal.useEnvFile": true
 }

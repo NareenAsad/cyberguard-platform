@@ -42,8 +42,8 @@ export function UserMenu() {
         : user.email?.slice(0, 2).toUpperCase() || 'U'
 
     const handleLogout = async () => {
-        await signOut()
-        window.location.href = '/auth/login'
+        const { logout } = await import('@/lib/auth/actions')
+        await logout()
     }
 
     return (
