@@ -48,19 +48,6 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 ---
 
-## Design System
-
-CyberGuard uses a **unified dark cybersecurity aesthetic** established in `src/app/globals.css`:
-
-- **Primary colour** — Electric Cyan (`#00e5ff`) used for all interactive elements, buttons, chart lines, and glowing accents
-- **Accent colour** — Neon Green (`#00e676`) used for online indicators, healthy states, and active highlights
-- **Background** — Deep navy-black (`hsl(224 71% 4%)`) for a clean ops feel
-- **Typography** — Inter (Google Fonts)
-- **Glassmorphism** — Sidebar and header use `backdrop-blur` where appropriate
-- **Ambient effects** — Glowing cyan/neon green orb background rendered on the landing page only (`BackgroundEffects` component)
-
----
-
 ## Features
 
 ### Landing Page
