@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from pathlib import Path
+from types import SimpleNamespace
 
 if os.name == "nt":
     try:
@@ -30,27 +31,20 @@ from tools import (
 logger = logging.getLogger(__name__)
 load_dotenv(Path(__file__).parent.parent / ".env.local", override=True)
 
-# Delay between tasks (seconds) — lets TPM window reset
+# Imported after load_dotenv: job_store's module-level JobStore() singleton
+# reads UPSTASH_REDIS_REST_URL/TOKEN from the environment at import time, so
+# importing it before .env.local is loaded silently falls back to the
+# in-memory store (jobs lost on every restart).
+from job_store import jobs
+
 INTER_TASK_DELAY = 5
 
-# CrewAI + Groq model configuration
-DEFAULT_GROQ_MODEL = "groq/llama-3.1-8b-instant"
-_INVALID_GROQ_MODEL_MARKERS = ("llama-4-scout", "llama-4-maverick", "meta-llama")
+DEFAULT_LLM_MODEL = "anthropic/claude-haiku-4-5-20251001"
 
 
-def _resolve_groq_model() -> str:
-    configured = os.getenv("GROQ_MODEL", "").strip()
-    if not configured:
-        return DEFAULT_GROQ_MODEL
-    lowered = configured.lower()
-    if any(marker in lowered for marker in _INVALID_GROQ_MODEL_MARKERS):
-        logger.warning(
-            "Ignoring invalid or non-existent GROQ_MODEL=%r; using default %s",
-            configured,
-            DEFAULT_GROQ_MODEL,
-        )
-        return DEFAULT_GROQ_MODEL
-    return configured
+def _resolve_llm_model() -> str:
+    configured = os.getenv("LLM_MODEL", "").strip()
+    return configured or DEFAULT_LLM_MODEL
 
 
 def _extract_json(text: str) -> dict | list | None:
@@ -75,10 +69,6 @@ def _extract_json(text: str) -> dict | list | None:
             pass
 
     # 3. Find first { or [ and balance brackets.
-    # Try whichever bracket type actually appears first in the text — an LLM
-    # response like "Playbooks: [{"a": 1}, {"b": 2}]" starts with '[', but a
-    # fixed '{' before '[' order would greedily match just the first {...}
-    # element instead of the full array.
     brace_idx = text.find('{')
     bracket_idx = text.find('[')
     candidates = [('{', '}'), ('[', ']')]
@@ -127,19 +117,26 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
 
-        groq_model = _resolve_groq_model()
-        logger.info("[CyberGuard] Groq model: %s", groq_model)
+        llm_model = _resolve_llm_model()
+        logger.info("[CyberGuard] LLM model: %s", llm_model)
 
-        # llama-3.3-70b handles CrewAI tool/JSON output reliably on Groq.
         self.llm = LLM(
-            model=groq_model,
+            model=llm_model,
             temperature=0.1,
             max_tokens=4096,
         )
-        self.llm_powerful = self.llm
+        
+        self.llm_powerful = LLM(
+            model=llm_model,
+            temperature=0.1,
+            max_tokens=32000,
+        )
 
         # Token-usage checkpoint for task_callback delta logging (see run()).
         self._usage_checkpoint = 0
+
+        self._current_job_id = None
+        self._task_index = 0
 
     @agent
     def threat_intelligence_analyst(self) -> Agent:
@@ -219,32 +216,47 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=self.verbose,
-            max_rpm=10,
+            max_rpm=20,
             task_callback=self.task_callback,
         )
 
+    def _usage_totals(self):
+        """Sums token usage across both LLM instances (see __init__)."""
+        a = self.llm.get_token_usage_summary()
+        b = self.llm_powerful.get_token_usage_summary()
+        return SimpleNamespace(
+            total_tokens=a.total_tokens + b.total_tokens,
+            prompt_tokens=a.prompt_tokens + b.prompt_tokens,
+            completion_tokens=a.completion_tokens + b.completion_tokens,
+            successful_requests=a.successful_requests + b.successful_requests,
+        )
+
     def task_callback(self, task_output) -> None:
-        """
-        Logs per-task token usage (so it's visible which task is actually
-        expensive) and enforces a delay between tasks to let the Groq TPM
-        bucket reset.
-        """
-        usage = self.llm.get_token_usage_summary()
+        """Logs per-task token usage, records progress for the job poller, and
+        gives requests a small, even pace."""
+        usage = self._usage_totals()
         task_tokens = usage.total_tokens - self._usage_checkpoint
         self._usage_checkpoint = usage.total_tokens
 
+        self._task_index += 1
+        if self._current_job_id:
+            jobs.update(self._current_job_id, current_step=self._task_index)
+
         task_name = getattr(task_output, "name", None) or getattr(task_output, "description", "")[:60]
         logger.info(
-            f"[CyberGuard] Task '{task_name}' completed — "
+            f"[CyberGuard] Task '{task_name}' completed ({self._task_index}/5) — "
             f"{task_tokens} tokens (prompt={usage.prompt_tokens}, completion={usage.completion_tokens}), "
-            f"run total so far: {usage.total_tokens}. Waiting {INTER_TASK_DELAY}s for TPM bucket reset..."
+            f"run total so far: {usage.total_tokens}. Waiting {INTER_TASK_DELAY}s..."
         )
         time.sleep(INTER_TASK_DELAY)
 
-    def run(self, raw_indicators: list[dict], asset_inventory: list[dict]) -> dict:
+    def run(self, raw_indicators: list[dict], asset_inventory: list[dict], job_id: str | None = None) -> dict:
         """
         Custom wrapper for FastAPI to bridge JSON inputs to the YAML template inputs.
         """
+        self._current_job_id = job_id
+        self._task_index = 0
+
         now = datetime.now(timezone.utc).isoformat()
         logger.info(f"[CyberGuard] Starting pipeline at {now}")
         logger.info(f"[CyberGuard] {len(raw_indicators)} indicators | {len(asset_inventory)} assets")
@@ -255,45 +267,21 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
             'asset_inventory': json.dumps(asset_inventory)
         }
 
-        # Baseline so task_callback's per-task deltas (and the final totals
-        # logged below) reflect THIS run, not this process's lifetime total
-        # (self.llm is shared across every job the FastAPI service handles).
-        run_start_usage = self.llm.get_token_usage_summary()
+        run_start_usage = self._usage_totals()
         self._usage_checkpoint = run_start_usage.total_tokens
 
         max_retries = 4
         result = None
-        c = self.crew()
         for attempt in range(max_retries):
             try:
+                self._task_index = 0
                 if attempt > 0:
                     wait = 60 * attempt
                     logger.warning(f"[CyberGuard] Rate limit retry {attempt}/{max_retries - 1} — waiting {wait}s")
                     time.sleep(wait)
 
-                    # Resume from the last successfully completed task instead
-                    # of restarting the whole 5-agent pipeline. CrewAI persists
-                    # each task's output as it completes (a local SQLite file),
-                    # so replay() re-runs only the last completed task (cheap,
-                    # since it's already the shortest re-run available) plus
-                    # everything after it — not tasks that already succeeded.
-                    # Without this, one rate limit on task 4 or 5 (the biggest,
-                    # most context-heavy tasks) silently re-spent tasks 1-3's
-                    # tokens too, multiplying consumption up to 4x per run.
-                    stored = c._task_output_handler.load()
-                    if stored:
-                        resume_from_id = stored[-1]["task_id"]
-                        logger.warning(
-                            f"[CyberGuard] Resuming from task {len(stored)}/{len(c.tasks)} "
-                            f"(task_id={resume_from_id}) instead of restarting the full pipeline"
-                        )
-                        result = c.replay(task_id=resume_from_id, inputs=inputs)
-                    else:
-                        # Nothing completed yet — nothing to resume from.
-                        c = self.crew()
-                        result = c.kickoff(inputs=inputs)
-                else:
-                    result = c.kickoff(inputs=inputs)
+                c = self.crew()
+                result = c.kickoff(inputs=inputs)
 
                 logger.info("[CyberGuard] Pipeline completed successfully")
                 break
@@ -306,18 +294,14 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                     and "badrequest" not in err
                 )
                 if is_rate_limit and attempt < max_retries - 1:
-                    logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}")
+                    logger.warning(f"[CyberGuard] Rate limit hit on attempt {attempt + 1}: {e}")
                     continue
                 if is_rate_limit:
-                    # Retries exhausted — fall through to the graceful error
-                    # return below (with token_usage) instead of raising, so
-                    # the caller sees how much this failed run cost, not just
-                    # an unhandled exception.
-                    logger.error(f"[CyberGuard] Rate limit persisted after {max_retries} attempts, giving up")
+                    logger.error(f"[CyberGuard] Rate limit persisted after {max_retries} attempts, giving up: {e}")
                     break
                 raise
 
-        final_usage = self.llm.get_token_usage_summary()
+        final_usage = self._usage_totals()
         run_usage = {
             "total_tokens": final_usage.total_tokens - run_start_usage.total_tokens,
             "prompt_tokens": final_usage.prompt_tokens - run_start_usage.prompt_tokens,
@@ -344,12 +328,7 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
         }
 
         # Extract data from all tasks in the sequence
-        # Index 0: Threat Intel
-        # Index 1: Vuln Assessment (Internal)
-        # Index 2: Risk Scoring
-        # Index 3: Playbooks
-        # Index 4: Reporting
-
+        
         if hasattr(result, 'tasks_output'):
             tasks = result.tasks_output
 
@@ -363,7 +342,9 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
                 aggregated["playbooks"] = _extract_json(tasks[3].raw) or []
 
             if len(tasks) > 4:
-                report_data = _extract_json(tasks[4].raw) or {}
+                report_data = _extract_json(tasks[4].raw)
+                if not isinstance(report_data, dict):
+                    report_data = {}
                 aggregated["executive_report"] = report_data.get("executive_report", {})
                 aggregated["technical_report"] = report_data.get("technical_report", {})
                 aggregated["compliance_report"] = report_data.get("compliance_report", {})
@@ -371,7 +352,9 @@ class CyberguardThreatIntelligenceIncidentResponseCrew:
         # Fallback for Task 5 if aggregation failed
         if not aggregated["executive_report"]:
             raw = result.raw if hasattr(result, 'raw') else str(result)
-            parsed = _extract_json(raw) or {}
+            parsed = _extract_json(raw)
+            if not isinstance(parsed, dict):
+                parsed = {}
             aggregated["executive_report"] = parsed.get("executive_report", {})
             aggregated["technical_report"] = parsed.get("technical_report", {})
             aggregated["compliance_report"] = parsed.get("compliance_report", {})

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { X, BookOpen, CheckCircle, Shield, RefreshCw, AlertTriangle } from 'lucide-react'
+import { decodePlaybookContent } from '@/lib/opaque-content'
 
 interface Playbook {
     id: string
@@ -9,13 +10,7 @@ interface Playbook {
     title: string
     description?: string
     category?: string
-    content?: {
-        steps?: number
-        containment?: string[]
-        eradication?: string[]
-        recovery?: string[]
-        [key: string]: any
-    } | null
+    content?: unknown
     lastUpdated: string
     steps?: number
 }
@@ -104,12 +99,13 @@ export function PlaybookDetailPanel({ playbook, onClose }: PlaybookDetailPanelPr
         ? new Date(playbook.lastUpdated).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : '—'
 
-    const preparation = playbook?.content?.preparation ?? []
-    const identification = playbook?.content?.identification ?? []
-    const containment = playbook?.content?.containment ?? []
-    const eradication = playbook?.content?.eradication ?? []
-    const recovery = playbook?.content?.recovery ?? []
-    const postIncident = playbook?.content?.post_incident ?? []
+    const content = decodePlaybookContent(playbook?.content)
+    const preparation = content?.preparation ?? []
+    const identification = content?.identification ?? []
+    const containment = content?.containment ?? []
+    const eradication = content?.eradication ?? []
+    const recovery = content?.recovery ?? []
+    const postIncident = content?.post_incident ?? []
 
     const totalSteps = preparation.length + identification.length + containment.length + eradication.length + recovery.length + postIncident.length
 

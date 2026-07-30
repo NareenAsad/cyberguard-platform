@@ -63,7 +63,7 @@ implementations.
 ## Scope and limitations
 
 - This evaluates the **risk-scoring formula only** — it does not evaluate the
-  CrewAI/Groq LLM pipeline's output quality (threat enrichment text, generated
+  CrewAI/Claude LLM pipeline's output quality (threat enrichment text, generated
   playbooks, executive summaries), which would require either human review or
   an LLM-as-judge setup and real API calls. The pipeline's *structural*
   reliability (does it return parseable JSON) is covered separately by

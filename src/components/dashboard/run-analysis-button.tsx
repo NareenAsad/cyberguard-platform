@@ -71,16 +71,12 @@ export function RunAnalysisButton() {
         return () => { if (timerRef.current) clearInterval(timerRef.current) }
     }, [phase])
 
-    // Advance step visuals based on elapsed time (approximate)
-    useEffect(() => {
-        if (phase !== 'polling') return
-        // Each task takes roughly 15-20s; simulate step progression
-        const stepIndex = Math.min(Math.floor(elapsed / 18), PIPELINE_STEPS.length - 1)
+    function applyStepProgress(completedCount: number) {
         setSteps(prev => prev.map((s, i) => ({
             ...s,
-            status: i < stepIndex ? 'done' : i === stepIndex ? 'running' : 'waiting',
+            status: i < completedCount ? 'done' : i === completedCount ? 'running' : 'waiting',
         })))
-    }, [elapsed, phase])
+    }
 
     async function startAnalysis() {
         setPhase('starting')
@@ -115,6 +111,10 @@ export function RunAnalysisButton() {
                     const pollRes = await fetch(`/api/threats/job?jobId=${job_id}`)
                     const data = await pollRes.json()
                     const job = data.job
+
+                    if (job?.status === 'running' || job?.status === 'queued') {
+                        applyStepProgress(job.current_step ?? 0)
+                    }
 
                     if (job?.status === 'completed') {
                         clearInterval(pollRef.current!)
@@ -302,7 +302,7 @@ export function RunAnalysisButton() {
                             </span>
                         </div>
                         <span className="text-xs text-slate-600">
-                            Groq · llama-3.1-8b-instant
+                            Claude · Haiku 4.5
                         </span>
                     </div>
                 </div>

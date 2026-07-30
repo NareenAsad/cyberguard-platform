@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getReports, createReport, deleteReport } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { reportPostSchema } from '@/lib/validation'
-import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
+import { requirePermission } from '@/lib/auth/require-delete-permission'
 import { recordAuditLog } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
@@ -100,7 +100,7 @@ export async function DELETE(request: NextRequest) {
         if (!limitRes.isAllowed) return limitRes.response
 
         // RBAC: only roles with canDeleteData (currently: admin) may delete
-        const denied = await requireDeletePermission()
+        const denied = await requirePermission('canDeleteData')
         if (denied) return denied
 
         const { searchParams } = new URL(request.url)

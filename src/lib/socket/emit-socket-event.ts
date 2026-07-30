@@ -1,12 +1,3 @@
-/**
- * Server-side helper to push a Socket.io event from any API route.
- *
- * Next.js API route handlers can't reach the Socket.io `io` instance directly
- * — it lives inside the custom server.js process. Instead we POST to the
- * internal webhook server.js exposes at /api/internal/socket-emit, which
- * looks up the right `io.emit(...)` call. See server.js for the receiving
- * end and src/proxy.ts, which excludes this path from auth middleware.
- */
 import { createNotification } from '@/lib/db'
 
 export async function emitSocketEvent(event: string, data: Record<string, unknown>): Promise<void> {
@@ -16,7 +7,10 @@ export async function emitSocketEvent(event: string, data: Record<string, unknow
     try {
         await fetch(`${appUrl}/api/internal/socket-emit`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-internal-secret': process.env.INTERNAL_WEBHOOK_SECRET ?? '',
+            },
             body: JSON.stringify({ event, data }),
         })
     } catch {

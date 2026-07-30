@@ -14,6 +14,11 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const { data: profile } = await serverClient.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || profile.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const admin = createAdminClient()
     const { data, error } = await admin
         .from('assets')

@@ -114,70 +114,72 @@ export function IncidentDetails({ incident, onUpdate, onDelete }: IncidentDetail
                 </div>
 
                 {/* ── Assignment & Status Controls ──────────────────── */}
-                <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <UserCheck className="w-4 h-4 text-primary" />
-                        <h4 className="text-sm font-semibold text-foreground">Assignment &amp; Status</h4>
-                        {successMsg && (
-                            <span className="ml-auto text-xs text-accent flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> {successMsg}
-                            </span>
+                {can('canAssignIncidents') && (
+                    <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <UserCheck className="w-4 h-4 text-primary" />
+                            <h4 className="text-sm font-semibold text-foreground">Assignment &amp; Status</h4>
+                            {successMsg && (
+                                <span className="ml-auto text-xs text-accent flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" /> {successMsg}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Assignee */}
+                            <div>
+                                <label className="text-xs text-muted-foreground font-medium block mb-1.5 flex items-center gap-1">
+                                    <User className="w-3 h-3" /> Assigned To
+                                </label>
+                                <select
+                                    value={localAssignee ?? currentAssignee}
+                                    onChange={(e) => setLocalAssignee(e.target.value)}
+                                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                                >
+                                    {ASSIGNEE_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Status */}
+                            <div>
+                                <label className="text-xs text-muted-foreground font-medium block mb-1.5 flex items-center gap-1">
+                                    <RefreshCw className="w-3 h-3" /> Status
+                                </label>
+                                <select
+                                    value={localStatus ?? currentStatus}
+                                    onChange={(e) => setLocalStatus(e.target.value)}
+                                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                                >
+                                    {STATUS_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Save button — only visible if changes made */}
+                        {isDirty && (
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary hover:bg-primary/90 text-slate-950 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+                            >
+                                {saving ? (
+                                    <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="w-3.5 h-3.5" /> Save Changes
+                                    </>
+                                )}
+                            </button>
                         )}
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Assignee */}
-                        <div>
-                            <label className="text-xs text-muted-foreground font-medium block mb-1.5 flex items-center gap-1">
-                                <User className="w-3 h-3" /> Assigned To
-                            </label>
-                            <select
-                                value={localAssignee ?? currentAssignee}
-                                onChange={(e) => setLocalAssignee(e.target.value)}
-                                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                            >
-                                {ASSIGNEE_OPTIONS.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Status */}
-                        <div>
-                            <label className="text-xs text-muted-foreground font-medium block mb-1.5 flex items-center gap-1">
-                                <RefreshCw className="w-3 h-3" /> Status
-                            </label>
-                            <select
-                                value={localStatus ?? currentStatus}
-                                onChange={(e) => setLocalStatus(e.target.value)}
-                                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                            >
-                                {STATUS_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Save button — only visible if changes made */}
-                    {isDirty && (
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary hover:bg-primary/90 text-slate-950 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-                        >
-                            {saving ? (
-                                <>
-                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle className="w-3.5 h-3.5" /> Save Changes
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
+                )}
 
                 {/* Timeline */}
                 <div className="space-y-3">

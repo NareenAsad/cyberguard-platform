@@ -23,21 +23,26 @@ interface ThreatChartProps {
 
 const TIME_RANGES = [
     { label: '24h', value: '24h' },
-    { label: '7d',  value: '7d'  },
+    { label: '7d', value: '7d' },
     { label: '30d', value: '30d' },
 ]
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
 
-    // Add year to the tooltip label for full context (keep X-axis short)
+    const isTimeOnly = /^\d{2}:\d{2}$/.test(label ?? '')
+
     const labelWithYear = (() => {
+        if (isTimeOnly) {
+            const today = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+            return `${today}, ${label}`
+        }
         try {
             const parsed = new Date(`${label} ${new Date().getFullYear()}`)
             if (!isNaN(parsed.getTime())) {
                 return parsed.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
             }
-        } catch {}
+        } catch { }
         return label
     })()
 
@@ -80,11 +85,10 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
                         <button
                             key={r.value}
                             onClick={() => handleRangeChange(r.value)}
-                            className={`px-3.5 py-1 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
-                                activeRange === r.value
+                            className={`px-3.5 py-1 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${activeRange === r.value
                                     ? 'bg-primary/10 text-primary border border-primary/20'
                                     : 'border border-border bg-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                                }`}
                         >
                             {r.label}
                         </button>
@@ -97,9 +101,9 @@ export function ThreatChart({ data, onTimeRangeChange }: ThreatChartProps) {
                 <AreaChart data={chartData} margin={{ top: 10, right: 4, left: -10, bottom: 0 }}>
                     <defs>
                         <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%"   stopColor="#00e5ff" stopOpacity={0.25} />
-                            <stop offset="60%"  stopColor="#00e5ff" stopOpacity={0.05} />
-                            <stop offset="100%" stopColor="#00e5ff" stopOpacity={0}    />
+                            <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.25} />
+                            <stop offset="60%" stopColor="#00e5ff" stopOpacity={0.05} />
+                            <stop offset="100%" stopColor="#00e5ff" stopOpacity={0} />
                         </linearGradient>
                     </defs>
 

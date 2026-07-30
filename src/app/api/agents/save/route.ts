@@ -1,11 +1,8 @@
-/**
- * POST /api/agents/save
- * Called by the Save Results button on the dashboard.
- * Saves all agent pipeline output to Supabase tables.
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { hasPermission } from '@/lib/auth/types'
+import { agentsSavePostSchema } from '@/lib/validation'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,14 +11,27 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
     try {
-        const { jobId, result } = await request.json()
+        const serverClient = await createServerClient()
+        const { data: { user } } = await serverClient.auth.getUser()
+        if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
-        if (!jobId || !result) {
+        const { data: profile } = await serverClient.from('profiles').select('role').eq('id', user.id).single()
+        if (!profile || !hasPermission(profile.role, 'canRunAiAnalysis')) {
+            return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+        }
+
+        const body = await request.json()
+
+        // OWASP: Strict Zod validation — rejects unexpected fields, caps array sizes
+        const validation = agentsSavePostSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { success: false, error: 'jobId and result are required' },
+                { success: false, error: 'Validation failed', details: validation.error.format() },
                 { status: 400 }
             )
         }
+
+        const { jobId, result } = validation.data
 
         const summary = await saveAllResults(jobId, result)
 

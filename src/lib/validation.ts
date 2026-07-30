@@ -1,9 +1,5 @@
 import { z } from 'zod'
 
-/**
- * Basic HTML sanitizer to mitigate XSS (OWASP Cross-Site Scripting mitigation).
- * Escapes HTML characters.
- */
 export function sanitizeString(val: string): string {
     return val
         .replace(/&/g, '&amp;')
@@ -111,4 +107,17 @@ export const adminAuditLogPostSchema = z.object({
     target_id: z.string().trim().max(100).transform(sanitizeString).optional(),
     target_type: z.string().trim().max(100).transform(sanitizeString).optional(),
     details: z.record(z.string(), z.any()).optional(),
+}).strict()
+
+// ── 8. Agent Pipeline Save Schema ────────────────────────────────────────────
+export const agentsSavePostSchema = z.object({
+    jobId: z.string().trim().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
+    result: z.object({
+        threats: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
+        risk_register: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
+        playbooks: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
+        executive_report: z.record(z.string(), z.unknown()).optional(),
+        technical_report: z.record(z.string(), z.unknown()).optional(),
+        compliance_report: z.record(z.string(), z.unknown()).optional(),
+    }).strict(),
 }).strict()

@@ -24,27 +24,6 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 
 ---
 
-## Table of Contents
-
-- [Screenshots](#screenshots)
-- [Platform Status](#platform-status)
-- [Design System](#design-system)
-- [Features](#features)
-- [Security Hardening](#security-hardening)
-- [Tech Stack](#tech-stack)
-- [Backend](#backend)
-- [Database](#database)
-- [Real-Time (Socket.io + Browser Events)](#real-time-socketio--browser-events)
-- [Project Structure](#project-structure)
-- [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Testing](#testing)
-- [Important Notes](#important-notes)
-- [Team](#team)
-- [Contributing](#contributing)
-
----
-
 ## Platform Status
 
 | Area | Status | Details |
@@ -62,7 +41,7 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **Real-Time / Socket.io** | Complete | Socket.io 4.8 — live metrics every 30 s, chart data every 10 s, instant AI pipeline completion events |
 | **Real-Time Toggle** | Complete | Per-user on/off switch, persisted across refreshes — pause live updates to focus on static snapshot during analysis |
 | **Notifications** | Complete | Header bell with per-item read/unread state — live alerts on AI analysis completion and critical threats/incidents |
-| **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Groq LLM, Redis-persisted job state, rate-limit-aware retry that resumes instead of restarting |
+| **AI Pipeline** | Complete | 5-stage CrewAI pipeline via Anthropic Claude (Haiku 4.5), Redis-persisted job state, real per-task progress tracking, rate-limit-aware retry with backoff |
 | **MITRE ATT&CK Coverage** | Complete | Full official Enterprise matrix (697 techniques) loaded from `.agents/data/mitre_attack_enterprise.json` |
 | **Automated Testing** | Complete | 68 pytest tests (Python AI service) + 65 Vitest tests (Node/TS) — see [Testing](#testing) |
 | **Evaluation** | Complete | Risk-scoring engine benchmarked against 8 known incidents (100% accuracy) + monotonicity checks — see [docs/EVALUATION.md](./docs/EVALUATION.md) |
@@ -141,6 +120,10 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 - **Real-Time Metrics Persistence** (`server.js`) — Live dashboard metrics (threat count, risk score, active incidents) are stored in Redis under `realtime:metrics` with a 24-hour TTL, so simulated values survive server restarts.
 - **Strict Schema Validation** (`src/lib/validation.ts`) — Centralized Zod validation layer covering all public and administrative route payloads. Enforces types, strict structures, limits, and rejects unknown fields via `.strict()`.
 - **XSS Mitigation & Input Sanitization** — Automatically sanitizes and escapes HTML entities from incoming string variables before processing or storing them in Supabase.
+- **Generalized RBAC Guard** (`requirePermission()` in `src/lib/auth/require-delete-permission.ts`) — a single server-side permission check reused across routes (e.g. `canDeleteData` on report/incident/playbook deletes, `canAssignIncidents` on incident reassignment), so authorization can never be enforced in the UI alone.
+- **Service-to-Service Auth** — the Next.js backend and the Python AI microservice authenticate each other via a shared `AGENT_API_SECRET` (`x-api-key` header); the custom server's internal Socket.io bridge (`POST /api/internal/socket-emit`) requires a matching `INTERNAL_WEBHOOK_SECRET`. Both replace an earlier implicit trust-by-network-position model.
+- **Locked-Down CORS** — Socket.io (both `server.js` and the FastAPI service) now allow only the configured `NEXT_PUBLIC_APP_URL` origin, replacing a wildcard `origin: '*'`.
+- **Opaque Content at Rest** (`src/lib/opaque-content.ts`) — AI-generated report/playbook content is base64-wrapped before being written to Supabase, so freeform LLM text describing exploits/commands/IOCs can't be misread by an upstream WAF as an attack payload; reads decode transparently.
 
 ---
 
@@ -157,7 +140,7 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 | Auth | Supabase Auth |
 | Cache / Rate Limiting | Upstash Redis 7.2 (REST API) |
 | Real-time | Socket.io 4.8 (WebSocket) + Custom Browser Events (`ai-analysis:completed`) |
-| AI / LLM | CrewAI + Groq (`llama-3.3-70b-versatile`) |
+| AI / LLM | CrewAI + Anthropic Claude (`claude-haiku-4-5-20251001`) |
 | Deployment | Railway — two services: the Next.js app (`railway.json`, Nixpacks) and the Python AI microservice (`.agents/railway.json`, Dockerfile). Vercel is not used: the custom Socket.io server (`server.js`) needs a long-running process, which Vercel's serverless model doesn't support. |
 
 ---
@@ -293,7 +276,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # AI
-GROQ_API_KEY=your_groq_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# Shared secrets — must match between the Next.js app and the Python AI
+# microservice (AGENT_API_SECRET) / server.js's internal socket bridge
+# (INTERNAL_WEBHOOK_SECRET)
+AGENT_API_SECRET=your_generated_secret
+INTERNAL_WEBHOOK_SECRET=your_generated_secret
 
 # Upstash Redis (Redis 7.2) — get from https://console.upstash.com
 # Required for rate limiting, API caching, and metrics persistence
@@ -357,7 +346,7 @@ mocked, so no API keys are required to run them.
 
 - **Educational purpose** — Built as a Final Year Project. Validate with security professionals before any production use.
 - **Data privacy** — Uses Supabase Row Level Security (RLS). Keep your `SUPABASE_SERVICE_ROLE_KEY` secret.
-- **AI pipeline** — Requires Groq API key. Without it, the Run AI Analysis button will return an error.
+- **AI pipeline** — Requires an Anthropic API key (Claude), plus a matching `AGENT_API_SECRET` on both the Next.js app and the Python AI microservice. Without them, the Run AI Analysis button will return an error.
 - **Real-time** — Socket.io runs via a custom Node.js server (`server.js`). Standard `next start` does not include Socket.io; always start with `pnpm run dev` or `node server.js`.
 
 ---
@@ -387,6 +376,6 @@ This is a university Final Year Project maintained by the team below. If you'd l
 
 **Built with pride by the CyberGuard Team — Lahore College for Women University**
 
-**Version:** 3.5.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
+**Version:** 3.6.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
 
 </div>

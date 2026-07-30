@@ -60,6 +60,14 @@ app.prepare().then(() => {
 
             // Internal webhook to bridge Next.js API routes with Socket.io
             if (req.method === 'POST' && parsedUrl.pathname === '/api/internal/socket-emit') {
+                const expectedSecret = process.env.INTERNAL_WEBHOOK_SECRET
+                const providedSecret = req.headers['x-internal-secret']
+                if (!expectedSecret || providedSecret !== expectedSecret) {
+                    res.statusCode = 401
+                    res.end('unauthorized')
+                    return
+                }
+
                 let body = ''
                 req.on('data', chunk => body += chunk)
                 req.on('end', () => {
@@ -115,9 +123,11 @@ app.prepare().then(() => {
     })
 
     // ── Real Socket.io Server ─────────────────────────────────────────────────
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appOrigin = rawAppUrl.endsWith('/') ? rawAppUrl.slice(0, -1) : rawAppUrl
     const io = new Server(httpServer, {
         path: '/api/socket',
-        cors: { origin: '*' },
+        cors: { origin: appOrigin },
         transports: ['websocket', 'polling'],
     })
 

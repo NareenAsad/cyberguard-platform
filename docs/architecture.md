@@ -21,8 +21,8 @@ CyberGuard follows a **monolithic Next.js architecture** with clear separation o
 ┌────────────────────────▼────────────────────────────────────────┐
 │                  EXTERNAL SERVICES                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  Supabase    │  │  Groq API    │  │  CrewAI Pipeline     │  │
-│  │  (Postgres)  │  │  (LLM)       │  │  (AI Agents)         │  │
+│  │  Supabase    │  │ Anthropic API│  │  CrewAI Pipeline     │  │
+│  │  (Postgres)  │  │  (Claude LLM)│  │  (AI Agents)         │  │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -133,7 +133,7 @@ The **Run AI Analysis** button triggers a 5-stage CrewAI pipeline:
 4. **Incident Response** — generates recommended actions
 5. **Reporting** — produces an executive summary with posture score
 
-The pipeline is powered by **Groq API** (`llama-3.3-70b-versatile`) for fast LLM inference.
+The pipeline is powered by **Anthropic's Claude API** (`claude-haiku-4-5-20251001` via LiteLLM) for LLM inference. Two `LLM` instances are used: a 4096-token-output instance for the tool-calling agents (tasks 1–3) and a 32000-token-output instance for the two large single-shot JSON agents (playbooks and the comprehensive report), which previously truncated mid-JSON on smaller caps. The Next.js backend and the FastAPI service authenticate to each other with a shared `AGENT_API_SECRET` (`x-api-key` header) rather than trusting network position alone.
 
 ---
 

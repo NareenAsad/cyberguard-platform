@@ -1,13 +1,7 @@
-/**
- * GET /api/threats/job?jobId=cg-xxx
- * Polls pipeline, auto-saves to Supabase, emits socket events to refresh pages.
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgentJob } from '@/lib/agent-client'
 import type { AgentPipelineResult, RiskResult, ExecutiveReport, TechnicalReport } from '@/lib/agent-client'
 
-/** Extended types for pipeline fields not yet in base interfaces */
 interface ExtendedPipelineResult extends AgentPipelineResult {
     compliance_report?: Record<string, unknown>
 }
@@ -33,6 +27,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { jobIdSchema } from '@/lib/validation'
 import { emitSocketEvent, emitAlert } from '@/lib/socket/emit-socket-event'
+import { encodeReportContent, encodePlaybookContent } from '@/lib/opaque-content'
 
 const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,7 +43,7 @@ export async function GET(request: NextRequest) {
         if (!limitRes.isAllowed) return limitRes.response
 
         const jobId = request.nextUrl.searchParams.get('jobId')
-        
+
         // OWASP: Validate query parameter shape
         const validation = jobIdSchema.safeParse({ jobId })
         if (!validation.success) {
@@ -90,113 +85,132 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult, user
     console.log(`[Save ${jobId}] Keys:`, Object.keys(result))
 
     // ── 1. Threats ────────────────────────────────────────────────────────
-    const threats = result.threats ?? []
-    for (let index = 0; index < threats.length; index++) {
-        const t = threats[index]
-        const indicatorValue = t.indicator_value ?? 'Unknown'
 
-        // Derive a meaningful source: use MITRE tactic or confidence label
+    const threats = result.threats ?? []
+    const threatMeta = threats.map((t, index) => {
+        const indicatorValue = t.indicator_value ?? 'Unknown'
         const sourceLabel = t.mitre_tactic
             ? `MITRE: ${t.mitre_tactic}`
             : t.active_exploitation
-            ? 'Active Exploitation'
-            : 'Threat Intelligence Feed'
-
+                ? 'Active Exploitation'
+                : 'Threat Intelligence Feed'
         const severity = priorityToSeverity(t.priority_score ?? 50)
+        return {
+            row: {
+                id: `thr-${jobId}-${index}`,
+                threatId: `THR-AI-${index}-${rand().toUpperCase()}`,
+                type: t.indicator_type ?? 'malware',
+                severity,
+                source: sourceLabel,
+                target: indicatorValue,
+                detected: now,
+                status: 'mitigating',
+            },
+            index, indicatorValue, indicatorType: t.indicator_type, sourceLabel, severity,
+        }
+    })
 
-        const { error } = await supabase.from('Threat').insert({
-            id:          `thr-${jobId}-${index}`,
-            threatId:    `THR-AI-${index}-${rand().toUpperCase()}`,
-            type:        t.indicator_type  ?? 'malware',
-            severity,
-            source:      sourceLabel,
-            target:      indicatorValue,
-            detected:    now,
-            status:      'mitigating',
-        })
+    if (threatMeta.length > 0) {
+        const { error } = await supabase.from('Threat').insert(threatMeta.map(m => m.row))
         if (error) {
             console.error('[Save] Threat:', error.message)
         } else {
-            summary.threats++
-            if (severity === 'critical') {
-                await emitAlert({
-                    id:      `alert-threat-${jobId}-${index}`,
-                    type:    userId ? `critical_threat|${userId}` : 'critical_threat',
-                    title:   'Critical Threat Detected',
-                    message: `${indicatorValue} (${t.indicator_type ?? 'indicator'}) — ${sourceLabel}`,
-                    severity: 'critical',
-                })
+            summary.threats = threatMeta.length
+            for (const m of threatMeta) {
+                if (m.severity === 'critical') {
+                    await emitAlert({
+                        id: `alert-threat-${jobId}-${m.index}`,
+                        type: userId ? `critical_threat|${userId}` : 'critical_threat',
+                        title: 'Critical Threat Detected',
+                        message: `${m.indicatorValue} (${m.indicatorType ?? 'indicator'}) — ${m.sourceLabel}`,
+                        severity: 'critical',
+                    })
+                }
             }
         }
     }
 
     // ── 2. Risk Analysis ──────────────────────────────────────────────────
     const risks = (result.risk_register ?? []) as ExtendedRiskResult[]
-    for (let index = 0; index < risks.length; index++) {
-        const r = risks[index]
-        const { error } = await supabase.from('RiskAnalysis').insert({
-            id:             `risk-${jobId}-${index}`,
-            asset:          r.asset_name      ?? 'Unknown Asset',
-            riskLevel:      Math.min(100, Math.round(r.risk_score ?? 0)),
-            vulnerabilities: 1,
-            exposureTime:   'Active',
-            recommendation: r.score_breakdown ?? `Risk score: ${r.risk_score}`,
-        })
+
+    const assetNames = [...new Set(risks.map(r => r.asset_name).filter((n): n is string => !!n))]
+    if (assetNames.length > 0) {
+        const { error: deleteError } = await supabase.from('RiskAnalysis').delete().in('asset', assetNames)
+        if (deleteError) console.error('[Save] Risk cleanup:', deleteError.message)
+    }
+
+    const riskRows = risks.map((r, index) => ({
+        id: `risk-${jobId}-${index}`,
+        asset: r.asset_name ?? 'Unknown Asset',
+        riskLevel: Math.min(100, Math.round(r.risk_score ?? 0)),
+        vulnerabilities: 1,
+        exposureTime: 'Active',
+        recommendation: r.score_breakdown ?? `Risk score: ${r.risk_score}`,
+    }))
+    if (riskRows.length > 0) {
+        const { error } = await supabase.from('RiskAnalysis').insert(riskRows)
         if (error) console.error('[Save] Risk:', error.message)
-        else summary.risks++
+        else summary.risks = riskRows.length
     }
 
     // ── 3. Incidents for risk >= 50 ───────────────────────────────────────
     const criticalRisks = risks.filter(r => (r.risk_score ?? 0) >= 50)
-    for (let index = 0; index < criticalRisks.length; index++) {
-        const r = criticalRisks[index]
+    const incidentMeta = criticalRisks.map((r, index) => {
         const severity = (r.severity_label ?? 'high').toLowerCase()
         const title = `[AI] ${r.cve_id ?? 'Vulnerability'} on ${r.asset_name ?? 'Unknown Asset'}`
+        return {
+            row: {
+                id: `inc-${jobId}-${index}`,
+                incidentId: `INC-AI-${index}-${Date.now()}`,
+                title,
+                description: `Risk ${r.risk_score}/100. MITRE: ${r.mitre_tactic ?? 'N/A'}.`,
+                severity,
+                status: 'open',
+                assignee: 'Unassigned',
+                created: now,
+                updated: now,
+            },
+            index, severity, title, riskScore: r.risk_score,
+        }
+    })
 
-        const { error } = await supabase.from('Incident').insert({
-            id:          `inc-${jobId}-${index}`,
-            incidentId:  `INC-AI-${index}-${Date.now()}`,
-            title,
-            description: `Risk ${r.risk_score}/100. MITRE: ${r.mitre_tactic ?? 'N/A'}.`,
-            severity,
-            status:      'open',
-            assignee:    'Unassigned',
-            created:     now,
-            updated:     now,
-        })
+    if (incidentMeta.length > 0) {
+        const { error } = await supabase.from('Incident').insert(incidentMeta.map(m => m.row))
         if (error) {
             console.error('[Save] Incident:', error.message)
         } else {
-            summary.incidents++
-            if (severity === 'critical') {
-                await emitAlert({
-                    id:      `alert-incident-${jobId}-${index}`,
-                    type:    userId ? `critical_incident|${userId}` : 'critical_incident',
-                    title:   'Critical Incident Opened',
-                    message: `${title} — Risk ${r.risk_score}/100`,
-                    severity: 'critical',
-                })
+            summary.incidents = incidentMeta.length
+            for (const m of incidentMeta) {
+                if (m.severity === 'critical') {
+                    await emitAlert({
+                        id: `alert-incident-${jobId}-${m.index}`,
+                        type: userId ? `critical_incident|${userId}` : 'critical_incident',
+                        title: 'Critical Incident Opened',
+                        message: `${m.title} — Risk ${m.riskScore}/100`,
+                        severity: 'critical',
+                    })
+                }
             }
         }
     }
 
     // ── 4. Playbooks ──────────────────────────────────────────────────────
     const playbooks = (result.playbooks ?? []) as ExtendedPlaybookResult[]
-    for (let index = 0; index < playbooks.length; index++) {
-        const p = playbooks[index]
-        const { error } = await supabase.from('Playbook').insert({
-            id:          `pb-${jobId}-${index}`,
-            playbookId:  `PB-${index}-${rand().toUpperCase()}`,
-            title:       p.incident_title   ?? `[AI] ${p.cve_id ?? 'Threat'} Response Playbook`,
-            description: p.incident_summary ?? 'Auto-generated by CyberGuard AI IR Agent',
-            category:    'AI Generated',
-            steps:       (p.playbook?.containment?.length ?? 0) + (p.playbook?.eradication?.length ?? 0),
-            content:     p.playbook ?? {},
-            updatedBy:   'CyberGuard AI',
-            lastUpdated: now,
-        })
+    const playbookRows = playbooks.map((p, index) => ({
+        id: `pb-${jobId}-${index}`,
+        playbookId: `PB-${index}-${rand().toUpperCase()}`,
+        title: p.incident_title ?? `[AI] ${p.cve_id ?? 'Threat'} Response Playbook`,
+        description: p.incident_summary ?? 'Auto-generated by CyberGuard AI IR Agent',
+        category: 'AI Generated',
+        steps: (p.playbook?.containment?.length ?? 0) + (p.playbook?.eradication?.length ?? 0),
+        content: encodePlaybookContent(p.playbook ?? {}),
+        updatedBy: 'CyberGuard AI',
+        lastUpdated: now,
+    }))
+    if (playbookRows.length > 0) {
+        const { error } = await supabase.from('Playbook').insert(playbookRows)
         if (error) console.error('[Save] Playbook:', error.message)
-        else summary.playbooks++
+        else summary.playbooks = playbookRows.length
     }
 
     // ── 5. Report ─────────────────────────────────────────────────────────
@@ -206,21 +220,21 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult, user
 
     if (exec.top_risk || tech.total_findings) {
         const { error } = await supabase.from('Report').insert({
-            id:        `rep-${jobId}`,
-            reportId:  `REP-${rand().toUpperCase()}`,
-            title:     `AI Analysis Report — ${new Date().toLocaleDateString('en-US', { dateStyle: 'medium' })}`,
-            type:      'executive',
-            status:    'final',
-            content:   { 
-                executive_report: exec, 
-                technical_report: tech, 
+            id: `rep-${jobId}`,
+            reportId: `REP-${rand().toUpperCase()}`,
+            title: `AI Analysis Report — ${new Date().toLocaleDateString('en-US', { dateStyle: 'medium' })}`,
+            type: 'executive',
+            status: 'final',
+            content: encodeReportContent({
+                executive_report: exec,
+                technical_report: tech,
                 compliance_report: comp,
                 description: exec.top_risk ?? 'Full security posture and remediation analysis.'
-            },
-            jobId:     jobId,
+            } as any),
+            jobId: jobId,
             generated: now,
-            threats:   summary.threats,
-            resolved:  0
+            threats: summary.threats,
+            resolved: 0
         })
         if (error) console.error('[Save] Report:', error.message)
         else summary.reports++
@@ -241,26 +255,26 @@ async function saveAndNotify(jobId: string, result: ExtendedPipelineResult, user
 async function emitRefreshEvents(result: AgentPipelineResult, summary: { threats: number; risks: number; incidents: number; playbooks: number; reports: number }, exec: Partial<ExecutiveReport>, userId?: string) {
     // Dashboard metrics update
     await emitSocketEvent('metrics:update', {
-        postureScore:   exec.posture_score                ?? 0,
-        criticalCount:  exec.severity_summary?.critical   ?? 0,
-        highCount:      exec.severity_summary?.high       ?? 0,
-        totalFindings:  result.technical_report?.total_findings ?? 0,
-        topRisk:        exec.top_risk                     ?? '',
-        actionRequired: exec.action_required              ?? '',
+        postureScore: exec.posture_score ?? 0,
+        criticalCount: exec.severity_summary?.critical ?? 0,
+        highCount: exec.severity_summary?.high ?? 0,
+        totalFindings: result.technical_report?.total_findings ?? 0,
+        topRisk: exec.top_risk ?? '',
+        actionRequired: exec.action_required ?? '',
     })
 
     // Tell each page to refetch its data
-    if (summary.threats   > 0) await emitSocketEvent('page:refresh', { page: 'threats' })
-    if (summary.risks     > 0) await emitSocketEvent('page:refresh', { page: 'risk-analysis' })
+    if (summary.threats > 0) await emitSocketEvent('page:refresh', { page: 'threats' })
+    if (summary.risks > 0) await emitSocketEvent('page:refresh', { page: 'risk-analysis' })
     if (summary.incidents > 0) await emitSocketEvent('page:refresh', { page: 'incident-response' })
     if (summary.playbooks > 0) await emitSocketEvent('page:refresh', { page: 'playbooks' })
-    if (summary.reports   > 0) await emitSocketEvent('page:refresh', { page: 'reports' })
+    if (summary.reports > 0) await emitSocketEvent('page:refresh', { page: 'reports' })
 
     // Alert banner for dashboard — always fires once per completed run.
     await emitAlert({
-        id:      `alert-${Date.now()}`,
-        type:    userId ? `analysis_complete|${userId}` : 'analysis_complete',
-        title:   'AI Analysis Saved',
+        id: `alert-${Date.now()}`,
+        type: userId ? `analysis_complete|${userId}` : 'analysis_complete',
+        title: 'AI Analysis Saved',
         message: `${summary.threats} threats · ${summary.risks} risks · ${summary.incidents} incidents · ${summary.playbooks} playbooks`,
         severity: (exec.severity_summary?.critical ?? 0) > 0 ? 'critical' : 'info',
     })

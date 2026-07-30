@@ -1,16 +1,7 @@
 # CyberGuard Python AI Service — Dependencies
 # Install: pip install -r requirements.txt
-# Let pip resolve compatible versions automatically (no strict pins),
-# except where noted below.
 
-# CrewAI & Agents
-# crewai is PINNED (not >=) because 1.14.4+ has a known bug where
-# mark_cache_breakpoint() injects a `cache_breakpoint` field into every
-# message regardless of LLM provider, and only the Anthropic adapter
-# strips it before sending. Groq (and any non-Anthropic provider) then
-# rejects every request with a 400 BadRequestError. Unfixed upstream as
-# of this writing: https://github.com/crewAIInc/crewAI/issues/5886
-crewai[litellm]==1.14.1
+crewai[litellm,anthropic]==1.14.1
 crewai-tools>=0.8.3
 
 # Groq (CrewAI.LLM uses litellm + groq under the hood)

@@ -1,11 +1,10 @@
-/**
- * agent-client.ts
- * Typed client for the CyberGuard FastAPI agent server (port 8000).
- * Used by Next.js API routes to trigger and poll the CrewAI pipeline.
- */
-
 const rawAgentUrl = process.env.AGENT_API_URL ?? 'http://localhost:8001'
 const AGENT_BASE_URL = rawAgentUrl.endsWith('/') ? rawAgentUrl.slice(0, -1) : rawAgentUrl
+
+const AGENT_HEADERS = {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.AGENT_API_SECRET ?? '',
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +34,8 @@ export interface AgentJobStatus {
     completed_at?: string | null
     result?: AgentPipelineResult | null
     error?: string | null
+    /** Number of the 5 pipeline tasks completed so far (0-5). */
+    current_step?: number | null
 }
 
 export interface AgentPipelineResult {
@@ -121,9 +122,6 @@ export interface TechnicalReport {
 
 // ── Client functions ───────────────────────────────────────────────────────
 
-/**
- * Kick off the 5-agent pipeline. Returns job_id immediately (async job).
- */
 export async function startAgentAnalysis(
     indicators: ThreatIndicator[],
     assets: Asset[],
@@ -131,7 +129,7 @@ export async function startAgentAnalysis(
 ): Promise<AgentJobStatus> {
     const res = await fetch(`${AGENT_BASE_URL}/api/agents/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: AGENT_HEADERS,
         body: JSON.stringify({ indicators, assets, run_id: runId }),
     })
 
@@ -143,11 +141,10 @@ export async function startAgentAnalysis(
     return res.json()
 }
 
-/**
- * Check the status/result of a pipeline job.
- */
 export async function getAgentJob(jobId: string): Promise<AgentJobStatus> {
-    const res = await fetch(`${AGENT_BASE_URL}/api/agents/jobs/${jobId}`)
+    const res = await fetch(`${AGENT_BASE_URL}/api/agents/jobs/${jobId}`, {
+        headers: AGENT_HEADERS,
+    })
 
     if (!res.ok) {
         throw new Error(`Agent job not found: ${jobId}`)
@@ -182,9 +179,6 @@ export async function waitForAgentJob(
     throw new Error(`Agent job ${jobId} timed out after ${timeoutMs / 1000}s`)
 }
 
-/**
- * Quick synchronous risk score calculation (no agents needed).
- */
 export async function calculateRiskScore(payload: {
     cvss_score: number
     exploit_availability: 'public' | 'poc' | 'theoretical'
@@ -194,7 +188,7 @@ export async function calculateRiskScore(payload: {
 }): Promise<{ risk_score: number; severity_label: string }> {
     const res = await fetch(`${AGENT_BASE_URL}/api/agents/score`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: AGENT_HEADERS,
         body: JSON.stringify(payload),
     })
 
@@ -202,9 +196,6 @@ export async function calculateRiskScore(payload: {
     return res.json()
 }
 
-/**
- * Check if the FastAPI agent server is reachable.
- */
 export async function checkAgentHealth(): Promise<boolean> {
     try {
         const res = await fetch(`${AGENT_BASE_URL}/health`, {

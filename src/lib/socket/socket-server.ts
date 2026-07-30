@@ -7,9 +7,11 @@ let io: SocketIOServer | null = null
 
 export function initSocketServer(httpServer: HTTPServer): SocketIOServer {
     if (!io) {
+        const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const appOrigin = rawAppUrl.endsWith('/') ? rawAppUrl.slice(0, -1) : rawAppUrl
         io = new SocketIOServer(httpServer, {
             path: '/api/socket',
-            cors: { origin: '*' },
+            cors: { origin: appOrigin },
             transports: ['websocket', 'polling'],
         })
 

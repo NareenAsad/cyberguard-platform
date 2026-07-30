@@ -8,7 +8,7 @@
 | pnpm | Latest | Package manager (`npm install -g pnpm`) |
 | Git | Any | Version control |
 | Supabase account | — | Database + Auth (free tier works) |
-| Groq API key | — | LLM inference for AI pipeline |
+| Anthropic API key | — | Claude LLM inference for AI pipeline |
 | Upstash account | — | Redis 7.2 — rate limiting, caching, metrics (free tier works) |
 
 ---
@@ -33,11 +33,19 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-public-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
-# Groq (AI pipeline)
-GROQ_API_KEY=<your-groq-api-key>
-# Optional — leave unset to use the default below. Do NOT use gpt-oss-120b or
-# llama-4-scout here; they fail with CrewAI tool/JSON output on Groq.
-# GROQ_MODEL=groq/llama-3.3-70b-versatile
+# Anthropic (AI pipeline)
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+# Optional — leave unset to use the default below.
+# LLM_MODEL=anthropic/claude-haiku-4-5-20251001
+
+# Shared secret between the Next.js app and the Python AI microservice
+# (.agents/main.py). Must be the SAME value in both services' env — the
+# FastAPI service rejects every request without a matching x-api-key header.
+AGENT_API_SECRET=<generate-a-long-random-string>
+
+# Shared secret authorizing server.js's internal Socket.io bridge
+# (POST /api/internal/socket-emit). Must match on both sides.
+INTERNAL_WEBHOOK_SECRET=<generate-a-long-random-string>
 
 # Upstash Redis 7.2 (rate limiting, caching, metrics persistence)
 UPSTASH_REDIS_REST_URL=https://<your-db-name>.upstash.io
@@ -53,10 +61,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 3. Go to **Project Settings → API**
 4. Copy **Project URL**, **anon public key**, and **service_role key**
 
-### Getting Groq API Key
-1. Sign up at [console.groq.com](https://console.groq.com)
-2. Go to **API Keys → Create API Key**
-3. Copy the key into `GROQ_API_KEY`
+### Getting an Anthropic API Key
+1. Sign up at [console.anthropic.com](https://console.anthropic.com)
+2. Go to **API Keys → Create Key**
+3. Copy the key into `ANTHROPIC_API_KEY`
 
 ### Getting Upstash Redis Credentials
 1. Sign up at [console.upstash.com](https://console.upstash.com) (free tier — no credit card)
@@ -341,7 +349,9 @@ Expected startup output when everything is configured correctly:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
-GROQ_API_KEY=...
+ANTHROPIC_API_KEY=...
+AGENT_API_SECRET=...
+INTERNAL_WEBHOOK_SECRET=...
 UPSTASH_REDIS_REST_URL=...
 UPSTASH_REDIS_REST_TOKEN=...
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
@@ -371,7 +381,8 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 |---|---|
 | `Module not found` errors | Run `pnpm install` again |
 | Supabase 401/403 errors | Check `SUPABASE_SERVICE_ROLE_KEY` is correct |
-| AI pipeline hangs | Verify `GROQ_API_KEY` is valid |
+| AI pipeline hangs | Verify `ANTHROPIC_API_KEY` is valid |
+| AI pipeline returns 401 | `AGENT_API_SECRET` must be set to the same value in both the Next.js app's env and the Python service's env |
 | Socket.io not connecting | Make sure only one dev server is running on port 3000 |
 | "System Degraded" shown | The AI agent health check endpoint is unreachable — normal if backend Python service is not running |
 | `[Redis] No Upstash credentials` | Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to `.env.local` — app works without them using in-memory fallback |

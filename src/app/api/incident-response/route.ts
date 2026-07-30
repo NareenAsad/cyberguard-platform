@@ -3,7 +3,7 @@ import { getIncidents, createIncident, deleteIncident, updateIncident } from '@/
 import { rateLimit } from '@/lib/rate-limit'
 import { incidentPostSchema, incidentPatchSchema } from '@/lib/validation'
 import { emitAlert } from '@/lib/socket/emit-socket-event'
-import { requireDeletePermission } from '@/lib/auth/require-delete-permission'
+import { requireDeletePermission, requirePermission } from '@/lib/auth/require-delete-permission'
 import { recordAuditLog } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
@@ -156,6 +156,10 @@ export async function PATCH(request: NextRequest) {
         // OWASP: Rate limit update requests
         const limitRes = await rateLimit(request, { limit: 15, endpoint: 'incidents:patch' })
         if (!limitRes.isAllowed) return limitRes.response
+
+        // RBAC: only roles with canAssignIncidents may reassign/change status
+        const denied = await requirePermission('canAssignIncidents')
+        if (denied) return denied
 
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')

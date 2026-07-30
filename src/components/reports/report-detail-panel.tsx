@@ -1,14 +1,22 @@
 'use client'
 
 import { useEffect } from 'react'
-import { X, FileText, Download, CheckCircle, Clock, Shield, AlertTriangle, List, Activity, Target } from 'lucide-react'
+import { X, FileText, Download, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import type { Report } from '@/types/report'
 import { exportReportToPDF } from '@/lib/export-utils'
 import { useAuth } from '@/lib/auth/auth-context'
+import { decodeReportContent } from '@/lib/opaque-content'
 
 interface ReportDetailPanelProps {
     report: Report | null
     onClose: () => void
+}
+
+function postureColor(score?: number) {
+    if (score === undefined) return 'text-muted-foreground'
+    if (score < 40) return 'text-red-400'
+    if (score < 70) return 'text-amber-400'
+    return 'text-accent'
 }
 
 export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
@@ -28,12 +36,20 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
 
     if (!report) return null
 
-    const isCompleted = report.status === 'completed' || report.status === 'final'
-    const content = report.content
+    const content = decodeReportContent(report.content)
+    const exec = content?.executive_report
+    const tech = content?.technical_report
+    const comp = content?.compliance_report
+    const displayDate = report.generated || report.date
+    const formattedDate = displayDate
+        ? new Date(displayDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : null
+
+    const severity = exec?.severity_summary ?? {}
 
     const handleDownload = () => {
         if (!report) return
-        exportReportToPDF(report)
+        exportReportToPDF({ ...report, content })
     }
 
     return (
@@ -44,26 +60,19 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                 className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             />
 
-            {/* Centered modal */}
+            {/* Centered modal — designed to read as a single page, not a multi-section dive */}
             <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-                <div className="w-full max-w-2xl max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                <div className="w-full max-w-xl max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
 
                     {/* Header */}
-                    <div className="flex items-start justify-between p-6 border-b border-border bg-background/50">
-                        <div className="flex items-start gap-3 pr-4">
+                    <div className="flex items-start justify-between p-5 border-b border-border bg-background/50">
+                        <div className="flex items-start gap-3 pr-4 min-w-0">
                             <div className="p-2.5 rounded-xl bg-primary/10 shrink-0">
                                 <FileText className="w-5 h-5 text-primary" />
                             </div>
-                            <div>
-                                <div className="flex items-center gap-2 mb-1.5">
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isCompleted ? 'bg-accent/10 text-accent border border-accent/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-                                        {report.status}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest bg-secondary/50 px-2 py-0.5 rounded-full border border-border">
-                                        {report.type}
-                                    </span>
-                                </div>
-                                <h2 className="text-lg font-bold text-foreground leading-snug">{report.title}</h2>
+                            <div className="min-w-0">
+                                <h2 className="text-base font-bold text-foreground leading-snug truncate">{report.title}</h2>
+                                {formattedDate && <p className="text-xs text-muted-foreground mt-0.5">{formattedDate}</p>}
                             </div>
                         </div>
                         <button
@@ -74,101 +83,110 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                         </button>
                     </div>
 
-                    {/* Scrollable content body */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+                    {/* One-page body */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-hide">
 
-                        {/* 1. Executive Summary */}
-                        {content?.executive_report && (
-                            <section className="space-y-4">
-                                <SectionHeader icon={Activity} title="Executive Summary" />
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <MetricCard label="Posture Score" value={`${content.executive_report.posture_score}%`} color="text-primary" />
-                                    <MetricCard label="Critical Issues" value={content.executive_report.severity_summary?.critical ?? 0} color="text-red-400" />
-                                    <MetricCard label="High Issues" value={content.executive_report.severity_summary?.high ?? 0} color="text-orange-400" />
-                                    <MetricCard label="Action Count" value={content.executive_report.action_required ? 1 : 0} color="text-blue-400" />
-                                </div>
-                                {content.executive_report.top_risk && (
-                                    <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 space-y-1">
-                                        <p className="text-[10px] font-bold text-red-400 uppercase">Primary Threat</p>
-                                        <p className="text-sm font-medium text-foreground">{content.executive_report.top_risk}</p>
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
-                        {/* 2. Technical Findings */}
-                        {content?.technical_report && (
-                            <section className="space-y-4">
-                                <SectionHeader icon={Shield} title="Technical Findings" />
-
-                                {/* Patches */}
-                                {content.technical_report.immediate_patches && content.technical_report.immediate_patches.length > 0 && (
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
-                                            <Target className="w-3 h-3" /> Required Remediation
+                        {!exec ? (
+                            <p className="text-sm text-muted-foreground text-center py-10">No summary data available for this report.</p>
+                        ) : (
+                            <>
+                                {/* Posture at a glance */}
+                                <div className="flex items-center gap-5 p-4 rounded-xl bg-secondary/20 border border-border">
+                                    <div className="text-center shrink-0">
+                                        <p className={`text-4xl font-black ${postureColor(exec.posture_score)}`}>{exec.posture_score ?? '—'}</p>
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                                            {exec.posture_label ?? 'Posture Score'}
                                         </p>
-                                        <div className="space-y-2">
-                                            {content.technical_report.immediate_patches.map((patch, i) => (
-                                                <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border text-xs flex flex-col gap-2">
-                                                    <div className="flex justify-between font-bold text-foreground">
-                                                        <span>{patch.cve_id}</span>
-                                                        <span className="text-muted-foreground">{patch.asset}</span>
-                                                    </div>
-                                                    <code className="bg-black/40 p-2 rounded text-accent font-mono text-[10px]">
-                                                        {patch.patch_command}
-                                                    </code>
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
-                                )}
-
-                                {/* IOCs */}
-                                {content.technical_report.ioc_summary && content.technical_report.ioc_summary.length > 0 && (
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
-                                            <AlertTriangle className="w-3 h-3" /> Indicators of Compromise
-                                        </p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {content.technical_report.ioc_summary.map((ioc, i) => (
-                                                <div key={i} className="p-2 px-3 rounded-lg bg-red-500/5 border border-red-500/10 text-[11px] flex items-center justify-between">
-                                                    <span className="font-mono text-red-300">{ioc.value}</span>
-                                                    <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold uppercase">{ioc.type}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
-                        {/* 3. Compliance & Risk */}
-                        {content?.compliance_report && (
-                            <section className="space-y-4">
-                                <SectionHeader icon={List} title="Compliance & Governance" />
-                                <div className="p-4 rounded-xl bg-secondary/30 border border-border">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <span className="text-sm font-medium">Compliance Score</span>
-                                        <span className="text-xl font-bold text-accent">{content.compliance_report.overall_compliance_score}%</span>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {content.compliance_report.controls_violated?.map((v, i) => (
-                                            <div key={i} className="space-y-1">
-                                                <div className="flex gap-2 items-center text-xs font-bold text-orange-400">
-                                                    <AlertTriangle className="w-3 h-3" />
-                                                    <span>{v.control_id}: {v.control_name}</span>
-                                                </div>
-                                                <p className="text-[11px] text-muted-foreground pl-5">{v.finding}</p>
+                                    <div className="flex-1 grid grid-cols-4 gap-2">
+                                        {(['critical', 'high', 'medium', 'low'] as const).map(level => (
+                                            <div key={level} className="text-center">
+                                                <p className={`text-lg font-bold ${
+                                                    level === 'critical' ? 'text-red-400' :
+                                                    level === 'high' ? 'text-orange-400' :
+                                                    level === 'medium' ? 'text-yellow-400' : 'text-accent'
+                                                }`}>{severity[level] ?? 0}</p>
+                                                <p className="text-[9px] text-muted-foreground uppercase">{level}</p>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            </section>
+
+                                {/* What's happening */}
+                                {exec.top_risk && (
+                                    <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 space-y-1.5">
+                                        <p className="text-[10px] font-bold text-red-400 uppercase flex items-center gap-1.5">
+                                            <ShieldAlert className="w-3 h-3" /> What's Happening
+                                        </p>
+                                        <p className="text-sm text-foreground leading-relaxed">{exec.top_risk}</p>
+                                    </div>
+                                )}
+
+                                {exec.business_impact && (
+                                    <p className="text-sm text-muted-foreground leading-relaxed">{exec.business_impact}</p>
+                                )}
+
+                                {exec.action_required && (
+                                    <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-2">
+                                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-[10px] font-bold text-primary uppercase">Action Required</p>
+                                            <p className="text-sm text-foreground">{exec.action_required}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Key findings */}
+                                {exec.key_findings && exec.key_findings.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">Key Findings</p>
+                                        <ul className="space-y-1.5">
+                                            {exec.key_findings.map((f, i) => (
+                                                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                                    <span>{f}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Recommended priorities */}
+                                {exec.recommended_priorities && exec.recommended_priorities.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">Recommended Priorities</p>
+                                        <div className="space-y-2">
+                                            {exec.recommended_priorities
+                                                .slice()
+                                                .sort((a, b) => a.priority - b.priority)
+                                                .map((p, i) => (
+                                                <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/20 border border-border">
+                                                    <span className="text-xs font-bold text-primary shrink-0 w-4">{p.priority}.</span>
+                                                    <span className="text-sm text-foreground flex-1">{p.action}</span>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        {p.owner && <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{p.owner}</span>}
+                                                        {p.deadline && <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-semibold">{p.deadline}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Compact detail strip — counts only, full detail is in the PDF export */}
+                                {(tech || comp) && (
+                                    <div className="flex items-center gap-4 pt-3 border-t border-border/50 text-xs text-muted-foreground">
+                                        {tech?.total_findings !== undefined && <span>{tech.total_findings} technical findings</span>}
+                                        {tech?.assets_at_risk && <span>{tech.assets_at_risk.length} assets at risk</span>}
+                                        {comp?.overall_compliance_score !== undefined && <span>{comp.overall_compliance_score}% compliance score</span>}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-border bg-background/50 flex gap-3">
+                    <div className="p-5 border-t border-border bg-background/50 flex gap-3">
                         {can('canExportData') && (
                             <button
                                 onClick={handleDownload}
@@ -182,23 +200,5 @@ export function ReportDetailPanel({ report, onClose }: ReportDetailPanelProps) {
                 </div>
             </div>
         </>
-    )
-}
-
-function SectionHeader({ icon: Icon, title }: { icon: any, title: string }) {
-    return (
-        <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <Icon className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">{title}</h3>
-        </div>
-    )
-}
-
-function MetricCard({ label, value, color }: { label: string, value: string | number, color: string }) {
-    return (
-        <div className="p-3 rounded-xl bg-secondary/20 border border-border/50 text-center space-y-0.5">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">{label}</p>
-            <p className={`text-lg font-black ${color}`}>{value}</p>
-        </div>
     )
 }

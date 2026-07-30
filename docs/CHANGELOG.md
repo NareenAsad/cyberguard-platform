@@ -5,7 +5,58 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.5.1] — 2026-07-07 (Current)
+## [3.6.0] — 2026-07-30 (Current)
+
+### LLM Migration — Groq → Anthropic Claude
+- Replaced Groq (`llama-3.3-70b-versatile`) with **Anthropic Claude** (`claude-haiku-4-5-20251001`, via LiteLLM) across the entire AI pipeline (`.agents/crew.py`, `.agents/requirements.txt` now installs `crewai[litellm,anthropic]`). Configurable via `LLM_MODEL`, defaulting to Haiku 4.5.
+- Split the single shared `LLM` instance into two: `self.llm` (max 4096 output tokens) for the tool-calling agents, and `self.llm_powerful` (max 32000 output tokens) for the two large single-shot JSON agents (playbook generation, comprehensive reporting).
+- **Fixed silent JSON truncation**: both large-output tasks were previously landing their `output_tokens` exactly on the `max_tokens` cap (first 4096, then 8192), truncating the JSON mid-response and producing 0 playbooks/reports on affected runs. Raising `llm_powerful`'s cap to 32000 resolved it — confirmed via subsequent runs completing well under the new cap.
+- Token-usage logging (`task_callback`) now sums usage across both LLM instances instead of just `self.llm`.
+
+### Security Hardening — Service-to-Service Auth & CORS
+- **Shared-secret auth between services**: the Next.js backend and the Python FastAPI AI microservice now authenticate each other via `AGENT_API_SECRET`, sent as an `x-api-key` header (`src/lib/agent-client.ts`) and enforced via a FastAPI dependency on every `/api/agents/*` route (`.agents/main.py`) — previously any process that could reach the service's port could trigger pipeline runs or read job results.
+- **Internal webhook auth**: `server.js`'s internal Socket.io bridge (`POST /api/internal/socket-emit`) now requires a matching `INTERNAL_WEBHOOK_SECRET` via an `x-internal-secret` header (`src/lib/socket/emit-socket-event.ts`) — previously unauthenticated.
+- **Locked-down CORS**: both `server.js`'s Socket.io server and the FastAPI service now allow only the configured `NEXT_PUBLIC_APP_URL` origin, replacing a wildcard `origin: '*'` fallback.
+- **`GET /api/admin/assets`**: added a missing admin-role check — previously any authenticated user could read the full asset inventory.
+- **`POST /api/agents/save`**: added authentication, `canRunAiAnalysis` permission check, and strict Zod validation (`agentsSavePostSchema`) — previously accepted an unvalidated, unauthenticated `{jobId, result}` body from any caller (dead code with no UI call site, but reachable directly).
+- **Settings — password change re-authentication**: `handleChangePassword` now re-authenticates with the user's current password (`signInWithPassword`) before calling `updateUser({password})`, and requires the current-password field to be filled in. Previously any active session (e.g. a stolen cookie or an unattended, still-logged-in browser) could silently take over the account by setting a new password without knowing the old one.
+
+### Fix — RBAC Gap on Incident Assignment
+- Hid the "Assignment & Status" controls (assignee/status selects) from the Incident Response detail panel for roles without `canAssignIncidents` (i.e. `viewer`) — previously visible and editable in the UI regardless of role.
+- Generalized `requireDeletePermission()` into `requirePermission(permission)` (`src/lib/auth/require-delete-permission.ts`), and added the actual missing server-side check: `PATCH /api/incident-response` had **no permission check at all** — the UI hid the controls, but any authenticated Viewer could still reassign or change incident status via a direct API call. `requireDeletePermission()` is kept as a deprecated thin wrapper for existing call sites.
+
+### Fix — Reports Not Generating (Supabase/Cloudflare WAF False Positive)
+- **Root cause**: Supabase's Cloudflare edge was blocking `Report` insert requests with an "Attention Required" HTML challenge page instead of a JSON response, whenever the JSON body contained attack-pattern-looking text — which the AI-generated `content` field (remediation commands, detection rules, IOC values, exploit descriptions) frequently does. Every other table's insert in the same request succeeded, since their fields are short structured strings.
+- **Fixed** via a new opaque base64 encoding layer (`src/lib/opaque-content.ts`): `Report.content` and `Playbook.content` (same risk, same kind of freeform text) are now wrapped as `{__b64: true, data: <base64>}` before being sent to Supabase, keeping literal trigger substrings out of the raw request body. Reads transparently decode via `decodeReportContent()` / `decodePlaybookContent()`, falling back to the plain object for any rows written before this existed.
+- Updated `report-detail-panel.tsx` and `playbook-detail-panel.tsx` to decode `content` before rendering; `Report.content` / `Playbook.content` types loosened to `unknown` at rest.
+
+### Redesign — Single-Page Report View
+- `ReportDetailPanel` rewritten from a multi-section deep-dive into a concise one-page summary: posture score + severity chips, a "What's Happening" callout (top risk), business impact, an action-required callout, bulleted key findings, and a numbered/prioritized recommendation list with owner/deadline badges. Full technical and compliance detail is now reserved for the PDF export (`canExportData`-gated) instead of being shown inline.
+- `ReportContentData` (`src/types/report.ts`) extended with the fields the pipeline actually generates but the type previously omitted: `posture_label`, `business_impact`, `key_findings`, `recommended_priorities`.
+
+### Fix — Dashboard Progress Indicators Now Reflect Real Pipeline State
+- The per-agent step indicators on the "Run AI Analysis" panel previously guessed progress from elapsed wall-clock time (`Math.floor(elapsed / 18)`), independent of what the pipeline was actually doing.
+- **Fixed end-to-end**: `crew.py`'s `task_callback` now reports `current_step` (1–5) to the Redis-backed job store as each CrewAI task completes; `main.py`'s `JobStatusResponse` and `run()` signature pass `job_id` through so the callback knows which job to update; the frontend (`run-analysis-button.tsx`) polls and applies real `current_step` values instead of a timer-based simulation.
+
+### Fix — RiskAnalysis Duplicate-Key Errors on Repeat Runs
+- The dashboard's "Run Analysis" button always submits the same sample asset inventory, and every run did a blind `INSERT` with no replace logic, hitting `RiskAnalysis`'s unique constraint on the asset name after the first run.
+- **Fixed**: existing `RiskAnalysis` rows for the run's asset names are deleted before inserting the fresh set.
+
+### Fix — Threat Activity Chart Tooltip Showing "Jan 01" for Every 24h Point
+- The 24h view's tooltip appended the current year to a bare time label (e.g. `"10:00"`) and reparsed it as a `Date` to add context — but `new Date("10:00 2026")` has no month/day, so JS's lenient parser defaulted the date portion to **January 1**, regardless of the actual day. The 7d/30d views were unaffected since their labels already include a day/month.
+- **Fixed** (`src/components/threats/threat-chart.tsx`): time-only labels are now paired with today's actual date instead of being reparsed.
+
+### Performance — Batched Pipeline-Result Inserts
+- `saveAndNotify` (`src/app/api/threats/job/route.ts`) now inserts `Threat`, `RiskAnalysis`, `Incident`, and `Playbook` rows with a single bulk `.insert([...])` call per table instead of one round-trip per row.
+
+### Reliability — Job Store Import-Order Fix
+- `job_store.py`'s module-level `JobStore()` singleton reads `UPSTASH_REDIS_REST_URL`/`TOKEN` from the environment at import time. Importing it before `crew.py`'s `load_dotenv()` call silently fell back to the in-memory store (jobs lost on every restart) — fixed by moving the import to after `load_dotenv()` runs.
+
+### Other
+- `AGENT_CONFIG` in `src/lib/constants.ts` updated to reflect the new model and token limits (unused elsewhere; fixed for documentation accuracy).
+- CrewAI's rate-limit retry (`crew.py`) currently restarts `kickoff()` from task 1 on each attempt rather than resuming from the last completed task — the 3.4.0 replay-based resume was removed as part of the LLM migration and has not yet been reinstated.
+
+## [3.5.1] — 2026-07-07
 
 ### Fix — AI Pipeline Deploy Failure on Fresh Installs
 - **Root cause**: `.agents/requirements.txt` pinned `crewai[litellm]>=0.51.0` with no upper bound. A fresh `pip install` (e.g. redeploying on a new Railway project with no cached layers) resolves to whatever the newest CrewAI release is — which currently has a regression ([crewAIInc/crewAI#5886](https://github.com/crewAIInc/crewAI/issues/5886)): CrewAI calls `mark_cache_breakpoint()` on every message regardless of LLM provider, but only the Anthropic adapter strips that flag before sending. Groq's API then rejects every request with `property 'cache_breakpoint' is unsupported`, failing the pipeline on the very first LLM call.

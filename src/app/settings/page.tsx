@@ -15,7 +15,7 @@ type Section = 'security' | 'notifications' | 'appearance'
 const NAV_ITEMS = [
     { id: 'security' as Section, icon: Shield, label: 'Security', desc: 'Password & sessions', accent: 'blue' as const },
     { id: 'notifications' as Section, icon: Bell, label: 'Notifications', desc: 'Alerts & reports', accent: 'amber' as const },
-    ]
+]
 
 const accentMap = {
     blue: { icon: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', active: 'bg-primary/15 border-primary/40' },
@@ -93,7 +93,7 @@ export default function SettingsPage() {
                     <div className="flex-1 min-w-0">
                         {section === 'security' && <SecuritySection email={user?.email || ''} />}
                         {section === 'notifications' && <NotificationsSection />}
-                                            </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -114,11 +114,19 @@ function SecuritySection({ email }: { email: string }) {
 
     async function handleChangePassword() {
         setError('')
+        if (!passwords.current) { setError('Enter your current password'); return }
         if (passwords.newPass !== passwords.confirm) { setError('New passwords do not match'); return }
         if (passwords.newPass.length < 8) { setError('Password must be at least 8 characters'); return }
         setSaving(true)
         try {
             const supabase = createClient()
+
+            const { error: reauthError } = await supabase.auth.signInWithPassword({
+                email,
+                password: passwords.current,
+            })
+            if (reauthError) { setError('Current password is incorrect'); setSaving(false); return }
+
             const { error } = await supabase.auth.updateUser({ password: passwords.newPass })
             if (error) throw error
             setSaved(true)
@@ -355,8 +363,8 @@ function AppearanceSection() {
                                 key={t.id}
                                 onClick={() => setTheme(t.id)}
                                 className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all duration-200 ${isActive
-                                        ? 'border-purple-500/60 bg-purple-600/10 shadow-sm shadow-purple-500/10'
-                                        : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60 hover:bg-slate-800/50'
+                                    ? 'border-purple-500/60 bg-purple-600/10 shadow-sm shadow-purple-500/10'
+                                    : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60 hover:bg-slate-800/50'
                                     }`}
                             >
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isActive ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-slate-700/60'
@@ -386,8 +394,8 @@ function AppearanceSection() {
                             key={d}
                             onClick={() => setDensity(d)}
                             className={`flex flex-col gap-1.5 p-4 rounded-xl border transition-all duration-200 text-left ${density === d
-                                    ? 'border-purple-500/60 bg-purple-600/10'
-                                    : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60'
+                                ? 'border-purple-500/60 bg-purple-600/10'
+                                : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60'
                                 }`}
                         >
                             <p className={`text-sm font-semibold capitalize ${density === d ? 'text-purple-200' : 'text-slate-400'}`}>{d}</p>
@@ -439,8 +447,8 @@ function SectionCard({
 function Alert({ type, children }: { type: 'success' | 'error'; children: React.ReactNode }) {
     return (
         <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${type === 'success'
-                ? 'text-primary bg-primary/10 border-primary/20'
-                : 'text-red-400 bg-red-500/10 border-red-500/20'
+            ? 'text-primary bg-primary/10 border-primary/20'
+            : 'text-red-400 bg-red-500/10 border-red-500/20'
             }`}>
             {type === 'success'
                 ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
