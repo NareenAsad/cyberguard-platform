@@ -5,7 +5,7 @@ crewai[litellm,anthropic]==1.14.1
 crewai-tools>=0.8.3
 
 # FastAPI Service
-fastapi>=0.111.0
+fastapi>=0.141.1
 uvicorn[standard]>=0.30.0
 
 # HTTP Client
