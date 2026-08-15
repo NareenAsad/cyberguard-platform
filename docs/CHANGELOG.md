@@ -5,7 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.6.0] — 2026-07-30 (Current)
+## [3.7.0] — 2026-08-15 (Current)
+
+### Security Audit — Row Level Security, Encryption, Bot Protection, and RBAC Gaps
+A full pass against a 20-point OWASP-style pre-launch checklist, prompted by a spot-check of the live app. Findings and fixes:
+
+- **Row Level Security was effectively off.** Only `profiles` had RLS enabled; `Threat`, `RiskAnalysis`, `Incident`, `Playbook`, `Report`, `assets`, `audit_logs`, `data_source_configs`, `agent_jobs`, and `notifications` all had it disabled — meaning anyone who extracted the public `NEXT_PUBLIC_SUPABASE_ANON_KEY` from a page load could read/write those tables directly through Supabase's REST API, bypassing the app's auth, RBAC, and rate limiting entirely. Enabled RLS with zero policies (default-deny for `anon`/`authenticated`) on all ten tables — safe because every API route uses the service-role client, which bypasses RLS, and no client component queries these tables directly. `docs/SETUP.md`'s table-creation SQL updated to match, plus a previously-undocumented `notifications` table added to it.
+- **Third-party API keys were stored in plaintext.** `data_source_configs.api_key` (NVD/OTX/Shodan/etc. keys entered in Admin → Data Sources) is now AES-256-GCM encrypted (`src/lib/crypto.ts`, `DATA_SOURCE_ENCRYPTION_KEY`) before being written.
+- **`/api/test-db` was reachable by any authenticated user.** A leftover debug endpoint dumping row counts across every table via the service-role client, with no role check — now admin-only.
+- **`/api/notifications` had no authorization at all.** Since notifications are a shared, system-wide feed with no per-user ownership, any authenticated Viewer could `POST` spoofed alerts into everyone's bell or `DELETE` (clear-all) the entire feed for every user. `POST` and both `DELETE` paths (single-item and clear-all) now require `canDeleteData`; added Zod validation (`notificationPostSchema`, `notificationPatchSchema`) where there was none.
+- **`/api/admin/users/[id]` PATCH took `role`/`is_active` straight off the raw request body** with no schema — added `adminUserPatchSchema` (strict enum + boolean validation).
+- **No rate limiting on login.** `rate-limit.ts` was used across API routes but never called from the `login()` Server Action (which only receives `FormData`, not a `NextRequest`). Split a new `rateLimitKey()` primitive out of `rate-limit.ts` so Server Actions can use the same Redis/in-memory sliding window; `login()` now throttles by both IP (20/5min) and attempted email (5/5min).
+- **No bot protection on login/signup.** Added Cloudflare Turnstile (`src/components/auth/turnstile-widget.tsx`, `src/lib/turnstile.ts`) in `interaction-only` appearance mode (invisible for legitimate traffic); verified server-side in both `login()` and `signup()` before either touches Supabase Auth. Fails open in development when unconfigured, fails closed in production.
+- **No security response headers.** Added `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` via `next.config.ts`'s `headers()` (works with the custom `server.js` entrypoint since Next.js's router applies the compiled routes-manifest headers regardless of entrypoint). A Content-Security-Policy was deliberately **not** added — the risk of silently breaking hydration/sockets/charts outweighed doing it without the ability to test it live.
+- **No dependency vulnerability scanning.** Added `.github/dependabot.yml` (npm workspace + `.agents/` Python service, weekly). Dependabot alerts/security updates still need enabling once in the repo's GitHub settings — the config alone only adds version-bump PRs.
+- Confirmed already in good shape and left unchanged: public anon key used correctly client-side (service-role key never leaves server-only files), Supabase Auth's own bcrypt password hashing, `@supabase/ssr`-managed session cookies, parameterized queries everywhere (no raw SQL), `sanitizeString()` HTML-escaping across Zod schemas, and `/api/admin/users`' already-trimmed response shape.
+
+### UX Fixes Found Alongside the Audit
+- **Destructive actions had no confirmation.** Delete buttons on Reports, Incidents, and Playbooks fired immediately on click with no way to undo. Added a reusable `DeleteConfirmDialog` (`src/components/ui/delete-confirm-dialog.tsx`, built on shadcn's `AlertDialog`) and wired it into all three, plus the notification bell's per-item delete and "Clear all" (both added this same pass).
+- **No way to delete a single notification**, only clear-the-entire-feed existed. Added `deleteNotification()` (`src/lib/db.ts`), `DELETE /api/notifications?id=` support, and a per-card delete button in `notification-bell.tsx` (shown only to `canDeleteData` roles, since deleting affects the shared feed for everyone).
+- Note for future reference: report/incident/playbook deletes are **hard deletes** with no trash/recycle bin, and the audit log only records that a delete happened (action + target ID), not the deleted content — so there is currently no way to recover an accidentally-deleted item short of a Supabase backup (which the project's Free-tier plan doesn't have). A soft-delete pattern was proposed but not yet implemented.
+
+## [3.6.0] — 2026-07-30
 
 ### LLM Migration — Groq → Anthropic Claude
 - Replaced Groq (`llama-3.3-70b-versatile`) with **Anthropic Claude** (`claude-haiku-4-5-20251001`, via LiteLLM) across the entire AI pipeline (`.agents/crew.py`, `.agents/requirements.txt` now installs `crewai[litellm,anthropic]`). Configurable via `LLM_MODEL`, defaulting to Haiku 4.5.

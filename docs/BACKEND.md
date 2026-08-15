@@ -1,6 +1,6 @@
 # Backend Documentation (docs/BACKEND.md)
 
-> **v3.6.0 — Updated July 2026**
+> **v3.7.0 — Updated August 2026**
 
 CyberGuard's backend is implemented entirely with **Next.js API Routes** + a custom **Node.js server** (`server.js`) for Socket.io. No separate API process is required.
 
@@ -26,6 +26,14 @@ CyberGuard's backend is implemented entirely with **Next.js API Routes** + a cus
 - **Internal webhook auth** — `server.js`'s internal Socket.io bridge (`POST /api/internal/socket-emit`) requires a matching `INTERNAL_WEBHOOK_SECRET` via an `x-internal-secret` header (`src/lib/socket/emit-socket-event.ts`), instead of trusting any caller that can reach localhost.
 - **Locked-down CORS** — both `server.js`'s Socket.io server and the FastAPI service now allow only `NEXT_PUBLIC_APP_URL` (falling back to `http://localhost:3000`), replacing a wildcard `origin: '*'`.
 - **Opaque content at rest** (`src/lib/opaque-content.ts`) — `Report.content` and `Playbook.content` are base64-wrapped (`{__b64: true, data}`) before being written to Supabase. Root cause: Supabase's Cloudflare edge returned a WAF "Attention Required" challenge page instead of a JSON response for POST bodies whose raw JSON contained attack-pattern-looking text — which AI-generated remediation commands, detection rules, and IOC values frequently do. Wrapping the JSON as base64 keeps literal trigger strings out of the raw request body; reads transparently decode via `decodeReportContent` / `decodePlaybookContent`, falling back to the plain object for rows written before this existed.
+- **Encryption at rest** (`src/lib/crypto.ts`) — third-party data-source API keys (NVD, OTX, Shodan, etc., entered in Admin → Data Sources) are AES-256-GCM encrypted with `DATA_SOURCE_ENCRYPTION_KEY` before being written to `data_source_configs.api_key`; the GET route never selects that column back to the client either.
+- **Row Level Security** — every application table has RLS enabled with zero policies (default-deny for `anon`/`authenticated`). The service-role client every API route uses bypasses RLS as intended; this only stops someone from reading/writing these tables directly through Supabase's REST API using the public anon key, which ships in every page load. See `docs/SETUP.md` for the exact `alter table ... enable row level security` statements.
+- **Bot protection** (`src/lib/turnstile.ts`, `src/components/auth/turnstile-widget.tsx`) — Cloudflare Turnstile gates `login()` and `signup()` in `src/lib/auth/actions.ts`; the token is verified server-side via Cloudflare's `siteverify` endpoint before either action touches Supabase Auth. Fails open in development when `TURNSTILE_SECRET_KEY` is unset, fails closed in production.
+- **Login throttling** (`src/lib/auth/actions.ts`) — `login()` rate-limits by both IP and the attempted email address independently (`rateLimitKey`, a lower-level primitive split out of `rate-limit.ts` for Server Actions, which don't receive a `NextRequest`), on top of the general per-endpoint limiter used by API routes.
+- **Debug endpoint lockdown** — `/api/test-db` (a diagnostic route using the service-role client to dump row counts across every table) now requires the `admin` role; previously any authenticated user could call it.
+- **Notification feed authorization** — `/api/notifications` has no per-user ownership (it's a shared, system-wide feed), so `POST`, single-item `DELETE`, and clear-all `DELETE` all require `canDeleteData`; only `GET` and marking read (`PATCH`) are open to any authenticated role.
+- **Delete confirmation** (`src/components/ui/delete-confirm-dialog.tsx`) — every destructive UI action (reports, incidents, playbooks, notifications) requires an explicit confirm dialog before the delete request fires; previously these fired immediately on click with no way to undo.
+- **Dependency scanning** — `.github/dependabot.yml` covers the npm workspace and the Python service (`.agents/`) on a weekly schedule. Dependabot alerts/security updates still need to be enabled once in the repo's GitHub settings (`Settings → Code security and analysis`) — the config file alone only adds version-bump PRs, not vulnerability scanning.
 
 ---
 

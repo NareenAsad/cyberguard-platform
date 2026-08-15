@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { canAssignRole } from '@/lib/auth/role-slots'
 import type { UserRole } from '@/lib/auth/types'
+import { adminUserPatchSchema } from '@/lib/validation'
 
 // PATCH /api/admin/users/[id] — update role or is_active
 export async function PATCH(
@@ -20,7 +21,17 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { role, is_active } = body
+
+    // OWASP: strict Zod validation — role must be a real enum member,
+    // is_active must be a boolean, and no unrecognized fields are accepted.
+    const validation = adminUserPatchSchema.safeParse(body)
+    if (!validation.success) {
+        return NextResponse.json(
+            { error: 'Validation failed', details: validation.error.format() },
+            { status: 400 }
+        )
+    }
+    const { role, is_active } = validation.data
 
     const admin = createAdminClient()
 

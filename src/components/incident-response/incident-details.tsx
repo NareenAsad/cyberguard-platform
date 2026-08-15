@@ -5,6 +5,7 @@ import { Clock, Trash2, User, CheckCircle, RefreshCw, AlertCircle, UserCheck } f
 import type { Incident } from '@/types/incident'
 import { incidentAPI } from '@/lib/api-service'
 import { useAuth } from '@/lib/auth/auth-context'
+import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog'
 
 interface IncidentDetailsProps {
     incident: Incident | null
@@ -103,13 +104,14 @@ export function IncidentDetails({ incident, onUpdate, onDelete }: IncidentDetail
                         <p className="text-xs text-muted-foreground font-mono mt-1">{incident.incidentId ?? incident.id}</p>
                     </div>
                     {can('canDeleteData') && (
-                        <button
-                            onClick={() => onDelete?.(incident.id)}
-                            className="p-2 bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors shrink-0"
-                            title="Delete Incident"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                        <DeleteConfirmDialog itemLabel="incident" onConfirm={() => onDelete?.(incident.id)}>
+                            <button
+                                className="p-2 bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors shrink-0"
+                                title="Delete Incident"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </DeleteConfirmDialog>
                     )}
                 </div>
 

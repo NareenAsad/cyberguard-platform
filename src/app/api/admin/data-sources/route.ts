@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { adminDataSourcePatchSchema } from '@/lib/validation'
+import { encryptSecret } from '@/lib/crypto'
 
 // GET /api/admin/data-sources
 export async function GET(request: NextRequest) {
@@ -62,7 +63,8 @@ export async function PATCH(request: NextRequest) {
         updated_at: new Date().toISOString(),
         updated_by: user.id,
     }
-    if (api_key  !== undefined) updates.api_key  = api_key
+    // Encrypt at rest — never store the raw third-party API key in the DB.
+    if (api_key  !== undefined) updates.api_key  = encryptSecret(api_key)
     if (enabled  !== undefined) updates.enabled  = enabled
 
     const { error } = await admin

@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { signup } from '@/lib/auth/actions'
+import { TurnstileWidget } from '@/components/auth/turnstile-widget'
 
 
 export default function SignupPage() {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [verified, setVerified] = useState(false)
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -134,13 +136,14 @@ export default function SignupPage() {
                         />
                     </div>
 
+                    <TurnstileWidget onVerify={(token) => setVerified(!!token)} />
                 </CardContent>
 
                 <CardFooter className="flex flex-col gap-4 pt-6">
                     <Button
                         type="submit"
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={loading}
+                        disabled={loading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !verified)}
                     >
                         {loading ? (
                             <>

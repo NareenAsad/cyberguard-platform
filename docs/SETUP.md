@@ -47,6 +47,16 @@ AGENT_API_SECRET=<generate-a-long-random-string>
 # (POST /api/internal/socket-emit). Must match on both sides.
 INTERNAL_WEBHOOK_SECRET=<generate-a-long-random-string>
 
+# Encrypts third-party API keys (NVD, OTX, etc.) entered in Admin > Data
+# Sources before they are stored in Supabase. Generate with:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+DATA_SOURCE_ENCRYPTION_KEY=<generate-a-long-random-string>
+
+# Cloudflare Turnstile — bot protection on login/signup. Get both from
+# dash.cloudflare.com -> Turnstile -> Add site (widget mode: Managed).
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=<your-turnstile-site-key>
+TURNSTILE_SECRET_KEY=<your-turnstile-secret-key>
+
 # Upstash Redis 7.2 (rate limiting, caching, metrics persistence)
 UPSTASH_REDIS_REST_URL=https://<your-db-name>.upstash.io
 UPSTASH_REDIS_REST_TOKEN=<your-upstash-token>
@@ -65,6 +75,15 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 1. Sign up at [console.anthropic.com](https://console.anthropic.com)
 2. Go to **API Keys → Create Key**
 3. Copy the key into `ANTHROPIC_API_KEY`
+
+### Getting Cloudflare Turnstile Keys
+1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com) (free, no domain required to get started)
+2. Go to **Turnstile → Add site**
+3. Domain: `localhost` for local dev, plus your production domain (you can add multiple domains to one widget)
+4. Widget mode: **Managed** (usually solves invisibly; only shows a challenge for suspicious traffic)
+5. Copy the **Site Key** into `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and the **Secret Key** into `TURNSTILE_SECRET_KEY`
+
+> Without these two vars set, login/signup work normally in development (the check fails open outside production) but bot protection is disabled — set them before deploying.
 
 ### Getting Upstash Redis Credentials
 1. Sign up at [console.upstash.com](https://console.upstash.com) (free tier — no credit card)
@@ -196,6 +215,21 @@ create table "DashboardMetric" (
   "updatedAt" timestamptz default now()
 );
 
+-- Enable Row Level Security on every table above. No policies are added —
+-- zero policies means default-deny for the anon/authenticated roles, which
+-- is exactly what's wanted here: every read/write in this app goes through
+-- a Next.js API route using the service-role client (which bypasses RLS
+-- entirely), never the public anon key directly. Without this, anyone who
+-- extracts NEXT_PUBLIC_SUPABASE_ANON_KEY from a page load (it's public by
+-- design) could query/mutate these tables straight through Supabase's REST
+-- API, bypassing your app's auth, RBAC, and rate limiting completely.
+alter table "Threat" enable row level security;
+alter table "RiskAnalysis" enable row level security;
+alter table "Incident" enable row level security;
+alter table "Playbook" enable row level security;
+alter table "Report" enable row level security;
+alter table "DashboardMetric" enable row level security;
+
 -- ============================================================
 -- Plain Supabase tables (not Prisma-managed)
 -- ============================================================
@@ -255,6 +289,9 @@ create table audit_logs (
 );
 
 -- Threat-feed integration toggles (Admin Panel → Data Sources)
+-- api_key is stored AES-256-GCM encrypted by the app (src/lib/crypto.ts,
+-- DATA_SOURCE_ENCRYPTION_KEY) before it ever reaches this column — expect
+-- an opaque "iv:authTag:ciphertext" hex string here, never a raw key.
 create table data_source_configs (
   id uuid primary key default gen_random_uuid(),
   key text unique not null,
@@ -263,6 +300,19 @@ create table data_source_configs (
   api_key text,
   updated_at timestamptz default now(),
   updated_by uuid references auth.users
+);
+
+-- Shared, system-wide notification feed (header bell) — no per-user
+-- ownership column by design; POST/DELETE are admin-only at the API layer
+-- since they affect every user's view of the same feed.
+create table notifications (
+  id text primary key,
+  type text not null,
+  title text not null,
+  message text not null,
+  severity text not null check (severity in ('critical','high','medium','low','info')),
+  read boolean default false,
+  timestamp timestamptz default now()
 );
 
 -- AI pipeline job tracking. Note: currently a no-op in practice — the only
@@ -279,6 +329,15 @@ create table agent_jobs (
   indicators_count integer default 0,
   assets_count integer default 0
 );
+
+-- Same reasoning as the Prisma-modeled tables above — default-deny RLS,
+-- since only the service-role client (used by every API route) ever
+-- touches these directly.
+alter table assets enable row level security;
+alter table audit_logs enable row level security;
+alter table data_source_configs enable row level security;
+alter table notifications enable row level security;
+alter table agent_jobs enable row level security;
 ```
 
 ### Table Reference
@@ -295,7 +354,10 @@ create table agent_jobs (
 | `assets` | Asset inventory (Admin Panel) |
 | `audit_logs` | Admin action audit trail |
 | `data_source_configs` | Threat-feed integration toggles (Admin Panel) |
+| `notifications` | Shared, system-wide notification feed (header bell) |
 | `agent_jobs` | AI pipeline job tracking (not currently populated — see note above) |
+
+> **RLS is enabled on every table above with zero policies** (default-deny for the `anon`/`authenticated` roles). All application reads/writes go through Next.js API routes using the service-role client, which bypasses RLS — so this doesn't affect the app's own functionality, it only blocks direct access via Supabase's REST API using the public anon key.
 
 ### User Roles & Permissions
 

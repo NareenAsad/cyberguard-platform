@@ -4,6 +4,7 @@ import type { Report } from '@/types/report'
 import { Download, Trash2, FileText, Calendar, Shield, ChevronRight, BarChart3, Wrench, ClipboardList } from 'lucide-react'
 import { exportToPDF } from '@/lib/export-utils'
 import { useAuth } from '@/lib/auth/auth-context'
+import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog'
 
 interface ReportCardProps {
     report: Report
@@ -117,16 +118,15 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
                             </button>
                         )}
                         {can('canDeleteData') && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    onDelete(report.id)
-                                }}
-                                className="p-1.5 hover:bg-red-500/10 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
-                                title="Delete Report"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <DeleteConfirmDialog itemLabel="report" onConfirm={() => onDelete(report.id)}>
+                                <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="p-1.5 hover:bg-red-500/10 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                                    title="Delete Report"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </DeleteConfirmDialog>
                         )}
                     </div>
                 </div>

@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { onAlert } from '@/lib/socket/socket'
 import { useAuth } from '@/lib/auth/auth-context'
+import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog'
 
 interface AlertNotification {
     id: string
@@ -43,7 +44,7 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<StoredNotification[]>([])
     const [open, setOpen] = useState(false)
-    const { role, user } = useAuth()
+    const { role, user, can } = useAuth()
 
     const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -115,6 +116,13 @@ export function NotificationBell() {
         }).catch((err) => console.error('Failed to clear notifications:', err))
     }
 
+    const deleteOne = (id: string) => {
+        setNotifications((prev) => prev.filter((n) => n.id !== id))
+        fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        }).catch((err) => console.error('Failed to delete notification:', err))
+    }
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -148,12 +156,16 @@ export function NotificationBell() {
                             </button>
                         )}
                         {notifications.length > 0 && (
-                            <button
-                                onClick={clearAll}
-                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            <DeleteConfirmDialog
+                                itemLabel="notifications"
+                                title="Clear all notifications?"
+                                description="This removes every notification for all users. This action cannot be undone."
+                                onConfirm={clearAll}
                             >
-                                Clear all
-                            </button>
+                                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    Clear all
+                                </button>
+                            </DeleteConfirmDialog>
                         )}
                     </div>
                 </div>
@@ -180,19 +192,32 @@ export function NotificationBell() {
                                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                                         <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.timestamp)}</p>
                                     </div>
-                                    <button
-                                        onClick={() => toggleRead(n.id)}
-                                        aria-label={n.read ? 'Mark as unread' : 'Mark as read'}
-                                        title={n.read ? 'Mark as unread' : 'Mark as read'}
-                                        className="shrink-0 mt-1.5 w-4 h-4 rounded-full flex items-center justify-center group"
-                                    >
-                                        <span
-                                            className={`w-2 h-2 rounded-full transition-colors ${n.read
-                                                ? 'border border-muted-foreground/40 group-hover:border-primary'
-                                                : 'bg-primary group-hover:bg-primary/70'
-                                                }`}
-                                        />
-                                    </button>
+                                    <div className="shrink-0 flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => toggleRead(n.id)}
+                                            aria-label={n.read ? 'Mark as unread' : 'Mark as read'}
+                                            title={n.read ? 'Mark as unread' : 'Mark as read'}
+                                            className="mt-1.5 w-4 h-4 rounded-full flex items-center justify-center group"
+                                        >
+                                            <span
+                                                className={`w-2 h-2 rounded-full transition-colors ${n.read
+                                                    ? 'border border-muted-foreground/40 group-hover:border-primary'
+                                                    : 'bg-primary group-hover:bg-primary/70'
+                                                    }`}
+                                            />
+                                        </button>
+                                        {can('canDeleteData') && (
+                                            <DeleteConfirmDialog itemLabel="notification" onConfirm={() => deleteOne(n.id)}>
+                                                <button
+                                                    aria-label="Delete notification"
+                                                    title="Delete notification"
+                                                    className="mt-1.5 w-4 h-4 rounded-full flex items-center justify-center text-muted-foreground/50 hover:text-red-400 transition-colors"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </DeleteConfirmDialog>
+                                        )}
+                                    </div>
                                 </li>
                             ))}
                         </ul>

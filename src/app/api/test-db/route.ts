@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,18 @@ const supabase = createClient(
 )
 
 export async function GET() {
+    // Debug/diagnostic endpoint — uses the service-role client to dump row
+    // counts across every table, so it must never be reachable by a
+    // non-admin. Previously required only a logged-in session (any role).
+    const serverClient = await createServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+
+    const { data: profile } = await serverClient.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || profile.role !== 'admin') {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
     try {
         // 1. Check connection
         const { data: tablesRes, error: tablesErr } = await supabase

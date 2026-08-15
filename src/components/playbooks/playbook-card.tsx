@@ -2,6 +2,7 @@
 
 import { BookOpen, CheckCircle, Trash2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog'
 
 export interface Playbook {
     id: string
@@ -46,18 +47,17 @@ export function PlaybookCard({ playbook, onSelect, onDelete }: PlaybookCardProps
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{playbook.playbookId ?? playbook.id}</span>
                     {can('canDeleteData') && (
-                        <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onDelete(playbook.id)
-                            }}
-                            className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
-                            title="Delete Playbook"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </div>
+                        <DeleteConfirmDialog itemLabel="playbook" onConfirm={() => onDelete(playbook.id)}>
+                            <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 hover:bg-red-500/20 rounded-md text-muted-foreground hover:text-red-400 transition-colors"
+                                title="Delete Playbook"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </div>
+                        </DeleteConfirmDialog>
                     )}
                 </div>
             </div>

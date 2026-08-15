@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # Next.js app (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+    labels:
+      - "dependencies"
+
+  # Python AI microservice
+  - package-ecosystem: "pip"
+    directory: "/.agents"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+
+  # GitHub Actions workflows, if/when any are added
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"

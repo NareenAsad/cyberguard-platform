@@ -99,44 +99,19 @@ function inMemoryRateLimit(
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Sliding-window rate limiting helper.
- *
- * - Uses Redis (Upstash) when UPSTASH_REDIS_REST_URL is set — persists across
- *   server restarts and works across multiple instances.
- * - Falls back to an in-memory Map when Redis is not configured.
- *
- * Identity resolution (OWASP recommendation):
- *   Authenticated users  → keyed by user ID
- *   Unauthenticated      → keyed by IP address
+ * Sliding-window rate limiting keyed directly by an arbitrary identifier
+ * (already namespaced by the caller). This is the core primitive behind
+ * `rateLimit()` below — split out so callers that don't have a `NextRequest`
+ * (e.g. Server Actions like `login()`, which only receive `FormData`) can
+ * still rate limit using the same Redis/in-memory sliding window.
  */
-export async function rateLimit(
-    request: NextRequest,
+export async function rateLimitKey(
+    key: string,
     options: RateLimitOptions = {}
 ): Promise<RateLimitResult> {
-    const { limit = 60, windowMs = 60_000, endpoint = 'global' } = options
+    const { limit = 60, windowMs = 60_000 } = options
     const now = Date.now()
 
-    // 1. Resolve client IP
-    const forwardedFor = request.headers.get('x-forwarded-for')
-    const ip = forwardedFor
-        ? forwardedFor.split(',')[0].trim()
-        : ((request as any).ip || '127.0.0.1')
-
-    // 2. Resolve authenticated user ID (safe fallback if cookies unavailable)
-    let userId: string | null = null
-    try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) userId = user.id
-    } catch {
-        // Safe fallback during build/prerender
-    }
-
-    // 3. Build the rate-limit key
-    const identifier = userId ? `user:${userId}` : `ip:${ip}`
-    const key = `rl:${endpoint}:${identifier}`
-
-    // 4. Run the appropriate rate limiter
     let count: number
     try {
         if (redis) {
@@ -178,4 +153,44 @@ export async function rateLimit(
     const remaining = limit - (count + 1)
 
     return { isAllowed: true, limit, remaining, reset: resetTime }
+}
+
+/**
+ * Sliding-window rate limiting helper for API routes.
+ *
+ * - Uses Redis (Upstash) when UPSTASH_REDIS_REST_URL is set — persists across
+ *   server restarts and works across multiple instances.
+ * - Falls back to an in-memory Map when Redis is not configured.
+ *
+ * Identity resolution (OWASP recommendation):
+ *   Authenticated users  → keyed by user ID
+ *   Unauthenticated      → keyed by IP address
+ */
+export async function rateLimit(
+    request: NextRequest,
+    options: RateLimitOptions = {}
+): Promise<RateLimitResult> {
+    const { endpoint = 'global' } = options
+
+    // 1. Resolve client IP
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const ip = forwardedFor
+        ? forwardedFor.split(',')[0].trim()
+        : ((request as any).ip || '127.0.0.1')
+
+    // 2. Resolve authenticated user ID (safe fallback if cookies unavailable)
+    let userId: string | null = null
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) userId = user.id
+    } catch {
+        // Safe fallback during build/prerender
+    }
+
+    // 3. Build the rate-limit key and delegate to the shared limiter
+    const identifier = userId ? `user:${userId}` : `ip:${ip}`
+    const key = `rl:${endpoint}:${identifier}`
+
+    return rateLimitKey(key, options)
 }

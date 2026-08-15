@@ -558,6 +558,19 @@ export async function markNotificationRead(id?: string, markAll = false) {
     }
 }
 
+export async function deleteNotification(id: string) {
+    try {
+        let res = await supabase.from('Notification').delete().eq('id', id)
+        if (res.error && (res.error as any).code === 'PGRST205') {
+            res = await supabase.from('notifications').delete().eq('id', id)
+        }
+        return { success: !res.error, error: res.error?.message }
+    } catch (error: any) {
+        console.error('Error deleting notification:', error)
+        return { success: false, error: error?.message || 'Failed to delete notification' }
+    }
+}
+
 export async function clearNotifications() {
     try {
         let res = await supabase.from('Notification').delete().neq('id', '___none___')

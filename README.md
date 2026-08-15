@@ -35,8 +35,8 @@ An enterprise-grade, AI-powered cybersecurity platform built as a Final Year Pro
 | **Authentication** | Complete | Supabase Auth — login, register, session, role-based access |
 | **Admin Panel** | Complete | User management, system health, data sources, assets |
 | **Settings / Profile** | Complete | Profile editing, role display, account details |
-| **Database Integration** | Complete | Supabase Postgres — 7 tables, DB-first + mock fallback |
-| **API Layer** | Complete | 8 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
+| **Database Integration** | Complete | Supabase Postgres — 12 tables, all RLS-enabled, DB-first + mock fallback |
+| **API Layer** | Complete | 18 endpoints with strict Zod validation, input sanitization, and sliding-window rate limiting |
 | **Redis Integration** | Complete | Upstash Redis 7.2 — rate limiting, API caching, real-time metrics persistence |
 | **Real-Time / Socket.io** | Complete | Socket.io 4.8 — live metrics every 30 s, chart data every 10 s, instant AI pipeline completion events |
 | **Real-Time Toggle** | Complete | Per-user on/off switch, persisted across refreshes — pause live updates to focus on static snapshot during analysis |
@@ -116,6 +116,11 @@ To align with OWASP best practices, CyberGuard implements robust API defense and
 - **Service-to-Service Auth** — the Next.js backend and the Python AI microservice authenticate each other via a shared `AGENT_API_SECRET` (`x-api-key` header); the custom server's internal Socket.io bridge (`POST /api/internal/socket-emit`) requires a matching `INTERNAL_WEBHOOK_SECRET`. Both replace an earlier implicit trust-by-network-position model.
 - **Locked-Down CORS** — Socket.io (both `server.js` and the FastAPI service) now allow only the configured `NEXT_PUBLIC_APP_URL` origin, replacing a wildcard `origin: '*'`.
 - **Opaque Content at Rest** (`src/lib/opaque-content.ts`) — AI-generated report/playbook content is base64-wrapped before being written to Supabase, so freeform LLM text describing exploits/commands/IOCs can't be misread by an upstream WAF as an attack payload; reads decode transparently.
+- **Encryption at Rest** (`src/lib/crypto.ts`) — third-party data-source API keys (NVD, OTX, etc.) are AES-256-GCM encrypted before being written to Supabase, never stored in plaintext.
+- **Row Level Security** — RLS is enabled on every application table; the service-role client used by API routes bypasses it as intended, but it default-denies the public anon key from ever reading/writing these tables directly against Supabase's REST API.
+- **Bot Protection** (`src/components/auth/turnstile-widget.tsx`, `src/lib/turnstile.ts`) — Cloudflare Turnstile gates login and signup, verified server-side before either action runs.
+- **Login Rate Limiting** — `login()` throttles by both IP and the attempted email address, independent of the general API rate limiter.
+- **Delete Confirmation** (`src/components/ui/delete-confirm-dialog.tsx`) — every destructive action (reports, incidents, playbooks, notifications) requires an explicit confirm, not just a permission check.
 
 ---
 
@@ -276,6 +281,10 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 AGENT_API_SECRET=your_generated_secret
 INTERNAL_WEBHOOK_SECRET=your_generated_secret
 
+# Cloudflare Turnstile — bot protection on login/signup (dash.cloudflare.com)
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_turnstile_site_key
+TURNSTILE_SECRET_KEY=your_turnstile_secret_key
+
 # Upstash Redis (Redis 7.2) — get from https://console.upstash.com
 # Required for rate limiting, API caching, and metrics persistence
 UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
@@ -368,6 +377,6 @@ This is a university Final Year Project maintained by the team below. If you'd l
 
 **Built with pride by the CyberGuard Team — Lahore College for Women University**
 
-**Version:** 3.6.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** July 2026
+**Version:** 3.7.0 &nbsp;|&nbsp; **Status:** Active Development &nbsp;|&nbsp; **Last Updated:** August 2026
 
 </div>

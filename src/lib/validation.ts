@@ -121,3 +121,30 @@ export const agentsSavePostSchema = z.object({
         compliance_report: z.record(z.string(), z.unknown()).optional(),
     }).strict(),
 }).strict()
+
+// ── 9. Admin User Update Schema ──────────────────────────────────────────────
+
+export const adminUserPatchSchema = z.object({
+    role: z.enum(['admin', 'manager', 'analyst', 'viewer']).optional(),
+    is_active: z.boolean().optional(),
+}).strict().refine(data => data.role !== undefined || data.is_active !== undefined, {
+    message: "At least one of role or is_active is required for update",
+})
+
+// ── 10. Notification Schemas ─────────────────────────────────────────────────
+
+export const notificationPostSchema = z.object({
+    id: z.string().trim().max(100).regex(/^[a-zA-Z0-9_-]+$/).optional(),
+    type: z.string().trim().min(1).max(50).transform(sanitizeString),
+    title: z.string().trim().min(1).max(150).transform(sanitizeString),
+    message: z.string().trim().min(1).max(1000).transform(sanitizeString),
+    severity: z.enum(['critical', 'high', 'medium', 'low', 'info']),
+    read: z.boolean().optional(),
+}).strict()
+
+export const notificationPatchSchema = z.object({
+    id: z.string().trim().min(1).max(100).optional(),
+    markAll: z.boolean().optional(),
+}).strict().refine(data => data.id !== undefined || data.markAll === true, {
+    message: "Either id or markAll must be provided",
+})
