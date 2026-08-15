@@ -16,7 +16,7 @@ jobs:
         with:
           version: 11.1.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # pnpm 11 requires Node >=22.13 (uses the built-in node:sqlite
           # module, added in Node 22) — Node 20 crashes before pnpm even
