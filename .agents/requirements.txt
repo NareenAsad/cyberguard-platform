@@ -5,7 +5,7 @@ crewai[litellm,anthropic]==1.14.1
 crewai-tools>=0.8.3
 
 # Groq (CrewAI.LLM uses litellm + groq under the hood)
-groq>=0.9.0
+groq>=1.6.0
 
 # FastAPI Service
 fastapi>=0.111.0
