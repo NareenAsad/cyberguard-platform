@@ -18,7 +18,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # pnpm 11 requires Node >=22.13 (uses the built-in node:sqlite
+          # module, added in Node 22) — Node 20 crashes before pnpm even
+          # gets to `install`.
+          node-version: '22'
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
